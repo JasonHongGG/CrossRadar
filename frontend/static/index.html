@@ -25,8 +25,8 @@
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 48 48" fill="none">
               <rect x="4" y="4" width="40" height="40" rx="14" />
-              <path d="M15 32L24 16L33 32" />
-              <path d="M15 21H33" />
+              <path d="M14 31L24 15L34 31" />
+              <path d="M16 21H32" />
               <circle cx="24" cy="24" r="4.5" />
             </svg>
           </span>
@@ -36,18 +36,32 @@
           </div>
         </div>
 
-        <form id="regionForm" class="search-shell" autocomplete="off">
-          <label class="sr-only" for="regionInput">輸入地區或平交道名稱</label>
-          <input
-            id="regionInput"
-            class="search-input"
-            list="regionSuggestions"
-            type="text"
-            placeholder="輸入縣市、鄉鎮、車站或平交道名稱"
-          />
-          <datalist id="regionSuggestions"></datalist>
-          <button id="focusRegionButton" class="primary-button" type="submit">聚焦地區</button>
-          <button id="resetRegionButton" class="ghost-button" type="button">全部顯示</button>
+        <form id="regionForm" class="search-rail" autocomplete="off">
+          <div id="searchStack" class="search-stack">
+            <label class="sr-only" for="regionInput">搜尋地區、車站或平交道</label>
+            <div class="search-box">
+              <span class="search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="11" cy="11" r="6" />
+                  <path d="M20 20L16.65 16.65" />
+                </svg>
+              </span>
+              <input
+                id="regionInput"
+                class="search-input"
+                type="text"
+                placeholder="搜尋縣市、車站、平交道"
+              />
+              <button id="searchMenuButton" class="search-toggle" type="button" aria-haspopup="listbox" aria-expanded="false">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M6 9L12 15L18 9" />
+                </svg>
+              </button>
+            </div>
+            <div id="searchPanel" class="search-panel" hidden></div>
+          </div>
+          <button id="focusRegionButton" class="primary-button" type="button">聚焦地區</button>
+          <button id="resetRegionButton" class="ghost-button" type="button">全台</button>
         </form>
 
         <div class="metric-strip">
@@ -57,25 +71,36 @@
           </article>
           <article class="metric-pill metric-pill-soft">
             <span id="filteredMetric">0</span>
-            <small>目前地區</small>
+            <small>目前範圍</small>
           </article>
           <article class="metric-pill metric-pill-alert">
             <span id="warningMetric">0</span>
-            <small>即將通過</small>
+            <small>提醒中</small>
           </article>
         </div>
       </header>
 
       <main class="experience-grid">
         <aside class="results-panel panel-shell">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">地區結果</p>
-              <h1>可選平交道</h1>
+          <div class="results-head">
+            <div class="scope-stack">
+              <span id="scopeLabel" class="scope-label">全台</span>
+              <div class="scope-count-row">
+                <strong id="resultsCount">0</strong>
+                <span>平交道</span>
+              </div>
             </div>
-            <button id="focusSelectionButton" class="ghost-button" type="button">定位目標</button>
+            <button id="focusSelectionButton" class="ghost-button inline-button" type="button">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M4 9V4H9" />
+                <path d="M15 4H20V9" />
+                <path d="M20 15V20H15" />
+                <path d="M9 20H4V15" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>定位</span>
+            </button>
           </div>
-          <p id="filterSummary" class="panel-copy">輸入地區後，地圖會聚焦到對應範圍。</p>
           <div id="resultsList" class="results-list"></div>
         </aside>
 
@@ -94,19 +119,24 @@
         </section>
 
         <aside class="insights-panel panel-shell">
-          <section id="selectedCrossingCard" class="insight-card"></section>
-          <section id="warningCard" class="insight-card warning-card"></section>
-          <section class="insight-card prediction-shell">
-            <div class="section-head compact">
-              <div>
-                <p class="section-kicker">即時提醒</p>
-                <h2>列車通過預估</h2>
-              </div>
-              <button id="refreshSelectionButton" class="ghost-button" type="button">更新預測</button>
+          <section id="selectedCrossingCard" class="display-card crossing-card"></section>
+          <section id="warningCard" class="display-card hero-card"></section>
+          <section class="display-card schedule-card">
+            <div class="schedule-head">
+              <span class="schedule-title">列車通過</span>
+              <button id="refreshSelectionButton" class="ghost-button inline-button compact" type="button">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M20 11A8 8 0 0 0 6.3 6.3" />
+                  <path d="M4 4V9H9" />
+                  <path d="M4 13A8 8 0 0 0 17.7 17.7" />
+                  <path d="M20 20V15H15" />
+                </svg>
+                <span>更新</span>
+              </button>
             </div>
             <div id="predictionList" class="prediction-list"></div>
+            <div id="statusBar" class="status-bar">載入中…</div>
           </section>
-          <div id="statusBar" class="status-bar">載入中…</div>
         </aside>
       </main>
     </div>

@@ -12,6 +12,11 @@ class PredictionRecord(BaseModel):
     train_no: str
     train_type: str | None = None
     direction: int | None = None
+    headsign: str | None = None
+    origin_station_id: str | None = None
+    origin_station_name: str | None = None
+    destination_station_id: str | None = None
+    destination_station_name: str | None = None
     source_station_id: str | None = None
     source_station_name: str | None = None
     upstream_station_id: str

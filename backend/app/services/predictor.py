@@ -131,6 +131,8 @@ class PredictorService:
                 continue
 
             upstream, downstream, direction = stop_pair
+            train_info = timetable.get("TrainInfo", {})
+            origin_station_id, origin_station_name, destination_station_id, destination_station_name = self._extract_terminal_stations(timetable)
             upstream_departure = parse_time_on_date(train_date, upstream.get("DepartureTime") or upstream.get("ArrivalTime"))
             downstream_arrival = parse_time_on_date(train_date, downstream.get("ArrivalTime") or downstream.get("DepartureTime"))
             if upstream_departure is None or downstream_arrival is None or downstream_arrival <= upstream_departure:
@@ -139,15 +141,25 @@ class PredictorService:
             delay_minutes = safe_int(liveboard.get("DelayTime"), default=0)
             actual_upstream = upstream_departure + timedelta(minutes=delay_minutes)
             actual_downstream = downstream_arrival + timedelta(minutes=delay_minutes)
-            ratio = float(crossing.get("segment_ratio") or 0.5)
-            eta = actual_upstream + (actual_downstream - actual_upstream) * ratio
+            eta, ratio = self._estimate_crossing_eta(
+                crossing,
+                upstream_station_id=upstream.get("StationID"),
+                downstream_station_id=downstream.get("StationID"),
+                upstream_departure=actual_upstream,
+                downstream_arrival=actual_downstream,
+            )
             if eta < now - timedelta(minutes=2) or eta > now + timedelta(minutes=horizon_minutes):
                 continue
 
             prediction = PredictionRecord(
                 train_no=train_no,
-                train_type=self._extract_train_type((timetable.get("TrainInfo", {}) or {}).get("TrainTypeName") or liveboard.get("TrainTypeName")),
+                train_type=self._extract_train_type(train_info.get("TrainTypeName") or liveboard.get("TrainTypeName")),
                 direction=direction,
+                headsign=self._extract_string(train_info.get("TripHeadSign")),
+                origin_station_id=origin_station_id,
+                origin_station_name=origin_station_name,
+                destination_station_id=destination_station_id,
+                destination_station_name=destination_station_name,
                 source_station_id=liveboard.get("StationID"),
                 source_station_name=(liveboard.get("StationName") or {}).get("Zh_tw"),
                 upstream_station_id=upstream.get("StationID"),
@@ -191,22 +203,33 @@ class PredictorService:
             if stop_pair is None:
                 continue
             upstream, downstream, direction = stop_pair
+            train_info = timetable.get("TrainInfo", {})
+            origin_station_id, origin_station_name, destination_station_id, destination_station_name = self._extract_terminal_stations(timetable)
             upstream_departure = parse_time_on_date(train_date, upstream.get("DepartureTime") or upstream.get("ArrivalTime"))
             downstream_arrival = parse_time_on_date(train_date, downstream.get("ArrivalTime") or downstream.get("DepartureTime"))
             if upstream_departure is None or downstream_arrival is None or downstream_arrival <= upstream_departure:
                 continue
 
-            ratio = float(crossing.get("segment_ratio") or 0.5)
-            eta = upstream_departure + (downstream_arrival - upstream_departure) * ratio
+            eta, ratio = self._estimate_crossing_eta(
+                crossing,
+                upstream_station_id=upstream.get("StationID"),
+                downstream_station_id=downstream.get("StationID"),
+                upstream_departure=upstream_departure,
+                downstream_arrival=downstream_arrival,
+            )
             if eta < now or eta > now + timedelta(minutes=horizon_minutes):
                 continue
 
-            train_info = timetable.get("TrainInfo", {})
             predictions.append(
                 PredictionRecord(
                     train_no=str(train_info.get("TrainNo") or ""),
                     train_type=self._extract_train_type(train_info.get("TrainTypeName")),
                     direction=direction,
+                    headsign=self._extract_string(train_info.get("TripHeadSign")),
+                    origin_station_id=origin_station_id,
+                    origin_station_name=origin_station_name,
+                    destination_station_id=destination_station_id,
+                    destination_station_name=destination_station_name,
                     source_station_id=upstream.get("StationID"),
                     source_station_name=(upstream.get("StationName") or {}).get("Zh_tw"),
                     upstream_station_id=upstream.get("StationID"),
@@ -274,7 +297,58 @@ class PredictorService:
             return "medium"
         return "low"
 
+    def _extract_terminal_stations(self, timetable: dict[str, Any]) -> tuple[str | None, str | None, str | None, str | None]:
+        train_info = timetable.get("TrainInfo", {}) or {}
+        stop_times = timetable.get("StopTimes", [])
+        first_stop = stop_times[0] if stop_times else {}
+        last_stop = stop_times[-1] if stop_times else {}
+        origin_station_id = train_info.get("StartingStationID") or first_stop.get("StationID")
+        origin_station_name = self._extract_station_name(train_info.get("StartingStationName")) or self._extract_station_name(first_stop.get("StationName"))
+        destination_station_id = train_info.get("EndingStationID") or last_stop.get("StationID")
+        destination_station_name = self._extract_station_name(train_info.get("EndingStationName")) or self._extract_station_name(last_stop.get("StationName"))
+        return (origin_station_id, origin_station_name, destination_station_id, destination_station_name)
+
+    def _estimate_crossing_eta(
+        self,
+        crossing: dict[str, Any],
+        *,
+        upstream_station_id: str | None,
+        downstream_station_id: str | None,
+        upstream_departure,
+        downstream_arrival,
+    ):
+        ratio = self._effective_segment_ratio(
+            crossing,
+            upstream_station_id=upstream_station_id,
+            downstream_station_id=downstream_station_id,
+        )
+        return (
+            upstream_departure + (downstream_arrival - upstream_departure) * ratio,
+            ratio,
+        )
+
+    def _effective_segment_ratio(
+        self,
+        crossing: dict[str, Any],
+        *,
+        upstream_station_id: str | None,
+        downstream_station_id: str | None,
+    ) -> float:
+        raw_ratio = float(crossing.get("segment_ratio") or 0.5)
+        ratio = min(max(raw_ratio, 0.0), 1.0)
+        station_a_id = crossing.get("station_a_id")
+        station_b_id = crossing.get("station_b_id")
+
+        if upstream_station_id == station_a_id and downstream_station_id == station_b_id:
+            return ratio
+        if upstream_station_id == station_b_id and downstream_station_id == station_a_id:
+            return 1.0 - ratio
+        return ratio
+
     def _extract_train_type(self, value: Any) -> str | None:
+        return self._extract_station_name(value)
+
+    def _extract_station_name(self, value: Any) -> str | None:
         if value is None:
             return None
         if isinstance(value, str):
@@ -282,3 +356,9 @@ class PredictorService:
         if isinstance(value, dict):
             return value.get("Zh_tw") or value.get("En")
         return str(value)
+
+    def _extract_string(self, value: Any) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip()
+        return text or None

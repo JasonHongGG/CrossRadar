@@ -3,15 +3,11 @@ const TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
   minute: '2-digit',
 });
 
-const DATE_TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
-  month: 'numeric',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
 const MAP_HOME = [23.7, 121.0];
 const MAP_HOME_ZOOM = 7;
+const COUNTDOWN_TICK_MS = 1000;
+const AUTO_REFRESH_INTERVAL_MS = 60000;
+const MAX_VISIBLE_PREDICTIONS = 4;
 const canvasRenderer = L.canvas({ padding: 0.5 });
 
 const map = L.map('map', {
@@ -31,12 +27,19 @@ const state = {
   overview: null,
   crossings: [],
   filteredCrossings: [],
-  counties: [],
+  countyGroups: [],
   query: '',
+  activeSearchOption: null,
+  searchPanelOpen: false,
   selectedCrossingId: null,
   selectedCrossingDetail: null,
   predictionEnvelope: null,
+  selectionLoading: false,
   selectionRequestToken: 0,
+  timers: {
+    countdown: null,
+    autoRefresh: null,
+  },
   crossingLayer: L.layerGroup().addTo(map),
   stationLayer: L.layerGroup().addTo(map),
 };
@@ -44,14 +47,18 @@ const state = {
 const elements = {
   regionForm: document.getElementById('regionForm'),
   regionInput: document.getElementById('regionInput'),
-  regionSuggestions: document.getElementById('regionSuggestions'),
-  focusSelectionButton: document.getElementById('focusSelectionButton'),
+  searchStack: document.getElementById('searchStack'),
+  searchMenuButton: document.getElementById('searchMenuButton'),
+  searchPanel: document.getElementById('searchPanel'),
+  focusRegionButton: document.getElementById('focusRegionButton'),
   resetRegionButton: document.getElementById('resetRegionButton'),
+  focusSelectionButton: document.getElementById('focusSelectionButton'),
   refreshSelectionButton: document.getElementById('refreshSelectionButton'),
   mappedMetric: document.getElementById('mappedMetric'),
   filteredMetric: document.getElementById('filteredMetric'),
   warningMetric: document.getElementById('warningMetric'),
-  filterSummary: document.getElementById('filterSummary'),
+  scopeLabel: document.getElementById('scopeLabel'),
+  resultsCount: document.getElementById('resultsCount'),
   resultsList: document.getElementById('resultsList'),
   selectionBadge: document.getElementById('selectionBadge'),
   selectedCrossingCard: document.getElementById('selectedCrossingCard'),
@@ -73,13 +80,66 @@ function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function squishLabel(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/([\u4e00-\u9fff])\s+([\u4e00-\u9fff])/g, '$1$2');
+}
+
+function displayLabel(value, fallback = '') {
+  const text = squishLabel(value);
+  return text || fallback;
+}
+
 function normalizeSearchText(value) {
-  return String(value ?? '').toLowerCase().replace(/\s+/g, '');
+  return displayLabel(value).toLowerCase().replace(/\s+/g, '');
+}
+
+function average(values) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function setStatus(message, tone = 'neutral') {
   elements.statusBar.textContent = message;
   elements.statusBar.dataset.tone = tone;
+}
+
+function icon(name) {
+  if (name === 'route') {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 12H19" />
+        <path d="M13 6L19 12L13 18" />
+      </svg>
+    `;
+  }
+  if (name === 'county') {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 5H19V19H5Z" />
+        <path d="M9 5V19" />
+        <path d="M5 11H19" />
+      </svg>
+    `;
+  }
+  if (name === 'station') {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M8 4H16V16H8Z" />
+        <path d="M10 16V20" />
+        <path d="M14 16V20" />
+        <path d="M8 10H16" />
+      </svg>
+    `;
+  }
+  return `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 4C8 4 5 7 5 11C5 15.5 12 20 12 20C12 20 19 15.5 19 11C19 7 16 4 12 4Z" />
+      <circle cx="12" cy="11" r="2.5" />
+    </svg>
+  `;
 }
 
 function apiUrl(path, params = null) {
@@ -108,20 +168,131 @@ async function apiRequest(path, { method = 'GET', params = null, body = null } =
     const detail = payload && typeof payload === 'object' && 'detail' in payload ? payload.detail : text;
     throw new Error(`${response.status} ${response.statusText}: ${detail}`);
   }
+
   return payload;
 }
 
-function buildSearchIndex(feature) {
+function getFeatureLatitude(feature) {
+  const lat = Number(feature?.geometry?.coordinates?.[1]);
+  return Number.isFinite(lat) ? lat : null;
+}
+
+function sortFeaturesSouthToNorth(features) {
+  return [...features].sort((featureA, featureB) => {
+    const latA = getFeatureLatitude(featureA);
+    const latB = getFeatureLatitude(featureB);
+    if (latA == null && latB == null) return 0;
+    if (latA == null) return 1;
+    if (latB == null) return -1;
+    if (latA !== latB) return latA - latB;
+    return getFeatureMeta(featureA).name.localeCompare(getFeatureMeta(featureB).name, 'zh-Hant');
+  });
+}
+
+function getFeatureMeta(feature) {
+  if (!feature) {
+    return {
+      county: '',
+      name: '',
+      line: '',
+      km: '',
+      roadType: '',
+      stationA: '',
+      stationB: '',
+      stationPair: '',
+      manualMappingApplied: false,
+    };
+  }
+
+  if (feature.meta) return feature.meta;
+
   const properties = feature.properties || {};
+  return {
+    county: displayLabel(properties.county, '未分類'),
+    name: displayLabel(properties.name, feature.id || '未命名平交道'),
+    line: displayLabel(properties.line, '未提供路線'),
+    km: displayLabel(properties.km_marker, '未標公里'),
+    roadType: displayLabel(properties.road_type, ''),
+    stationA: displayLabel(properties.station_a_name, ''),
+    stationB: displayLabel(properties.station_b_name, ''),
+    stationPair: displayLabel(properties.station_pair_text, ''),
+    manualMappingApplied: Boolean(properties.manual_mapping_applied),
+  };
+}
+
+function buildSearchIndex(feature) {
+  const meta = getFeatureMeta(feature);
   return normalizeSearchText([
-    properties.name,
-    properties.county,
-    properties.line,
-    properties.km_marker,
-    properties.station_pair_text,
-    properties.station_a_name,
-    properties.station_b_name,
+    meta.name,
+    meta.county,
+    meta.line,
+    meta.km,
+    meta.stationPair,
+    meta.stationA,
+    meta.stationB,
   ].join(' '));
+}
+
+function buildCountyGroups(features) {
+  const countyMap = new Map();
+
+  features.forEach((feature) => {
+    const meta = getFeatureMeta(feature);
+    const county = meta.county || '未分類';
+    const latitude = getFeatureLatitude(feature);
+    let group = countyMap.get(county);
+    if (!group) {
+      group = {
+        county,
+        latitudes: [],
+        stations: new Map(),
+        crossings: [],
+      };
+      countyMap.set(county, group);
+    }
+
+    if (latitude != null) {
+      group.latitudes.push(latitude);
+    }
+    group.crossings.push(feature);
+
+    [meta.stationA, meta.stationB].filter(Boolean).forEach((stationName) => {
+      let station = group.stations.get(stationName);
+      if (!station) {
+        station = { label: stationName, latitudes: [], count: 0 };
+        group.stations.set(stationName, station);
+      }
+      station.count += 1;
+      if (latitude != null) {
+        station.latitudes.push(latitude);
+      }
+    });
+  });
+
+  return [...countyMap.values()]
+    .map((group) => ({
+      county: group.county,
+      avgLatitude: average(group.latitudes),
+      crossings: sortFeaturesSouthToNorth(group.crossings),
+      stations: [...group.stations.values()]
+        .map((station) => ({
+          label: station.label,
+          avgLatitude: average(station.latitudes),
+          count: station.count,
+        }))
+        .sort((stationA, stationB) => {
+          if (stationA.avgLatitude !== stationB.avgLatitude) {
+            return stationA.avgLatitude - stationB.avgLatitude;
+          }
+          return stationA.label.localeCompare(stationB.label, 'zh-Hant');
+        }),
+    }))
+    .sort((groupA, groupB) => {
+      if (groupA.avgLatitude !== groupB.avgLatitude) {
+        return groupA.avgLatitude - groupB.avgLatitude;
+      }
+      return groupA.county.localeCompare(groupB.county, 'zh-Hant');
+    });
 }
 
 function getCrossingById(crossingId = state.selectedCrossingId) {
@@ -145,26 +316,19 @@ function getSelectedStationPoints() {
   return [
     {
       role: '前站',
-      name: properties.station_a_name || '未提供前站',
+      name: displayLabel(properties.station_a_name, ''),
       coords: getStationCoords(properties.station_a_position),
-      color: '#f7b53f',
+      color: '#ffd36a',
       className: 'is-upstream',
     },
     {
       role: '後站',
-      name: properties.station_b_name || '未提供後站',
+      name: displayLabel(properties.station_b_name, ''),
       coords: getStationCoords(properties.station_b_position),
-      color: '#56b9ff',
+      color: '#84d8ff',
       className: 'is-downstream',
     },
-  ].filter((station) => station.coords);
-}
-
-function formatDateTime(value) {
-  if (!value) return '尚未更新';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '尚未更新';
-  return DATE_TIME_FORMAT.format(date);
+  ].filter((station) => station.coords && station.name);
 }
 
 function formatTime(value) {
@@ -174,28 +338,91 @@ function formatTime(value) {
   return TIME_FORMAT.format(date);
 }
 
-function minutesUntil(value) {
+function formatTrainNo(record) {
+  return record?.train_no ? `${record.train_no}次` : '未提供班次';
+}
+
+function getCountdownParts(value) {
   const target = new Date(value).getTime();
-  if (Number.isNaN(target)) return null;
-  return Math.round((target - Date.now()) / 60000);
+  if (Number.isNaN(target)) {
+    return {
+      seconds: null,
+      timer: '--:--',
+      label: '時間未知',
+      short: '時間未知',
+    };
+  }
+
+  const totalSeconds = Math.max(0, Math.round((target - Date.now()) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (totalSeconds === 0) {
+    return {
+      seconds: totalSeconds,
+      timer: '00:00',
+      label: '即將通過',
+      short: '即將通過',
+    };
+  }
+
+  return {
+    seconds: totalSeconds,
+    timer: `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
+    label: `${minutes ? `${minutes} 分 ` : ''}${seconds} 秒後`,
+    short: minutes ? `${minutes}分${String(seconds).padStart(2, '0')}秒` : `${seconds}秒`,
+  };
 }
 
-function formatRelativeEta(value) {
-  const minutes = minutesUntil(value);
-  if (minutes == null) return '時間未知';
-  if (minutes <= 0) return '即將通過';
-  if (minutes === 1) return '約 1 分鐘';
-  return `約 ${minutes} 分鐘`;
+function isWithinWarningWindow(record) {
+  const eta = new Date(record?.eta).getTime();
+  if (Number.isNaN(eta)) return false;
+  const warningWindowMinutes = Number(record?.warning_window_minutes ?? state.predictionEnvelope?.warning_window_minutes ?? 0);
+  return eta <= Date.now() + (warningWindowMinutes * 60 * 1000);
 }
 
-function formatTrainLabel(record) {
-  return [record.train_type, record.train_no].filter(Boolean).join(' · ') || record.train_no || '未命名列車';
+function getDirectionLabel(record) {
+  const properties = state.selectedCrossingDetail?.properties || {};
+  const stationA = getStationCoords(properties.station_a_position);
+  const stationB = getStationCoords(properties.station_b_position);
+  const isAtoB = record?.upstream_station_id && record?.downstream_station_id
+    && record.upstream_station_id === properties.station_a_id
+    && record.downstream_station_id === properties.station_b_id;
+  const isBtoA = record?.upstream_station_id && record?.downstream_station_id
+    && record.upstream_station_id === properties.station_b_id
+    && record.downstream_station_id === properties.station_a_id;
+
+  if (stationA && stationB && (isAtoB || isBtoA)) {
+    const northbound = isAtoB ? stationB[0] > stationA[0] : stationA[0] > stationB[0];
+    return northbound ? '北上' : '南下';
+  }
+
+  if (record?.direction === 0) return '順行';
+  if (record?.direction === 1) return '逆行';
+  return '行駛中';
 }
 
-function confidenceLabel(value) {
-  if (value === 'high') return '高信心';
-  if (value === 'medium') return '中信心';
-  return '低信心';
+function getPredictionRoute(record) {
+  return {
+    origin: displayLabel(record?.origin_station_name || record?.upstream_station_name, '未知'),
+    destination: displayLabel(record?.destination_station_name || record?.downstream_station_name, '未知'),
+    approachFrom: displayLabel(record?.upstream_station_name, '未知'),
+    approachTo: displayLabel(record?.downstream_station_name, '未知'),
+  };
+}
+
+function getVisiblePredictions() {
+  return safeArray(state.predictionEnvelope?.predictions)
+    .filter((record) => {
+      const eta = new Date(record?.eta).getTime();
+      return Number.isFinite(eta) && eta >= Date.now() - 60000;
+    })
+    .slice(0, MAX_VISIBLE_PREDICTIONS);
+}
+
+function getPrimaryPrediction() {
+  const predictions = getVisiblePredictions();
+  if (!predictions.length) return null;
+  return predictions.find((record) => isWithinWarningWindow(record)) || predictions[0];
 }
 
 function fitMapToPoints(points, { maxZoom = 14 } = {}) {
@@ -210,7 +437,7 @@ function fitMapToPoints(points, { maxZoom = 14 } = {}) {
   }
 
   map.fitBounds(points, {
-    padding: [48, 48],
+    padding: [56, 56],
     maxZoom,
     animate: true,
   });
@@ -226,7 +453,8 @@ function focusFilteredCrossings() {
 function focusSelectedCrossing() {
   const points = [];
   const selectedBase = getCrossingById();
-  const crossingPoint = getCrossingLatLng(state.selectedCrossingDetail || selectedBase);
+  const selectedFeature = state.selectedCrossingDetail || selectedBase;
+  const crossingPoint = getCrossingLatLng(selectedFeature);
   if (crossingPoint) {
     points.push(crossingPoint);
   }
@@ -234,48 +462,193 @@ function focusSelectedCrossing() {
   fitMapToPoints(points, { maxZoom: 15 });
 }
 
-function renderSuggestions() {
-  const suggestions = new Set();
-  state.counties.forEach((county) => suggestions.add(county));
-  state.crossings.slice(0, 120).forEach((feature) => {
-    const properties = feature.properties || {};
-    suggestions.add(properties.name);
-    suggestions.add(properties.station_a_name);
-    suggestions.add(properties.station_b_name);
-  });
+function buildSearchGroups(query) {
+  const normalized = normalizeSearchText(query);
 
-  elements.regionSuggestions.innerHTML = [...suggestions]
-    .filter(Boolean)
-    .sort((a, b) => String(a).localeCompare(String(b), 'zh-Hant'))
-    .map((item) => `<option value="${escapeHtml(item)}"></option>`)
+  return state.countyGroups
+    .map((group) => {
+      const options = [];
+      const seen = new Set();
+
+      function pushOption(option) {
+        const key = `${option.type}:${normalizeSearchText(option.label)}:${option.crossingId || option.county || ''}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        options.push(option);
+      }
+
+      if (!normalized || normalizeSearchText(group.county).includes(normalized)) {
+        pushOption({
+          type: 'county',
+          county: group.county,
+          label: group.county,
+          meta: `${group.crossings.length} 處`,
+        });
+      }
+
+      group.stations
+        .filter((station) => !normalized || normalizeSearchText(station.label).includes(normalized))
+        .slice(0, normalized ? 8 : 7)
+        .forEach((station) => {
+          pushOption({
+            type: 'station',
+            county: group.county,
+            label: station.label,
+            meta: `車站 · ${station.count}`,
+          });
+        });
+
+      if (normalized) {
+        group.crossings
+          .filter((feature) => normalizeSearchText(getFeatureMeta(feature).name).includes(normalized))
+          .slice(0, 5)
+          .forEach((feature) => {
+            const meta = getFeatureMeta(feature);
+            pushOption({
+              type: 'crossing',
+              county: group.county,
+              label: meta.name,
+              meta: `${meta.line} · ${meta.km}`,
+              crossingId: feature.id,
+            });
+          });
+      }
+
+      return {
+        county: group.county,
+        options,
+      };
+    })
+    .filter((group) => group.options.length);
+}
+
+function renderSearchPanel() {
+  if (!state.searchPanelOpen) {
+    elements.searchPanel.hidden = true;
+    elements.searchMenuButton.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  const groups = buildSearchGroups(elements.regionInput.value.trim());
+  elements.searchPanel.hidden = false;
+  elements.searchMenuButton.setAttribute('aria-expanded', 'true');
+
+  if (!groups.length) {
+    elements.searchPanel.innerHTML = '<div class="search-empty">找不到對應地區</div>';
+    return;
+  }
+
+  elements.searchPanel.innerHTML = groups
+    .map((group) => `
+      <section class="search-group">
+        <header class="search-group-title">${escapeHtml(group.county)}</header>
+        <div class="search-option-list">
+          ${group.options.map((option) => `
+            <button
+              class="search-option"
+              type="button"
+              data-search-type="${escapeHtml(option.type)}"
+              data-label="${escapeHtml(option.label)}"
+              data-county="${escapeHtml(option.county || '')}"
+              data-crossing-id="${escapeHtml(option.crossingId || '')}"
+            >
+              <span class="search-option-icon">${icon(option.type)}</span>
+              <span class="search-option-copy">
+                <strong>${escapeHtml(option.label)}</strong>
+                <small>${escapeHtml(option.meta || '')}</small>
+              </span>
+            </button>
+          `).join('')}
+        </div>
+      </section>
+    `)
     .join('');
+}
+
+function findExactSearchOption(query) {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return null;
+
+  for (const group of state.countyGroups) {
+    if (normalizeSearchText(group.county) === normalized) {
+      return { type: 'county', county: group.county, label: group.county };
+    }
+
+    const station = group.stations.find((item) => normalizeSearchText(item.label) === normalized);
+    if (station) {
+      return { type: 'station', county: group.county, label: station.label };
+    }
+
+    const crossing = group.crossings.find((feature) => normalizeSearchText(getFeatureMeta(feature).name) === normalized);
+    if (crossing) {
+      return {
+        type: 'crossing',
+        county: group.county,
+        label: getFeatureMeta(crossing).name,
+        crossingId: crossing.id,
+      };
+    }
+  }
+
+  return null;
+}
+
+function filterCrossings(query, option = null) {
+  const normalized = normalizeSearchText(query);
+  const activeOption = option || findExactSearchOption(query);
+
+  if (!normalized && !activeOption) {
+    return [...state.crossings];
+  }
+
+  if (activeOption?.type === 'county') {
+    return state.crossings.filter((feature) => getFeatureMeta(feature).county === activeOption.county);
+  }
+
+  if (activeOption?.type === 'station') {
+    const stationName = normalizeSearchText(activeOption.label);
+    return state.crossings.filter((feature) => {
+      const meta = getFeatureMeta(feature);
+      return normalizeSearchText(meta.stationA) === stationName || normalizeSearchText(meta.stationB) === stationName;
+    });
+  }
+
+  if (activeOption?.type === 'crossing') {
+    return state.crossings.filter((feature) => feature.id === activeOption.crossingId);
+  }
+
+  const matchingCounties = state.countyGroups
+    .filter((group) => normalizeSearchText(group.county).includes(normalized))
+    .map((group) => group.county);
+  if (matchingCounties.length) {
+    const countySet = new Set(matchingCounties);
+    return state.crossings.filter((feature) => countySet.has(getFeatureMeta(feature).county));
+  }
+
+  return state.crossings.filter((feature) => feature.searchIndex.includes(normalized));
+}
+
+function updateControls() {
+  elements.focusSelectionButton.disabled = !state.selectedCrossingId;
+  elements.refreshSelectionButton.disabled = !state.selectedCrossingId || state.selectionLoading;
 }
 
 function updateMetrics() {
   const mappedCount = state.overview?.dataset?.mapped_feature_count ?? state.crossings.length;
-  const warningCount = safeArray(state.predictionEnvelope?.predictions).filter((record) => record.warning).length;
+  const warningCount = getVisiblePredictions().filter((record) => isWithinWarningWindow(record)).length;
   elements.mappedMetric.textContent = String(mappedCount);
   elements.filteredMetric.textContent = String(state.filteredCrossings.length);
   elements.warningMetric.textContent = String(warningCount);
 }
 
-function renderFilterSummary() {
-  if (!state.crossings.length) {
-    elements.filterSummary.textContent = '載入平交道資料中…';
-    return;
-  }
-
-  if (!state.query) {
-    elements.filterSummary.textContent = `目前顯示全部 ${state.crossings.length} 個已整合平交道，先輸入縣市或車站名稱再聚焦。`;
-    return;
-  }
-
-  if (!state.filteredCrossings.length) {
-    elements.filterSummary.textContent = `「${state.query}」目前沒有對應結果，請改用縣市、車站或平交道名稱。`;
-    return;
-  }
-
-  elements.filterSummary.textContent = `「${state.query}」找到 ${state.filteredCrossings.length} 個平交道，地圖已聚焦到這個範圍。`;
+function renderScopeSummary() {
+  const scopeText = !state.query
+    ? '全台'
+    : state.activeSearchOption?.type === 'station'
+      ? `${state.activeSearchOption.county} · ${state.activeSearchOption.label}`
+      : state.activeSearchOption?.label || state.query;
+  elements.scopeLabel.textContent = scopeText;
+  elements.resultsCount.textContent = String(state.filteredCrossings.length);
 }
 
 function renderSelectionBadge() {
@@ -283,21 +656,20 @@ function renderSelectionBadge() {
   if (!selected) {
     elements.selectionBadge.innerHTML = `
       <div class="selection-shell is-empty">
-        <span class="selection-kicker">start here</span>
-        <strong>輸入地區後，從地圖或左側清單選擇平交道</strong>
-        <small>右側會立即顯示大約通過時間與減速提醒。</small>
+        <span>${escapeHtml(state.query || '全台')}</span>
+        <strong>${escapeHtml(String(state.filteredCrossings.length))}</strong>
+        <small>crossings in view</small>
       </div>
     `;
     return;
   }
 
-  const properties = (state.selectedCrossingDetail || selected).properties || {};
+  const meta = getFeatureMeta(state.selectedCrossingDetail || selected);
   elements.selectionBadge.innerHTML = `
     <div class="selection-shell">
-      <span class="selection-kicker">target crossing</span>
-      <strong>${escapeHtml(properties.name || '未命名平交道')}</strong>
-      <span>${escapeHtml(properties.line || '未提供路線')} · ${escapeHtml(properties.km_marker || '未標公里')}</span>
-      <small>${escapeHtml(properties.station_pair_text || '未提供站間資訊')}</small>
+      <span>${escapeHtml(meta.line)} · ${escapeHtml(meta.km)}</span>
+      <strong>${escapeHtml(meta.name)}</strong>
+      <small>${escapeHtml(meta.stationPair || `${meta.stationA} - ${meta.stationB}`)}</small>
     </div>
   `;
 }
@@ -305,23 +677,31 @@ function renderSelectionBadge() {
 function renderResults() {
   const selectedId = state.selectedCrossingId;
   if (!state.filteredCrossings.length) {
-    elements.resultsList.innerHTML = '<div class="empty-block"><strong>沒有結果</strong><span>換個縣市、車站或平交道名稱再試一次。</span></div>';
+    elements.resultsList.innerHTML = `
+      <div class="empty-block compact">
+        <strong>沒有對應平交道</strong>
+        <span>換個地區或車站名稱再試一次</span>
+      </div>
+    `;
     return;
   }
 
   elements.resultsList.innerHTML = state.filteredCrossings
     .map((feature) => {
-      const properties = feature.properties || {};
+      const meta = getFeatureMeta(feature);
       const isSelected = feature.id === selectedId;
       return `
         <button class="result-item ${isSelected ? 'is-active' : ''}" type="button" data-crossing-id="${escapeHtml(feature.id)}">
-          <span class="result-mark ${properties.manual_mapping_applied ? 'is-reviewed' : ''}"></span>
-          <div class="result-copy">
-            <strong>${escapeHtml(properties.name || '未命名平交道')}</strong>
-            <span>${escapeHtml(properties.county || '未知縣市')} · ${escapeHtml(properties.line || '未提供路線')} · ${escapeHtml(properties.km_marker || '未標公里')}</span>
-            <small>${escapeHtml(properties.station_pair_text || '未提供站間資訊')}</small>
+          <span class="result-rail ${meta.manualMappingApplied ? 'is-reviewed' : ''}"></span>
+          <div class="result-body">
+            <strong>${escapeHtml(meta.name)}</strong>
+            <span>${escapeHtml(meta.county)} · ${escapeHtml(meta.line)}</span>
+            <div class="result-meta-row">
+              <span class="result-chip">${escapeHtml(meta.km)}</span>
+              ${meta.stationPair ? `<span class="result-chip is-soft">${escapeHtml(meta.stationPair)}</span>` : ''}
+            </div>
           </div>
-          <span class="result-badge ${properties.manual_mapping_applied ? 'is-reviewed' : ''}">${properties.manual_mapping_applied ? '已校正' : confidenceLabel(properties.geolocation_confidence)}</span>
+          <span class="result-endcap ${isSelected ? 'is-active' : ''}">${isSelected ? '已選' : '定位'}</span>
         </button>
       `;
     })
@@ -335,21 +715,31 @@ function renderCrossingMarkers() {
     const point = getCrossingLatLng(feature);
     if (!point) return;
     const isSelected = feature.id === state.selectedCrossingId;
+
+    if (isSelected) {
+      L.circleMarker(point, {
+        renderer: canvasRenderer,
+        radius: 18,
+        weight: 0,
+        color: '#ffd36a',
+        fillColor: '#ffd36a',
+        fillOpacity: 0.18,
+        interactive: false,
+      }).addTo(state.crossingLayer);
+    }
+
     const marker = L.circleMarker(point, {
       renderer: canvasRenderer,
-      radius: isSelected ? 9 : 5.2,
-      weight: isSelected ? 3.4 : 1.5,
-      color: isSelected ? '#0d3558' : '#b94d38',
-      fillColor: isSelected ? '#0d3558' : '#f47e57',
-      fillOpacity: 0.95,
+      radius: isSelected ? 8.5 : 5.1,
+      weight: isSelected ? 3 : 1.6,
+      color: isSelected ? '#ffeab2' : '#ffffff',
+      fillColor: isSelected ? '#16a392' : '#ff7b5b',
+      fillOpacity: 0.96,
     });
     marker.on('click', () => {
       selectCrossing(feature.id, { focusMap: false });
     });
     marker.addTo(state.crossingLayer);
-    if (isSelected) {
-      marker.bringToFront();
-    }
   });
 }
 
@@ -360,9 +750,9 @@ function renderStationContext() {
 
   if (stations.length === 2) {
     L.polyline(stations.map((station) => station.coords), {
-      color: '#154c79',
+      color: '#2c5e87',
       weight: 4,
-      opacity: 0.72,
+      opacity: 0.68,
       dashArray: '10 10',
       lineCap: 'round',
       interactive: false,
@@ -372,19 +762,19 @@ function renderStationContext() {
   stations.forEach((station) => {
     L.circleMarker(station.coords, {
       renderer: canvasRenderer,
-      radius: 14,
+      radius: 13,
       weight: 2,
       color: station.color,
       fillColor: station.color,
-      fillOpacity: 0.18,
+      fillOpacity: 0.16,
       interactive: false,
     }).addTo(state.stationLayer);
 
     const marker = L.circleMarker(station.coords, {
       renderer: canvasRenderer,
-      radius: 7.5,
-      weight: 3,
-      color: '#0f243a',
+      radius: 7,
+      weight: 2.8,
+      color: '#17304d',
       fillColor: station.color,
       fillOpacity: 1,
       interactive: false,
@@ -399,7 +789,6 @@ function renderStationContext() {
       }
     );
     marker.addTo(state.stationLayer);
-    marker.bringToFront();
   });
 }
 
@@ -408,33 +797,34 @@ function renderSelectedCrossingCard() {
   if (!selected) {
     elements.selectedCrossingCard.innerHTML = `
       <div class="empty-block large">
-        <strong>先選一個平交道</strong>
-        <span>輸入地區後，直接點地圖上的平交道，右側就會顯示即時通過預測。</span>
+        <strong>選一個平交道</strong>
+        <span>地圖與左側清單都可以直接選取</span>
       </div>
     `;
     return;
   }
 
-  const properties = (state.selectedCrossingDetail || selected).properties || {};
-  const stations = getSelectedStationPoints();
+  if (state.selectionLoading && !state.selectedCrossingDetail) {
+    elements.selectedCrossingCard.innerHTML = '<div class="loading-block"></div>';
+    return;
+  }
+
+  const meta = getFeatureMeta(state.selectedCrossingDetail || selected);
   elements.selectedCrossingCard.innerHTML = `
-    <div class="card-kicker-row">
-      <span class="section-pill">${escapeHtml(properties.county || '未知縣市')}</span>
-      <span class="section-pill ${properties.manual_mapping_applied ? 'is-reviewed' : ''}">${properties.manual_mapping_applied ? '人工校正' : confidenceLabel(properties.geolocation_confidence)}</span>
+    <div class="crossing-top-row">
+      <span class="tiny-pill">${escapeHtml(meta.county)}</span>
+      <span class="tiny-pill ${meta.manualMappingApplied ? 'is-reviewed' : ''}">${meta.manualMappingApplied ? '人工校正' : '已整合'}</span>
     </div>
-    <h2 class="card-title">${escapeHtml(properties.name || '未命名平交道')}</h2>
-    <div class="chip-row">
-      <span class="info-chip">${escapeHtml(properties.line || '未提供路線')}</span>
-      <span class="info-chip">${escapeHtml(properties.km_marker || '未標公里')}</span>
-      <span class="info-chip">${escapeHtml(properties.road_type || '未提供類型')}</span>
+    <h2 class="crossing-title">${escapeHtml(meta.name)}</h2>
+    <div class="crossing-chip-row">
+      <span class="route-pill">${escapeHtml(meta.line)}</span>
+      <span class="route-pill">${escapeHtml(meta.km)}</span>
+      ${meta.roadType ? `<span class="route-pill is-soft">${escapeHtml(meta.roadType)}</span>` : ''}
     </div>
-    <div class="station-pair-card">
-      <strong>${escapeHtml(properties.station_pair_text || '未提供站間資訊')}</strong>
-      <span>${stations.length ? stations.map((station) => `${station.role} ${station.name}`).join(' · ') : '目前無法解析前後車站位置'}</span>
-    </div>
-    <div class="meta-row">
-      <span>OSM ${escapeHtml(properties.matched_osm_id || '未提供')}</span>
-      <span>${properties.manual_mapping_applied ? '使用已標記成果' : '使用自動整合成果'}</span>
+    <div class="station-band">
+      <span>${escapeHtml(meta.stationA || '未提供')}</span>
+      ${icon('route')}
+      <span>${escapeHtml(meta.stationB || '未提供')}</span>
     </div>
   `;
 }
@@ -443,39 +833,59 @@ function renderWarningCard() {
   const selected = getCrossingById();
   if (!selected) {
     elements.warningCard.innerHTML = `
-      <div class="warning-hero is-empty">
-        <span class="hero-pill">待選定</span>
-        <h2>尚未指定目標平交道</h2>
-        <p>先在地圖或左側清單選擇平交道，系統才會開始計算列車何時接近。</p>
+      <div class="empty-block large">
+        <strong>尚未指定目標</strong>
+        <span>選定平交道後會立刻顯示下一班車</span>
       </div>
     `;
     return;
   }
 
-  const predictions = safeArray(state.predictionEnvelope?.predictions);
-  const imminent = predictions.find((record) => record.warning) || null;
-  const nearest = imminent || predictions[0] || null;
+  if (state.selectionLoading && !state.predictionEnvelope) {
+    elements.warningCard.innerHTML = '<div class="loading-block"></div>';
+    return;
+  }
 
-  if (!nearest) {
+  const primary = getPrimaryPrediction();
+  if (!primary) {
     elements.warningCard.innerHTML = `
-      <div class="warning-hero is-safe">
-        <span class="hero-pill">暫無列車</span>
-        <h2>目前不需要減速提醒</h2>
-        <p>未來 ${escapeHtml(state.predictionEnvelope?.horizon_minutes || 30)} 分鐘內，沒有觀察到會接近平交道的列車。</p>
+      <div class="hero-shell is-idle">
+        <div class="hero-chip-row">
+          <span class="hero-chip">暫無列車</span>
+        </div>
+        <div class="hero-countdown">
+          <strong>SAFE</strong>
+          <span>${escapeHtml(`${state.predictionEnvelope?.horizon_minutes || 30} 分鐘內沒有接近列車`)}</span>
+        </div>
       </div>
     `;
     return;
   }
 
-  const shouldWarn = Boolean(imminent);
+  const countdown = getCountdownParts(primary.eta);
+  const route = getPredictionRoute(primary);
+  const directionLabel = getDirectionLabel(primary);
+  const warning = isWithinWarningWindow(primary);
+
   elements.warningCard.innerHTML = `
-    <div class="warning-hero ${shouldWarn ? 'is-alert' : 'is-safe'}">
-      <span class="hero-pill">${shouldWarn ? '請放慢速度' : '提前留意'}</span>
-      <h2>${formatRelativeEta(nearest.eta)} 後列車將接近平交道</h2>
-      <p>${escapeHtml(formatTrainLabel(nearest))} 將由 ${escapeHtml(nearest.upstream_station_name)} 往 ${escapeHtml(nearest.downstream_station_name)} 通過。</p>
-      <div class="hero-meta">
-        <span>${escapeHtml(formatTime(nearest.eta))}</span>
-        <span>${shouldWarn ? `落在 ${nearest.warning_window_minutes} 分鐘提醒窗` : '尚未進入提醒窗'}</span>
+    <div class="hero-shell ${warning ? 'is-alert' : 'is-watch'}">
+      <div class="hero-chip-row">
+        <span class="hero-chip">${escapeHtml(primary.train_type || '列車')}</span>
+        <span class="hero-chip is-strong">${escapeHtml(formatTrainNo(primary))}</span>
+        <span class="hero-chip">${escapeHtml(directionLabel)}</span>
+      </div>
+      <div class="hero-countdown">
+        <strong>${escapeHtml(countdown.timer)}</strong>
+        <span>${escapeHtml(countdown.label)}</span>
+      </div>
+      <div class="hero-route-line">
+        <span>${escapeHtml(route.origin)}</span>
+        ${icon('route')}
+        <span>${escapeHtml(route.destination)}</span>
+      </div>
+      <div class="hero-route-meta">
+        <span>${escapeHtml(`${route.approachFrom} → ${route.approachTo}`)}</span>
+        <span>${escapeHtml(formatTime(primary.eta))}</span>
       </div>
     </div>
   `;
@@ -484,104 +894,134 @@ function renderWarningCard() {
 function renderPredictionList() {
   const selected = getCrossingById();
   if (!selected) {
-    elements.predictionList.innerHTML = '<div class="empty-block"><strong>尚未選定平交道</strong><span>右側這裡會列出列車通過的大約時間。</span></div>';
+    elements.predictionList.innerHTML = `
+      <div class="empty-block compact">
+        <strong>還沒有列車資料</strong>
+        <span>先選一個平交道</span>
+      </div>
+    `;
     return;
   }
 
-  const predictions = safeArray(state.predictionEnvelope?.predictions);
+  if (state.selectionLoading && !state.predictionEnvelope) {
+    elements.predictionList.innerHTML = Array.from({ length: 3 }, () => '<div class="loading-block compact"></div>').join('');
+    return;
+  }
+
+  const predictions = getVisiblePredictions();
   if (!predictions.length) {
-    elements.predictionList.innerHTML = '<div class="empty-block"><strong>暫無近期列車</strong><span>未來 30 分鐘內沒有觀察到接近此平交道的列車。</span></div>';
+    elements.predictionList.innerHTML = `
+      <div class="empty-block compact">
+        <strong>目前空檔</strong>
+        <span>未來 ${escapeHtml(String(state.predictionEnvelope?.horizon_minutes || 30))} 分鐘沒有接近平交道的列車</span>
+      </div>
+    `;
     return;
   }
 
   elements.predictionList.innerHTML = predictions
-    .map((record) => `
-      <article class="prediction-card ${record.warning ? 'is-warning' : ''}">
-        <div class="prediction-head">
-          <div>
-            <strong>${escapeHtml(formatTrainLabel(record))}</strong>
-            <span>${escapeHtml(record.upstream_station_name)} → ${escapeHtml(record.downstream_station_name)}</span>
+    .map((record) => {
+      const countdown = getCountdownParts(record.eta);
+      const route = getPredictionRoute(record);
+      const warning = isWithinWarningWindow(record);
+      return `
+        <article class="train-card ${warning ? 'is-warning' : ''}">
+          <div class="train-main">
+            <div class="train-title-row">
+              <strong>${escapeHtml(formatTrainNo(record))}</strong>
+              <span>${escapeHtml(record.train_type || '列車')}</span>
+            </div>
+            <div class="train-route">${escapeHtml(route.origin)} → ${escapeHtml(route.destination)}</div>
+            <div class="train-subroute">${escapeHtml(getDirectionLabel(record))} · ${escapeHtml(`${route.approachFrom} → ${route.approachTo}`)}</div>
           </div>
-          <span class="eta-chip ${record.warning ? 'is-warning' : ''}">${escapeHtml(formatRelativeEta(record.eta))}</span>
-        </div>
-        <div class="prediction-meta">
-          <span>${escapeHtml(formatTime(record.eta))}</span>
-          <span>${record.data_basis === 'liveboard' ? `即時 + 延誤 ${record.delay_minutes} 分` : '時刻表估算'}</span>
-          <span>${confidenceLabel(record.confidence)}</span>
-        </div>
-      </article>
-    `)
+          <div class="train-side">
+            <span class="countdown-pill ${warning ? 'is-warning' : ''}">${escapeHtml(countdown.short)}</span>
+            <small>${escapeHtml(formatTime(record.eta))}</small>
+          </div>
+        </article>
+      `;
+    })
     .join('');
 }
 
-function renderAllPanels() {
-  renderFilterSummary();
+function renderStaticUi() {
+  renderScopeSummary();
+  renderResults();
   renderSelectionBadge();
+  renderCrossingMarkers();
+  renderStationContext();
   renderSelectedCrossingCard();
   renderWarningCard();
   renderPredictionList();
   updateMetrics();
+  updateControls();
+  renderSearchPanel();
 }
 
 function clearSelection() {
   state.selectedCrossingId = null;
   state.selectedCrossingDetail = null;
   state.predictionEnvelope = null;
+  state.selectionLoading = false;
 }
 
-function filterCrossings(query) {
-  const normalized = normalizeSearchText(query);
-  if (!normalized) {
-    return [...state.crossings];
-  }
-
-  const matchedCounties = state.counties.filter((county) => normalizeSearchText(county).includes(normalized));
-  if (matchedCounties.length) {
-    const countySet = new Set(matchedCounties);
-    return state.crossings.filter((feature) => countySet.has(feature.properties?.county));
-  }
-
-  return state.crossings.filter((feature) => feature.searchIndex.includes(normalized));
+function setSearchPanelOpen(isOpen) {
+  state.searchPanelOpen = isOpen;
+  renderSearchPanel();
 }
 
 function applyQuery({ focusMap = true } = {}) {
   state.query = elements.regionInput.value.trim();
-  state.filteredCrossings = filterCrossings(state.query);
+  state.activeSearchOption = state.query ? (state.activeSearchOption && normalizeSearchText(state.activeSearchOption.label) === normalizeSearchText(state.query)
+    ? state.activeSearchOption
+    : findExactSearchOption(state.query)) : null;
+  state.filteredCrossings = filterCrossings(state.query, state.activeSearchOption);
 
   if (state.selectedCrossingId && !state.filteredCrossings.some((feature) => feature.id === state.selectedCrossingId)) {
     clearSelection();
   }
 
-  renderResults();
-  renderCrossingMarkers();
-  renderStationContext();
-  renderAllPanels();
+  renderStaticUi();
 
-  if (focusMap) {
-    if (state.filteredCrossings.length) {
-      focusFilteredCrossings();
-      setStatus(`已聚焦 ${state.filteredCrossings.length} 個符合條件的平交道。`, 'success');
-    } else {
-      map.setView(MAP_HOME, MAP_HOME_ZOOM);
-      setStatus(`找不到「${state.query}」對應的平交道。`, 'warning');
-    }
+  if (!focusMap) return;
+
+  if (state.filteredCrossings.length) {
+    focusFilteredCrossings();
+    setStatus(`已聚焦 ${state.filteredCrossings.length} 個平交道。`, 'success');
+    return;
+  }
+
+  map.setView(MAP_HOME, MAP_HOME_ZOOM);
+  setStatus(`找不到「${state.query}」對應的平交道。`, 'warning');
+}
+
+function applySearchOption(option) {
+  state.activeSearchOption = option;
+  elements.regionInput.value = option.label;
+  setSearchPanelOpen(false);
+  applyQuery({ focusMap: true });
+  if (option.type === 'crossing' && option.crossingId) {
+    selectCrossing(option.crossingId, { focusMap: true });
   }
 }
 
-async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false } = {}) {
+async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false, silent = false } = {}) {
   const baseFeature = getCrossingById(crossingId);
   if (!baseFeature) return;
 
   state.selectedCrossingId = crossingId;
+  state.selectionLoading = true;
   if (!refreshOnly) {
-    renderResults();
-    renderCrossingMarkers();
-    renderAllPanels();
+    state.selectedCrossingDetail = null;
+    state.predictionEnvelope = null;
+  }
+
+  renderStaticUi();
+  if (!silent) {
+    setStatus(`正在更新 ${getFeatureMeta(baseFeature).name} 的列車預測…`);
   }
 
   const token = ++state.selectionRequestToken;
-  setStatus(`正在計算 ${baseFeature.properties?.name || crossingId} 的通過預測…`);
-
   try {
     const [detail, envelope] = await Promise.all([
       apiRequest(`/api/crossings/${encodeURIComponent(crossingId)}`),
@@ -593,46 +1033,115 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
     if (token !== state.selectionRequestToken) return;
     state.selectedCrossingDetail = detail;
     state.predictionEnvelope = envelope;
-    renderCrossingMarkers();
-    renderStationContext();
-    renderAllPanels();
+    state.selectionLoading = false;
+    renderStaticUi();
     if (focusMap) {
       focusSelectedCrossing();
     }
 
-    const warningCount = safeArray(envelope.predictions).filter((record) => record.warning).length;
-    if (warningCount) {
-      setStatus(`已載入 ${baseFeature.properties?.name || crossingId} 的通過預測，目前有 ${warningCount} 筆減速提醒。`, 'warning');
-    } else {
-      setStatus(`已載入 ${baseFeature.properties?.name || crossingId} 的通過預測。`, 'success');
+    const warningCount = getVisiblePredictions().filter((record) => isWithinWarningWindow(record)).length;
+    if (!silent) {
+      setStatus(
+        warningCount
+          ? `${getFeatureMeta(baseFeature).name} 已更新，現在有 ${warningCount} 筆提醒。`
+          : `${getFeatureMeta(baseFeature).name} 已更新。`,
+        warningCount ? 'warning' : 'success'
+      );
     }
   } catch (error) {
     if (token !== state.selectionRequestToken) return;
-    state.selectedCrossingDetail = null;
-    state.predictionEnvelope = null;
-    renderStationContext();
-    renderAllPanels();
-    setStatus(`載入預測失敗：${error.message}`, 'error');
+    state.selectionLoading = false;
+    state.selectedCrossingDetail = refreshOnly ? state.selectedCrossingDetail : null;
+    state.predictionEnvelope = refreshOnly ? state.predictionEnvelope : null;
+    renderStaticUi();
+    if (!silent) {
+      setStatus(`載入預測失敗：${error.message}`, 'error');
+    }
   }
 }
 
+function startTimers() {
+  if (state.timers.countdown) {
+    window.clearInterval(state.timers.countdown);
+  }
+  if (state.timers.autoRefresh) {
+    window.clearInterval(state.timers.autoRefresh);
+  }
+
+  state.timers.countdown = window.setInterval(() => {
+    if (!state.predictionEnvelope) return;
+    renderWarningCard();
+    renderPredictionList();
+    updateMetrics();
+  }, COUNTDOWN_TICK_MS);
+
+  state.timers.autoRefresh = window.setInterval(() => {
+    if (document.hidden || !state.selectedCrossingId || state.selectionLoading) return;
+    selectCrossing(state.selectedCrossingId, { focusMap: false, refreshOnly: true, silent: true });
+  }, AUTO_REFRESH_INTERVAL_MS);
+}
+
 function attachEventListeners() {
+  elements.regionInput.addEventListener('focus', () => {
+    setSearchPanelOpen(true);
+  });
+
+  elements.regionInput.addEventListener('input', () => {
+    state.activeSearchOption = null;
+    state.query = elements.regionInput.value.trim();
+    setSearchPanelOpen(true);
+    applyQuery({ focusMap: false });
+  });
+
+  elements.regionInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      setSearchPanelOpen(false);
+    }
+  });
+
   elements.regionForm.addEventListener('submit', (event) => {
     event.preventDefault();
+    setSearchPanelOpen(false);
     applyQuery({ focusMap: true });
+  });
+
+  elements.focusRegionButton.addEventListener('click', () => {
+    setSearchPanelOpen(false);
+    applyQuery({ focusMap: true });
+  });
+
+  elements.searchMenuButton.addEventListener('click', () => {
+    setSearchPanelOpen(!state.searchPanelOpen);
+  });
+
+  elements.searchPanel.addEventListener('pointerdown', (event) => {
+    const button = event.target.closest('[data-search-type]');
+    if (!button) return;
+    event.preventDefault();
+    applySearchOption({
+      type: button.dataset.searchType,
+      label: button.dataset.label,
+      county: button.dataset.county,
+      crossingId: button.dataset.crossingId || null,
+    });
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!elements.searchStack.contains(event.target)) {
+      setSearchPanelOpen(false);
+    }
   });
 
   elements.resetRegionButton.addEventListener('click', () => {
     elements.regionInput.value = '';
     state.query = '';
+    state.activeSearchOption = null;
     state.filteredCrossings = [...state.crossings];
     clearSelection();
-    renderResults();
-    renderCrossingMarkers();
-    renderStationContext();
-    renderAllPanels();
+    setSearchPanelOpen(false);
+    renderStaticUi();
     map.setView(MAP_HOME, MAP_HOME_ZOOM);
-    setStatus('已回到全台平交道總覽。', 'neutral');
+    setStatus('已回到全台總覽。', 'neutral');
   });
 
   elements.resultsList.addEventListener('click', (event) => {
@@ -643,7 +1152,7 @@ function attachEventListeners() {
 
   elements.focusSelectionButton.addEventListener('click', () => {
     if (!state.selectedCrossingId) {
-      setStatus('先選一個平交道，才能定位目標。', 'warning');
+      setStatus('先選一個平交道。', 'warning');
       return;
     }
     focusSelectedCrossing();
@@ -651,7 +1160,7 @@ function attachEventListeners() {
 
   elements.refreshSelectionButton.addEventListener('click', () => {
     if (!state.selectedCrossingId) {
-      setStatus('先選一個平交道，再更新預測。', 'warning');
+      setStatus('先選一個平交道。', 'warning');
       return;
     }
     selectCrossing(state.selectedCrossingId, { focusMap: false, refreshOnly: true });
@@ -666,20 +1175,21 @@ async function bootstrap() {
   ]);
 
   state.overview = overview;
-  state.counties = safeArray(crossingsPayload.counties);
-  state.crossings = safeArray(crossingsPayload.features).map((feature) => ({
-    ...feature,
-    searchIndex: buildSearchIndex(feature),
-  }));
+  state.crossings = sortFeaturesSouthToNorth(safeArray(crossingsPayload.features)).map((feature) => {
+    const meta = getFeatureMeta(feature);
+    return {
+      ...feature,
+      meta,
+      searchIndex: buildSearchIndex({ ...feature, meta }),
+    };
+  });
   state.filteredCrossings = [...state.crossings];
+  state.countyGroups = buildCountyGroups(state.crossings);
 
-  renderSuggestions();
-  renderResults();
-  renderCrossingMarkers();
-  renderStationContext();
-  renderAllPanels();
   attachEventListeners();
-  setStatus(`已載入 ${state.crossings.length} 個已整合平交道，請先輸入地區。`, 'success');
+  startTimers();
+  renderStaticUi();
+  setStatus(`已載入 ${state.crossings.length} 個已整合平交道。`, 'success');
 }
 
 bootstrap().catch((error) => {
