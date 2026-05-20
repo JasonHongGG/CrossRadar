@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CrossRadar Prototype</title>
+    <title>CrossRadar Mapping Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -13,40 +19,136 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="shell">
-      <aside class="panel">
-        <div>
-          <p class="eyebrow">CrossRadar</p>
-          <h1>台鐵平交道列車接近驗證版</h1>
-          <p class="summary">
-            這個頁面只顯示已有可信地理座標的平交道。資料來源混合台鐵官方平交道清冊、OpenStreetMap 與 TDX 台鐵資料。
-          </p>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="4" width="40" height="40" rx="14" />
+              <path d="M16 15L32 33" />
+              <path d="M32 15L16 33" />
+              <path d="M24 10V38" />
+              <circle cx="24" cy="24" r="6" />
+            </svg>
+          </span>
+          <div class="brand-copy">
+            <strong>CrossRadar</strong>
+            <span>mapping studio</span>
+          </div>
         </div>
 
-        <label class="field">
-          <span>縣市</span>
-          <select id="countySelect">
-            <option value="">全部</option>
-          </select>
-        </label>
+        <div class="progress-cluster">
+          <div id="progressRing" class="progress-ring" style="--progress: 0deg">
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="metric-strip">
+            <article class="metric-pill">
+              <span id="mappedMetric">0</span>
+              <small>mapped</small>
+            </article>
+            <article class="metric-pill metric-pill-alert">
+              <span id="pendingMetric">0</span>
+              <small>pending</small>
+            </article>
+            <article class="metric-pill metric-pill-success">
+              <span id="resolvedMetric">0</span>
+              <small>resolved</small>
+            </article>
+          </div>
+        </div>
 
-        <button id="reloadButton" type="button">重新整理</button>
+        <div class="toolbar">
+          <button id="curatedToggleButton" class="icon-button is-active" type="button" title="切換 curated 圖層" aria-pressed="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 18L10 6L14 18L19 9" />
+              <circle cx="5" cy="18" r="2" />
+              <circle cx="10" cy="6" r="2" />
+              <circle cx="14" cy="18" r="2" />
+              <circle cx="19" cy="9" r="2" />
+            </svg>
+            <span class="sr-only">切換 curated 圖層</span>
+          </button>
+          <button id="osmToggleButton" class="icon-button is-active" type="button" title="切換 OSM 圖層" aria-pressed="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M6 7L12 12L18 7" />
+              <path d="M12 12L12 19" />
+              <circle cx="6" cy="7" r="2" />
+              <circle cx="12" cy="12" r="2" />
+              <circle cx="18" cy="7" r="2" />
+              <circle cx="12" cy="19" r="2" />
+            </svg>
+            <span class="sr-only">切換 OSM 圖層</span>
+          </button>
+          <button id="fitActiveButton" class="icon-button" type="button" title="聚焦目前項目與前後站">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 9V4H9" />
+              <path d="M15 4H20V9" />
+              <path d="M20 15V20H15" />
+              <path d="M9 20H4V15" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span class="sr-only">聚焦目前項目與前後站</span>
+          </button>
+          <button id="reloadButton" class="icon-button" type="button" title="重新同步資料">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20 11A8 8 0 0 0 6.3 6.3" />
+              <path d="M4 4V9H9" />
+              <path d="M4 13A8 8 0 0 0 17.7 17.7" />
+              <path d="M20 20V15H15" />
+            </svg>
+            <span class="sr-only">重新同步資料</span>
+          </button>
+        </div>
+      </header>
 
-        <div id="status" class="status">載入中…</div>
+      <main class="studio-grid">
+        <aside class="queue-panel panel">
+          <div class="queue-toolbar">
+            <div id="queueFilter" class="segmented-control">
+              <button class="segmented-button is-active" type="button" data-filter="pending">待處理</button>
+              <button class="segmented-button" type="button" data-filter="all">全部</button>
+              <button class="segmented-button" type="button" data-filter="resolved">已完成</button>
+            </div>
+            <button id="nextPendingButton" class="pill-button" type="button">
+              <svg viewBox="0 0 20 20" fill="none">
+                <path d="M4 10H16" />
+                <path d="M11 5L16 10L11 15" />
+              </svg>
+              <span>下一筆</span>
+            </button>
+          </div>
+          <div id="queueList" class="queue-list"></div>
+        </aside>
 
-        <section class="detail" id="detailPanel">
-          <h2>平交道資訊</h2>
-          <p class="placeholder">請先在地圖上選擇平交道。</p>
+        <section class="map-panel panel">
+          <div class="map-overlay overlay-left">
+            <div id="activeBadge" class="active-badge"></div>
+          </div>
+          <div class="map-overlay overlay-bottom">
+            <div class="legend-strip">
+              <span class="legend-chip"><i class="legend-dot legend-dot-curated"></i><b>curated</b></span>
+              <span class="legend-chip"><i class="legend-dot legend-dot-osm"></i><b>raw</b></span>
+              <span class="legend-chip"><i class="legend-dot legend-dot-draft"></i><b>draft</b></span>
+              <span class="legend-chip"><i class="legend-dot legend-dot-saved"></i><b>saved</b></span>
+              <span class="legend-chip"><i class="legend-dot legend-dot-station"></i><b>stations</b></span>
+            </div>
+          </div>
+          <div id="map"></div>
         </section>
 
-        <footer class="source-note">
-          <p>地圖資料 © OpenStreetMap contributors，依 ODbL 授權。</p>
-          <p>平交道名錄來源：國營臺灣鐵路股份有限公司公開資訊頁。</p>
-        </footer>
-      </aside>
-
-      <main class="map-wrap">
-        <div id="map"></div>
+        <aside class="dock-panel panel">
+          <div id="officialCard" class="dock-card official-card"></div>
+          <div id="candidateCard" class="dock-card candidate-card"></div>
+          <div class="dock-switches">
+            <button id="autoAdvanceButton" class="pill-toggle" type="button" aria-pressed="false">Auto next</button>
+            <button id="clearDraftButton" class="ghost-action" type="button">清除草稿</button>
+          </div>
+          <div class="dock-footer">
+            <button id="saveMappingButton" class="primary-action" type="button" disabled>儲存映射</button>
+            <button id="removeMappingButton" class="ghost-action" type="button" disabled>移除已存</button>
+            <div id="statusBar" class="status-bar">載入中…</div>
+          </div>
+        </aside>
       </main>
     </div>
 

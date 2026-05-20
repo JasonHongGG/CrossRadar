@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.app.api.crossings import router as crossings_router
 from backend.app.api.health import router as health_router
 from backend.app.api.predictions import router as predictions_router
+from backend.app.api.system import router as system_router
 from backend.app.config import get_settings
 
 
@@ -23,6 +24,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(crossings_router, prefix="/api")
     app.include_router(predictions_router, prefix="/api")
+    app.include_router(system_router, prefix="/api")
 
     if settings.frontend_dir.exists():
         app.mount("/", StaticFiles(directory=settings.frontend_dir, html=True), name="frontend")

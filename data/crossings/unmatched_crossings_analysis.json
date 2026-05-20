@@ -1,0 +1,1143 @@
+{
+  "metadata": {
+    "official_count": 418,
+    "mapped_count": 380,
+    "unmatched_count": 38,
+    "osm_feature_count": 1900,
+    "report_path": "data\\crossings\\unmatched_crossings_analysis.json"
+  },
+  "summary": {
+    "reason_counts": {
+      "no_name_overlap": 38
+    },
+    "manual_mapping_category_counts": {
+      "road_name_mismatch_or_unnamed_osm_road": 12,
+      "duplicate_official_name_requires_km_disambiguation": 6,
+      "local_place_name_not_reflected_in_osm": 18,
+      "facility_or_private_crossing_name_not_reflected_in_osm": 2
+    },
+    "normalized_duplicate_groups": [
+      {
+        "line": "宜蘭線",
+        "normalized_name": "瑪鄰路",
+        "count": 2
+      },
+      {
+        "line": "台東線",
+        "normalized_name": "富源北",
+        "count": 2
+      },
+      {
+        "line": "集集線",
+        "normalized_name": "愛寮路",
+        "count": 2
+      }
+    ],
+    "matcher_observation": "All currently unmatched official crossings fail before thresholding because the current matcher cannot find any overlapping OSM name candidate.",
+    "km_fallback_observation": "Same-line OSM candidates exist, but for these unmatched records none of those same-line OSM crossings expose railway:position, so the current matcher has no kilometer-based fallback."
+  },
+  "entries": [
+    {
+      "crossing_id": "二城路-宜蘭線-k060727",
+      "name": "二城路",
+      "normalized_name": "二城路",
+      "line": "宜蘭線",
+      "km_marker": "K060+727",
+      "km_value_meters": 60727,
+      "road_type": "村里",
+      "station_pair_text": "頂埔-礁溪",
+      "station_a_name": "頂埔",
+      "station_b_name": "礁溪",
+      "county": "宜蘭縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 66,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "德陽路-宜蘭線-k063122",
+      "name": "德陽路",
+      "normalized_name": "德陽路",
+      "line": "宜蘭線",
+      "km_marker": "K063+122",
+      "km_value_meters": 63122,
+      "road_type": "村里",
+      "station_pair_text": "礁溪-四城",
+      "station_a_name": "礁溪",
+      "station_b_name": "四城",
+      "county": "宜蘭縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 66,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "瑪鄰路-宜蘭線-k066724",
+      "name": "瑪鄰路(一)",
+      "normalized_name": "瑪鄰路",
+      "line": "宜蘭線",
+      "km_marker": "K066+724",
+      "km_value_meters": 66724,
+      "road_type": "村里",
+      "station_pair_text": "礁溪-四城",
+      "station_a_name": "礁溪",
+      "station_b_name": "四城",
+      "county": "宜蘭縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "duplicate_official_name_requires_km_disambiguation",
+        "duplicate_normalized_name_on_same_line": true,
+        "same_line_osm_feature_count": 66,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Use station-pair context plus manual OSM review; if OSM later gains railway:position tags, kilometer-based disambiguation becomes possible."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "瑪鄰路-宜蘭線-k067161",
+      "name": "瑪鄰路(二)",
+      "normalized_name": "瑪鄰路",
+      "line": "宜蘭線",
+      "km_marker": "K067+161",
+      "km_value_meters": 67161,
+      "road_type": "村里",
+      "station_pair_text": "礁溪-四城",
+      "station_a_name": "礁溪",
+      "station_b_name": "四城",
+      "county": "宜蘭縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "duplicate_official_name_requires_km_disambiguation",
+        "duplicate_normalized_name_on_same_line": true,
+        "same_line_osm_feature_count": 66,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Use station-pair context plus manual OSM review; if OSM later gains railway:position tags, kilometer-based disambiguation becomes possible."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "畚箕湖-宜蘭線-k090849",
+      "name": "畚箕湖",
+      "normalized_name": "畚箕湖",
+      "line": "宜蘭線",
+      "km_marker": "K090+849",
+      "km_value_meters": 90849,
+      "road_type": "村里",
+      "station_pair_text": "蘇澳新站-蘇澳",
+      "station_a_name": "蘇澳新站",
+      "station_b_name": "蘇澳",
+      "county": "宜蘭縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 66,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "東生公司-縱貫線-k058366",
+      "name": "東生公司",
+      "normalized_name": "東生公司",
+      "line": "縱貫線",
+      "km_marker": "K058+366",
+      "km_value_meters": 58366,
+      "road_type": "專用",
+      "station_pair_text": "桃園-內壢",
+      "station_a_name": "桃園",
+      "station_b_name": "內壢",
+      "county": "桃園市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "facility_or_private_crossing_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Check nearby unnamed or service-road OSM crossings and add an alias or manual mapping table for private crossings."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "稻香村-台東線-k005063",
+      "name": "稻香村",
+      "normalized_name": "稻香村",
+      "line": "台東線",
+      "km_marker": "K005+063",
+      "km_value_meters": 5063,
+      "road_type": "鄉道",
+      "station_pair_text": "吉安-志學",
+      "station_a_name": "吉安",
+      "station_b_name": "志學",
+      "county": "花蓮縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 73,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "富源北-台東線-k053181",
+      "name": "富源北(一)",
+      "normalized_name": "富源北",
+      "line": "台東線",
+      "km_marker": "K053+181",
+      "km_value_meters": 53181,
+      "road_type": "村里",
+      "station_pair_text": "大富-富源",
+      "station_a_name": "大富",
+      "station_b_name": "富源",
+      "county": "花蓮縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "duplicate_official_name_requires_km_disambiguation",
+        "duplicate_normalized_name_on_same_line": true,
+        "same_line_osm_feature_count": 73,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Use station-pair context plus manual OSM review; if OSM later gains railway:position tags, kilometer-based disambiguation becomes possible."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "富源北-台東線-k053545",
+      "name": "富源北(二)",
+      "normalized_name": "富源北",
+      "line": "台東線",
+      "km_marker": "K053+545",
+      "km_value_meters": 53545,
+      "road_type": "省道",
+      "station_pair_text": "大富-富源",
+      "station_a_name": "大富",
+      "station_b_name": "富源",
+      "county": "花蓮縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "duplicate_official_name_requires_km_disambiguation",
+        "duplicate_normalized_name_on_same_line": true,
+        "same_line_osm_feature_count": 73,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Use station-pair context plus manual OSM review; if OSM later gains railway:position tags, kilometer-based disambiguation becomes possible."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "太麻里-南迴線-k075137",
+      "name": "太麻里",
+      "normalized_name": "太麻里",
+      "line": "南迴線",
+      "km_marker": "K075+137",
+      "km_value_meters": 75137,
+      "road_type": "鄉道",
+      "station_pair_text": "太麻里-知本",
+      "station_a_name": "太麻里",
+      "station_b_name": "知本",
+      "county": "臺東縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 18,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "愛寮路-集集線-k014651",
+      "name": "愛寮路(一)",
+      "normalized_name": "愛寮路",
+      "line": "集集線",
+      "km_marker": "K014+651",
+      "km_value_meters": 14651,
+      "road_type": "村里",
+      "station_pair_text": "濁水-龍泉",
+      "station_a_name": "濁水",
+      "station_b_name": "龍泉",
+      "county": "南投縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "duplicate_official_name_requires_km_disambiguation",
+        "duplicate_normalized_name_on_same_line": true,
+        "same_line_osm_feature_count": 36,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Use station-pair context plus manual OSM review; if OSM later gains railway:position tags, kilometer-based disambiguation becomes possible."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "愛寮路-集集線-k015067",
+      "name": "愛寮路(二)",
+      "normalized_name": "愛寮路",
+      "line": "集集線",
+      "km_marker": "K015+067",
+      "km_value_meters": 15067,
+      "road_type": "村里",
+      "station_pair_text": "濁水-龍泉",
+      "station_a_name": "濁水",
+      "station_b_name": "龍泉",
+      "county": "南投縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "duplicate_official_name_requires_km_disambiguation",
+        "duplicate_normalized_name_on_same_line": true,
+        "same_line_osm_feature_count": 36,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Use station-pair context plus manual OSM review; if OSM later gains railway:position tags, kilometer-based disambiguation becomes possible."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "八德街-中興一號特種支線-k001705",
+      "name": "八德街",
+      "normalized_name": "八德街",
+      "line": "中興一號特種支線",
+      "km_marker": "K001+705",
+      "km_value_meters": 1705,
+      "road_type": "縣道",
+      "station_pair_text": "鶯歌-基地",
+      "station_a_name": "鶯歌",
+      "station_b_name": "基地",
+      "county": "新北市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 3,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "十九a-台中港線-k007655",
+      "name": "十九A",
+      "normalized_name": "十九a",
+      "line": "台中港線",
+      "km_marker": "K007+655",
+      "km_value_meters": 7655,
+      "road_type": "港區",
+      "station_pair_text": "港站-5號碼頭",
+      "station_a_name": "港站",
+      "station_b_name": "5號碼頭",
+      "county": "臺中市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 12,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "中橫4路-台中港線-k010291",
+      "name": "中橫4路",
+      "normalized_name": "中橫4路",
+      "line": "台中港線",
+      "km_marker": "K010+291",
+      "km_value_meters": 10291,
+      "road_type": "港區",
+      "station_pair_text": "港站-29號碼頭",
+      "station_a_name": "港站",
+      "station_b_name": "29號碼頭",
+      "county": "臺中市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 12,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "5號碼頭-花蓮港線-hk004134",
+      "name": "5號碼頭",
+      "normalized_name": "5號碼頭",
+      "line": "花蓮港線",
+      "km_marker": "HK004+134",
+      "km_value_meters": 4134,
+      "road_type": "專用",
+      "station_pair_text": "北埔-花蓮港",
+      "station_a_name": "北埔",
+      "station_b_name": "花蓮港",
+      "county": "花蓮縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "facility_or_private_crossing_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 3,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Check nearby unnamed or service-road OSM crossings and add an alias or manual mapping table for private crossings."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "二十份-舊山線-k161827",
+      "name": "二十份",
+      "normalized_name": "二十份",
+      "line": "舊山線",
+      "km_marker": "K161+827",
+      "km_value_meters": 161827,
+      "road_type": "村里",
+      "station_pair_text": "三義-勝興",
+      "station_a_name": "三義",
+      "station_b_name": "勝興",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 23,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "勝興-舊山線-k162520",
+      "name": "勝興",
+      "normalized_name": "勝興",
+      "line": "舊山線",
+      "km_marker": "K162+520",
+      "km_value_meters": 162520,
+      "road_type": "農路",
+      "station_pair_text": "三義-勝興",
+      "station_a_name": "三義",
+      "station_b_name": "勝興",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 23,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "深澳坑-深澳線-k001780",
+      "name": "深澳坑",
+      "normalized_name": "深澳坑",
+      "line": "深澳線",
+      "km_marker": "K001+780",
+      "km_value_meters": 1780,
+      "road_type": "村里",
+      "station_pair_text": "瑞芳-海科館",
+      "station_a_name": "瑞芳",
+      "station_b_name": "海科館",
+      "county": "新北市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 3,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "渡船頭-縱貫線-k133028",
+      "name": "渡船頭",
+      "normalized_name": "渡船頭",
+      "line": "縱貫線",
+      "km_marker": "K133+028",
+      "km_value_meters": 133028,
+      "road_type": "農路",
+      "station_pair_text": "談文-大山",
+      "station_a_name": "談文",
+      "station_b_name": "大山",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "海寶里-縱貫線-k133674",
+      "name": "海寶里",
+      "normalized_name": "海寶里",
+      "line": "縱貫線",
+      "km_marker": "K133+674",
+      "km_value_meters": 133674,
+      "road_type": "村里道路",
+      "station_pair_text": "談文-大山",
+      "station_a_name": "談文",
+      "station_b_name": "大山",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "五柱-縱貫線-k134567",
+      "name": "五柱",
+      "normalized_name": "五柱",
+      "line": "縱貫線",
+      "km_marker": "K134+567",
+      "km_value_meters": 134567,
+      "road_type": "農路",
+      "station_pair_text": "談文-大山",
+      "station_a_name": "談文",
+      "station_b_name": "大山",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "通彎里北-縱貫線-k158576",
+      "name": "通彎里北",
+      "normalized_name": "通彎里北",
+      "line": "縱貫線",
+      "km_marker": "K158+576",
+      "km_value_meters": 158576,
+      "road_type": "村里道路",
+      "station_pair_text": "新埔-通霄",
+      "station_a_name": "新埔",
+      "station_b_name": "通霄",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "通彎里南-縱貫線-k159251",
+      "name": "通彎里南",
+      "normalized_name": "通彎里南",
+      "line": "縱貫線",
+      "km_marker": "K159+251",
+      "km_value_meters": 159251,
+      "road_type": "村里道路",
+      "station_pair_text": "新埔-通霄",
+      "station_a_name": "新埔",
+      "station_b_name": "通霄",
+      "county": "苗栗縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "斗底里-縱貫線-k195166",
+      "name": "斗底里",
+      "normalized_name": "斗底里",
+      "line": "縱貫線",
+      "km_marker": "K195+166",
+      "km_value_meters": 195166,
+      "road_type": "村里道路",
+      "station_pair_text": "沙鹿-龍井",
+      "station_a_name": "沙鹿",
+      "station_b_name": "龍井",
+      "county": "臺中市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "溪州路-縱貫線北段-k204505",
+      "name": "溪州路(溪州寮)",
+      "normalized_name": "溪州路",
+      "line": "縱貫線北段",
+      "km_marker": "K204+505",
+      "km_value_meters": 204505,
+      "road_type": "村里道路",
+      "station_pair_text": "大肚-追分",
+      "station_a_name": "大肚",
+      "station_b_name": "追分",
+      "county": "臺中市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "社腳路-縱貫線-k206773",
+      "name": "社腳路",
+      "normalized_name": "社腳路",
+      "line": "縱貫線",
+      "km_marker": "K206+773",
+      "km_value_meters": 206773,
+      "road_type": "農路",
+      "station_pair_text": "大肚-追分",
+      "station_a_name": "大肚",
+      "station_b_name": "追分",
+      "county": "臺中市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "魚寮路-縱貫線-k239142",
+      "name": "魚寮路",
+      "normalized_name": "魚寮路",
+      "line": "縱貫線",
+      "km_marker": "K239+142",
+      "km_value_meters": 239142,
+      "road_type": "村里道路",
+      "station_pair_text": "社頭-田中",
+      "station_a_name": "社頭",
+      "station_b_name": "田中",
+      "county": "彰化縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "老藤宅-縱貫線北段-k292780",
+      "name": "老藤宅",
+      "normalized_name": "老藤宅",
+      "line": "縱貫線北段",
+      "km_marker": "K292+780",
+      "km_value_meters": 292780,
+      "road_type": "村里道路",
+      "station_pair_text": "民雄-嘉北",
+      "station_a_name": "民雄",
+      "station_b_name": "嘉北",
+      "county": "嘉義市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "加田村-縱貫線-k308517",
+      "name": "加田村",
+      "normalized_name": "加田村",
+      "line": "縱貫線",
+      "km_marker": "K308+517",
+      "km_value_meters": 308517,
+      "road_type": "鄉道",
+      "station_pair_text": "南靖-後壁",
+      "station_a_name": "南靖",
+      "station_b_name": "後壁",
+      "county": "臺南市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "柳營南方-縱貫線-k323318",
+      "name": "柳營南方",
+      "normalized_name": "柳營南方",
+      "line": "縱貫線",
+      "km_marker": "K323+318",
+      "km_value_meters": 323318,
+      "road_type": "農路",
+      "station_pair_text": "柳營-林鳳營",
+      "station_a_name": "柳營",
+      "station_b_name": "林鳳營",
+      "county": "臺南市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "竹源埤-縱貫線-k324185",
+      "name": "竹源埤",
+      "normalized_name": "竹源埤",
+      "line": "縱貫線",
+      "km_marker": "K324+185",
+      "km_value_meters": 324185,
+      "road_type": "農路",
+      "station_pair_text": "柳營-林鳳營",
+      "station_a_name": "柳營",
+      "station_b_name": "林鳳營",
+      "county": "臺南市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "local_place_name_not_reflected_in_osm",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "name": "四叉巷",
+      "normalized_name": "四叉巷",
+      "line": "縱貫線北段",
+      "km_marker": "K353+375",
+      "km_value_meters": 353375,
+      "road_type": "農路",
+      "station_pair_text": "永康-台南",
+      "station_a_name": "永康",
+      "station_b_name": "台南",
+      "county": "臺南市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "田尾路-縱貫線北段-k371236",
+      "name": "田尾路",
+      "normalized_name": "田尾路",
+      "line": "縱貫線北段",
+      "km_marker": "K371+236",
+      "km_value_meters": 371236,
+      "road_type": "農路",
+      "station_pair_text": "中州-大湖",
+      "station_a_name": "中州",
+      "station_b_name": "大湖",
+      "county": "高雄市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "楠梓路-縱貫線北段-k388856",
+      "name": "楠梓路",
+      "normalized_name": "楠梓路",
+      "line": "縱貫線北段",
+      "km_marker": "K388+856",
+      "km_value_meters": 388856,
+      "road_type": "縣道",
+      "station_pair_text": "橋頭-楠梓",
+      "station_a_name": "橋頭",
+      "station_b_name": "楠梓",
+      "county": "高雄市",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 427,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "旗官路-屏東線-k043300",
+      "name": "旗官路",
+      "normalized_name": "旗官路",
+      "line": "屏東線",
+      "km_marker": "K043+300",
+      "km_value_meters": 43300,
+      "road_type": "農路",
+      "station_pair_text": "潮州-崁頂",
+      "station_a_name": "潮州",
+      "station_b_name": "崁頂",
+      "county": "屏東縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 28,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "三民路-屏東線-k047240",
+      "name": "三民路",
+      "normalized_name": "三民路",
+      "line": "屏東線",
+      "km_marker": "K047+240",
+      "km_value_meters": 47240,
+      "road_type": "鄉道",
+      "station_pair_text": "南州-鎮安",
+      "station_a_name": "南州",
+      "station_b_name": "鎮安",
+      "county": "屏東縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 28,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "燕巢路-屏東線-k060710",
+      "name": "燕巢路",
+      "normalized_name": "燕巢路",
+      "line": "屏東線",
+      "km_marker": "K060+710",
+      "km_value_meters": 60710,
+      "road_type": "農路",
+      "station_pair_text": "佳冬-枋寮",
+      "station_a_name": "佳冬",
+      "station_b_name": "枋寮",
+      "county": "屏東縣",
+      "current_match": {
+        "score": 0.0,
+        "method": null,
+        "confidence": "low",
+        "matched_osm_id": null
+      },
+      "analysis": {
+        "reason_code": "no_name_overlap",
+        "reason_detail": "Official crossing name does not overlap any OSM node name, road name, or rail name candidate. OSM has same-line crossings, but none of them expose railway:position, so the current matcher cannot fall back to kilometer-based disambiguation.",
+        "manual_mapping_category": "road_name_mismatch_or_unnamed_osm_road",
+        "duplicate_normalized_name_on_same_line": false,
+        "same_line_osm_feature_count": 28,
+        "same_line_with_railway_position_count": 0,
+        "recommended_next_step": "Manual visual mapping is required first because name matching failed and same-line OSM crossings do not provide railway:position tags."
+      },
+      "name_match_candidates": []
+    }
+  ]
+}

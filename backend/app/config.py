@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     crossings_data_dir: Path = ROOT_DIR / "data" / "crossings"
     official_crossings_json_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_official.json"
     curated_crossings_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_curated.geojson"
+    manual_mappings_json_path: Path = ROOT_DIR / "data" / "crossings" / "manual_osm_mappings.json"
+    unmatched_analysis_json_path: Path = ROOT_DIR / "data" / "crossings" / "unmatched_crossings_analysis.json"
     osm_raw_json_path: Path = ROOT_DIR / ".runtime" / "osm" / "taiwan_crossings.overpass.json"
     osm_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "osm_crossings.geojson"
     tdx_runtime_dir: Path = ROOT_DIR / ".runtime" / "tdx"

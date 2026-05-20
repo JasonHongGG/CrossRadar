@@ -36,6 +36,7 @@ class CrossingRecord(BaseModel):
     station_a_id: str | None = None
     station_b_id: str | None = None
     segment_ratio: float | None = None
+    manual_mapping_applied: bool = False
     geometry: GeoPoint | None = None
     osm_road_names: list[str] = Field(default_factory=list)
     osm_rail_names: list[str] = Field(default_factory=list)

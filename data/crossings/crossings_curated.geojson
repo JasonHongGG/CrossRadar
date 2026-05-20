@@ -3,7 +3,7 @@
   "metadata": {
     "source": "official+osm",
     "official_count": 418,
-    "mapped_count": 380,
+    "mapped_count": 413,
     "osm_feature_count": 1900,
     "osm_raw_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\.runtime\\osm\\taiwan_crossings.overpass.json"
   },
@@ -41,6 +41,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "暖暖街"
         ],
@@ -88,6 +89,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大埔路",
           "北122"
@@ -135,6 +137,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -179,6 +182,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "瑞芳街"
         ],
@@ -226,6 +230,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "逢甲路",
           "102"
@@ -278,6 +283,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "宜蘭線",
@@ -323,6 +329,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "外大溪路",
           "宜1"
@@ -370,6 +377,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "吉祥路",
           "宜3"
@@ -418,6 +426,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新興路"
         ],
@@ -464,6 +473,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "頂埔路一段"
         ],
@@ -510,6 +520,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "頂埔路一段"
         ],
@@ -556,6 +567,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "三和路",
           "191甲"
@@ -573,7 +585,13 @@
     {
       "type": "Feature",
       "id": "二城路-宜蘭線-k060727",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.7925686,
+          24.8365726
+        ]
+      },
       "properties": {
         "crossing_id": "二城路-宜蘭線-k060727",
         "name": "二城路",
@@ -589,17 +607,25 @@
         "county": "宜蘭縣",
         "source_page": 2,
         "source_row_index": 3,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 4431106607,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "青雲路一段100巷"
+        ],
+        "osm_rail_names": [
+          "宜蘭線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -635,6 +661,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "尖山埔路"
         ],
@@ -682,6 +709,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "白雲六路"
         ],
@@ -734,6 +762,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "白雲二路"
         ],
@@ -755,7 +784,13 @@
     {
       "type": "Feature",
       "id": "德陽路-宜蘭線-k063122",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.774122,
+          24.8253246
+        ]
+      },
       "properties": {
         "crossing_id": "德陽路-宜蘭線-k063122",
         "name": "德陽路",
@@ -771,17 +806,26 @@
         "county": "宜蘭縣",
         "source_page": 2,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 11582436106,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "德陽街"
+        ],
+        "osm_rail_names": [
+          "宜蘭線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "name": "德陽街",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -817,6 +861,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "興農路",
           "宜4"
@@ -864,6 +909,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大義路",
           "宜2"
@@ -881,7 +927,13 @@
     {
       "type": "Feature",
       "id": "瑪鄰路-宜蘭線-k066724",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.76475,
+          24.7942094
+        ]
+      },
       "properties": {
         "crossing_id": "瑪鄰路-宜蘭線-k066724",
         "name": "瑪鄰路(一)",
@@ -897,23 +949,38 @@
         "county": "宜蘭縣",
         "source_page": 2,
         "source_row_index": 10,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 7783279424,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "瑪璘路"
+        ],
+        "osm_rail_names": [
+          "宜蘭線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "name": "瑪璘路一",
+          "railway": "level_crossing"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "瑪鄰路-宜蘭線-k067161",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.7638293,
+          24.7903476
+        ]
+      },
       "properties": {
         "crossing_id": "瑪鄰路-宜蘭線-k067161",
         "name": "瑪鄰路(二)",
@@ -929,17 +996,26 @@
         "county": "宜蘭縣",
         "source_page": 3,
         "source_row_index": 1,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 7797444995,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "瑪璘路"
+        ],
+        "osm_rail_names": [
+          "宜蘭線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "name": "瑪璘路二",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -975,6 +1051,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路",
           "宜8"
@@ -1023,6 +1100,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新生路"
         ],
@@ -1069,6 +1147,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "鳳一路",
           "大湖路361巷"
@@ -1116,6 +1195,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新生路"
         ],
@@ -1162,6 +1242,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東港路二段"
         ],
@@ -1208,6 +1289,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "校舍路"
         ],
@@ -1256,6 +1338,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "五結中路三段",
           "宜25"
@@ -1304,6 +1387,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路",
           "彰81"
@@ -1351,6 +1435,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路二段",
           "中山路"
@@ -1397,6 +1482,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "羅莊街",
           "宜30-1"
@@ -1444,6 +1530,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "建國東路"
         ],
@@ -1491,6 +1578,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "珍珠一路",
           "宜28"
@@ -1511,7 +1599,13 @@
     {
       "type": "Feature",
       "id": "畚箕湖-宜蘭線-k090849",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.8318538,
+          24.6045443
+        ]
+      },
       "properties": {
         "crossing_id": "畚箕湖-宜蘭線-k090849",
         "name": "畚箕湖",
@@ -1527,17 +1621,27 @@
         "county": "宜蘭縣",
         "source_page": 4,
         "source_row_index": 4,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 2868001939,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "中山路二段160巷"
+        ],
+        "osm_rail_names": [
+          "宜蘭線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "crossing:barrier": "double_half",
+          "name": "畚萁湖",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -1573,6 +1677,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "宜蘭線",
@@ -1617,6 +1722,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中正路",
           "19甲"
@@ -1664,6 +1770,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "蘇花路二段",
           "9;9丁",
@@ -1685,7 +1792,13 @@
     {
       "type": "Feature",
       "id": "東生公司-縱貫線-k058366",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.3040686,
+          24.9872648
+        ]
+      },
       "properties": {
         "crossing_id": "東生公司-縱貫線-k058366",
         "name": "東生公司",
@@ -1701,17 +1814,35 @@
         "county": "桃園市",
         "source_page": 4,
         "source_row_index": 8,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 2166533816,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "南山街"
+        ],
+        "osm_rail_names": [
+          "縱貫線",
+          "縱貫鐵路"
+        ],
+        "osm_tags": {
+          "bicycle": "yes",
+          "emergency": "no",
+          "foot": "yes",
+          "goods": "no",
+          "hgv": "no",
+          "hov": "no",
+          "motorcar": "no",
+          "motorcycle": "yes",
+          "name": "南山街",
+          "psv": "no",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -1747,6 +1878,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "秀林路",
           "花8"
@@ -1794,6 +1926,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民享路"
         ],
@@ -1840,6 +1973,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "北迴線",
@@ -1884,6 +2018,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "花9"
         ],
@@ -1930,6 +2065,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "北迴線",
@@ -1974,6 +2110,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "北迴線",
@@ -2018,6 +2155,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "精舍街",
           "花10"
@@ -2066,6 +2204,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "康樂路267巷"
         ],
@@ -2113,6 +2252,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "玉山街"
         ],
@@ -2160,6 +2300,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "樹人街"
         ],
@@ -2206,6 +2347,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民有街",
           "花12"
@@ -2254,6 +2396,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "花9-1"
         ],
@@ -2300,6 +2443,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "北迴線",
@@ -2344,6 +2488,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "建國路",
           "花22"
@@ -2393,6 +2538,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中華路",
           "9丙"
@@ -2440,6 +2586,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路二段",
           "中山路"
@@ -2486,6 +2633,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "香源路"
         ],
@@ -2503,7 +2651,13 @@
     {
       "type": "Feature",
       "id": "稻香村-台東線-k005063",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.5698293,
+          23.9589902
+        ]
+      },
       "properties": {
         "crossing_id": "稻香村-台東線-k005063",
         "name": "稻香村",
@@ -2519,17 +2673,27 @@
         "county": "花蓮縣",
         "source_page": 6,
         "source_row_index": 6,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1097653742,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "吉興路二段",
+          "花25"
+        ],
+        "osm_rail_names": [
+          "台東線",
+          "臺東線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -2565,6 +2729,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南華二街",
           "花23"
@@ -2613,6 +2778,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "國際路一段",
           "桃53"
@@ -2660,6 +2826,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南華二街",
           "花23"
@@ -2708,6 +2875,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -2753,6 +2921,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "平和路",
           "花41"
@@ -2801,6 +2970,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "豐正路一段",
           "花40"
@@ -2849,6 +3019,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -2894,6 +3065,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "水車路",
           "花44"
@@ -2942,6 +3114,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "花43"
         ],
@@ -2989,6 +3162,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功街",
           "忠義路"
@@ -3037,6 +3211,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "茄苳路"
         ],
@@ -3085,6 +3260,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功街",
           "忠義路"
@@ -3133,6 +3309,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功街",
           "忠義路"
@@ -3181,6 +3358,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功街",
           "忠義路"
@@ -3229,6 +3407,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "萬森路",
           "花50"
@@ -3277,6 +3456,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -3322,6 +3502,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -3367,6 +3548,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大華街",
           "花47"
@@ -3415,6 +3597,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大全街",
           "花47"
@@ -3463,6 +3646,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大全街",
           "花47"
@@ -3511,6 +3695,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "高城路"
         ],
@@ -3559,6 +3744,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大全街",
           "花47"
@@ -3607,6 +3793,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "尚德街",
           "花56"
@@ -3655,6 +3842,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "尚德街",
           "花56"
@@ -3673,7 +3861,13 @@
     {
       "type": "Feature",
       "id": "富源北-台東線-k053181",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.3865344,
+          23.5936466
+        ]
+      },
       "properties": {
         "crossing_id": "富源北-台東線-k053181",
         "name": "富源北(一)",
@@ -3689,23 +3883,37 @@
         "county": "花蓮縣",
         "source_page": 9,
         "source_row_index": 1,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 8936075742,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "台東線",
+          "臺東線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "name": "大豐村(二)",
+          "railway": "level_crossing"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "富源北-台東線-k053545",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.3825662,
+          23.5874321
+        ]
+      },
       "properties": {
         "crossing_id": "富源北-台東線-k053545",
         "name": "富源北(二)",
@@ -3721,17 +3929,24 @@
         "county": "花蓮縣",
         "source_page": 9,
         "source_row_index": 2,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 10920186348,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "台東線",
+          "臺東線",
+          "台鐵東部幹線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -3767,6 +3982,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "永豐路",
           "桃51"
@@ -3816,6 +4032,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民權西路",
           "花62"
@@ -3864,6 +4081,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -3909,6 +4127,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -3953,6 +4172,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "花69"
         ],
@@ -4002,6 +4222,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新昌一街"
         ],
@@ -4051,6 +4272,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新生街"
         ],
@@ -4100,6 +4322,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "遠東路"
         ],
@@ -4148,6 +4371,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新興街",
           "花70"
@@ -4198,6 +4422,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "更生路"
         ],
@@ -4247,6 +4472,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -4292,6 +4518,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -4337,6 +4564,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -4382,6 +4610,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "和平街"
         ],
@@ -4429,6 +4658,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "興仁路一段",
           "桃47"
@@ -4478,6 +4708,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "台東線",
@@ -4523,6 +4754,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中西三路",
           "東1"
@@ -4571,6 +4803,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中西一路"
         ],
@@ -4618,6 +4851,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "忠孝路",
           "20甲"
@@ -4666,6 +4900,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東欣路",
           "東7"
@@ -4714,6 +4949,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -4758,6 +4994,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -4802,6 +5039,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -4846,6 +5084,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -4890,6 +5129,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "精忠街"
         ],
@@ -4938,6 +5178,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -4982,6 +5223,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "和平街"
         ],
@@ -5029,6 +5271,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -5073,6 +5316,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路298巷"
         ],
@@ -5119,6 +5363,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -5163,6 +5408,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "寶華路"
         ],
@@ -5209,6 +5455,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -5253,6 +5500,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -5297,6 +5545,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "坪頂路"
         ],
@@ -5343,6 +5592,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "永福路"
         ],
@@ -5389,6 +5639,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺東線",
@@ -5433,6 +5684,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "隆山路"
         ],
@@ -5478,6 +5730,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "金榮路",
           "屏146"
@@ -5524,6 +5777,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "南迴線"
@@ -5537,7 +5791,13 @@
     {
       "type": "Feature",
       "id": "太麻里-南迴線-k075137",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.0067219,
+          22.6214466
+        ]
+      },
       "properties": {
         "crossing_id": "太麻里-南迴線-k075137",
         "name": "太麻里",
@@ -5553,17 +5813,27 @@
         "county": "臺東縣",
         "source_page": 13,
         "source_row_index": 2,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 7193394624,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "東63"
+        ],
+        "osm_rail_names": [
+          "南迴線"
+        ],
+        "osm_tags": {
+          "description": "台灣灌籃高手場景",
+          "name": "櫻木花道平交道",
+          "official_name": "太麻里",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -5599,6 +5869,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -5643,6 +5914,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "美和部落聯絡道路"
         ],
@@ -5688,6 +5960,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "美和部落聯絡道路"
         ],
@@ -5733,6 +6006,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大和路91巷"
         ],
@@ -5778,6 +6052,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "雲南路",
           "東59"
@@ -5824,6 +6099,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "雲南路",
           "東59"
@@ -5870,6 +6146,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "普忠路211巷",
           "中華路一段835巷62弄"
@@ -5917,6 +6194,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大學路二段",
           "東57"
@@ -5963,6 +6241,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "山西路二段577巷358弄"
         ],
@@ -6008,6 +6287,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路六段1巷"
         ],
@@ -6053,6 +6333,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新中北路249巷",
           "忠義路23巷"
@@ -6102,6 +6383,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -6147,6 +6429,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "德育路"
         ],
@@ -6193,6 +6476,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -6237,6 +6521,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "延平路"
         ],
@@ -6283,6 +6568,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "延平路"
         ],
@@ -6329,6 +6615,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "光明路"
         ],
@@ -6374,6 +6661,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "內灣線"
@@ -6417,6 +6705,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大明路"
         ],
@@ -6462,6 +6751,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中豐路一段407巷"
         ],
@@ -6507,6 +6797,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中豐路一段",
           "3"
@@ -6553,6 +6844,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新興街"
         ],
@@ -6598,6 +6890,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山街一段",
           "120"
@@ -6644,6 +6937,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "桃園巷"
         ],
@@ -6693,6 +6987,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "修仁路",
           "彰114-1"
@@ -6740,6 +7035,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "鼻倡路",
           "彰114"
@@ -6790,6 +7086,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "倡和路"
         ],
@@ -6839,6 +7136,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "水森路",
           "152"
@@ -6889,6 +7187,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -6936,6 +7235,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新民路",
           "高17"
@@ -6982,6 +7282,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南雲路"
         ],
@@ -7031,6 +7332,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民生路",
           "投54"
@@ -7081,6 +7383,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "磨坑巷"
         ],
@@ -7130,6 +7433,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -7173,6 +7477,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -7220,6 +7525,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新農街二段209巷"
         ],
@@ -7236,7 +7542,13 @@
     {
       "type": "Feature",
       "id": "愛寮路-集集線-k014651",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.7401537,
+          23.8352657
+        ]
+      },
       "properties": {
         "crossing_id": "愛寮路-集集線-k014651",
         "name": "愛寮路(一)",
@@ -7252,23 +7564,41 @@
         "county": "南投縣",
         "source_page": 16,
         "source_row_index": 9,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1919803728,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "隘埔巷"
+        ],
+        "osm_rail_names": [
+          "集集線"
+        ],
+        "osm_tags": {
+          "crossing:barrier": "full",
+          "crossing:bell": "yes",
+          "crossing:light": "yes",
+          "name": "隘寮路(一)",
+          "railway": "level_crossing",
+          "ref": "610"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "愛寮路-集集線-k015067",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.7441483,
+          23.8358048
+        ]
+      },
       "properties": {
         "crossing_id": "愛寮路-集集線-k015067",
         "name": "愛寮路(二)",
@@ -7284,17 +7614,27 @@
         "county": "南投縣",
         "source_page": 16,
         "source_row_index": 10,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 5827730526,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "集集線"
+        ],
+        "osm_tags": {
+          "crossing:barrier": "full",
+          "crossing:bell": "yes",
+          "crossing:light": "yes",
+          "name": "隘寮路(二)",
+          "railway": "level_crossing",
+          "ref": "611"
+        }
       }
     },
     {
@@ -7330,6 +7670,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -7377,6 +7718,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "龍泉巷"
         ],
@@ -7425,6 +7767,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -7471,6 +7814,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民生路",
           "投54"
@@ -7521,6 +7865,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民生路",
           "投54"
@@ -7571,6 +7916,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -7615,6 +7961,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民生路",
           "投54"
@@ -7665,6 +8012,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "集鹿路",
           "139"
@@ -7711,6 +8059,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "楊湖路一段654巷"
         ],
@@ -7757,6 +8106,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "八張街",
           "投27"
@@ -7804,6 +8154,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線 (暫停營運)",
@@ -7848,6 +8199,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路二段",
           "投54"
@@ -7895,6 +8247,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "水里一路31巷"
         ],
@@ -7941,6 +8294,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "逢甲路"
         ],
@@ -7987,6 +8341,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "靜安路三段",
           "106"
@@ -8003,7 +8358,13 @@
     {
       "type": "Feature",
       "id": "八德街-中興一號特種支線-k001705",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.3377749,
+          24.9487885
+        ]
+      },
       "properties": {
         "crossing_id": "八德街-中興一號特種支線-k001705",
         "name": "八德街",
@@ -8019,17 +8380,25 @@
         "county": "新北市",
         "source_page": 18,
         "source_row_index": 6,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 3047117505,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "八德路",
+          "114"
+        ],
+        "osm_rail_names": [
+          "中興一號特種支線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -8065,6 +8434,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "龍泉巷"
         ],
@@ -8113,6 +8483,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民安路",
           "桃111"
@@ -8160,6 +8531,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中港線"
@@ -8203,6 +8575,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "甲南路"
         ],
@@ -8248,6 +8621,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中港線"
@@ -8291,6 +8665,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "臨港路七段585巷"
         ],
@@ -8337,6 +8712,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中港線"
@@ -8380,6 +8756,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "三美路",
           "中51"
@@ -8426,6 +8803,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中港線"
@@ -8470,6 +8848,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中港線"
@@ -8514,6 +8893,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "高美路",
           "中49"
@@ -8561,6 +8941,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -8606,6 +8987,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "港埠路五段"
         ],
@@ -8649,6 +9031,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [],
         "osm_tags": {
@@ -8690,6 +9073,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "北堤路"
         ],
@@ -8733,6 +9117,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "北堤路"
         ],
@@ -8770,6 +9155,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [],
         "osm_tags": {}
@@ -8808,6 +9194,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "九如一路",
           "1"
@@ -8855,6 +9242,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "九如一路",
           "1"
@@ -8902,6 +9290,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中豐路一段",
           "3"
@@ -8948,6 +9337,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "德興路"
         ],
@@ -8994,6 +9384,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "九如一路",
           "1"
@@ -9041,6 +9432,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "九如一路",
           "1"
@@ -9082,6 +9474,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [],
         "osm_tags": {}
@@ -9120,6 +9513,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功路513巷"
         ],
@@ -9166,6 +9560,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -9210,6 +9605,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -9254,6 +9650,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南外街"
         ],
@@ -9300,6 +9697,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路"
         ],
@@ -9316,7 +9714,13 @@
     {
       "type": "Feature",
       "id": "5號碼頭-花蓮港線-hk004134",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.6352335,
+          23.9988598
+        ]
+      },
       "properties": {
         "crossing_id": "5號碼頭-花蓮港線-hk004134",
         "name": "5號碼頭",
@@ -9332,17 +9736,20 @@
         "county": "花蓮縣",
         "source_page": 21,
         "source_row_index": 6,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 11485591705,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
         "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -9378,6 +9785,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中華路四段181巷"
         ],
@@ -9427,6 +9835,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中華路四段451巷",
           "中華路四段451巷1弄"
@@ -9473,6 +9882,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中華路五段331巷"
         ],
@@ -9519,6 +9929,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大湖路"
         ],
@@ -9565,6 +9976,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "長興街273巷"
         ],
@@ -9611,6 +10023,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -9658,6 +10071,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "八股路"
         ],
@@ -9704,6 +10118,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "苗49"
         ],
@@ -9720,7 +10135,13 @@
     {
       "type": "Feature",
       "id": "二十份-舊山線-k161827",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.7732773,
+          24.4130026
+        ]
+      },
       "properties": {
         "crossing_id": "二十份-舊山線-k161827",
         "name": "二十份",
@@ -9736,23 +10157,39 @@
         "county": "苗栗縣",
         "source_page": 22,
         "source_row_index": 5,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 774940388,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "大通公路",
+          "130"
+        ],
+        "osm_rail_names": [
+          "舊山線"
+        ],
+        "osm_tags": {
+          "description": "位於舊山線",
+          "name": "三義南方",
+          "railway": "level_crossing"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "勝興-舊山線-k162520",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.7677743,
+          24.3975883
+        ]
+      },
       "properties": {
         "crossing_id": "勝興-舊山線-k162520",
         "name": "勝興",
@@ -9768,17 +10205,23 @@
         "county": "苗栗縣",
         "source_page": 22,
         "source_row_index": 6,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 5541260775,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "舊山線"
+        ],
+        "osm_tags": {
+          "description": "位於舊山線",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -9814,6 +10257,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "集集線"
@@ -9861,6 +10305,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "內湖路34巷"
         ],
@@ -9877,7 +10322,13 @@
     {
       "type": "Feature",
       "id": "深澳坑-深澳線-k001780",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.7981565,
+          25.1197853
+        ]
+      },
       "properties": {
         "crossing_id": "深澳坑-深澳線-k001780",
         "name": "深澳坑",
@@ -9893,17 +10344,27 @@
         "county": "新北市",
         "source_page": 22,
         "source_row_index": 9,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 2079410593,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "逢甲路",
+          "102"
+        ],
+        "osm_rail_names": [
+          "深澳線"
+        ],
+        "osm_tags": {
+          "crossing:barrier": "half",
+          "name": "逢甲路(二)",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -9939,6 +10400,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "和平南街"
         ],
@@ -9984,6 +10446,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南港街"
         ],
@@ -10001,7 +10464,13 @@
     {
       "type": "Feature",
       "id": "渡船頭-縱貫線-k133028",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.8297386,
+          24.6651542
+        ]
+      },
       "properties": {
         "crossing_id": "渡船頭-縱貫線-k133028",
         "name": "渡船頭",
@@ -10017,23 +10486,36 @@
         "county": "苗栗縣",
         "source_page": 23,
         "source_row_index": 2,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1358903587,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "海寶里-縱貫線-k133674",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.8235794,
+          24.6636467
+        ]
+      },
       "properties": {
         "crossing_id": "海寶里-縱貫線-k133674",
         "name": "海寶里",
@@ -10049,23 +10531,36 @@
         "county": "苗栗縣",
         "source_page": 23,
         "source_row_index": 3,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1358903572,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "五柱-縱貫線-k134567",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.8158063,
+          24.6600805
+        ]
+      },
       "properties": {
         "crossing_id": "五柱-縱貫線-k134567",
         "name": "五柱",
@@ -10081,17 +10576,24 @@
         "county": "苗栗縣",
         "source_page": 23,
         "source_row_index": 4,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1358903560,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -10127,6 +10629,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10172,6 +10675,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "明山路",
           "苗8"
@@ -10220,6 +10724,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10265,6 +10770,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10310,6 +10816,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10355,6 +10862,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10400,6 +10908,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10445,6 +10954,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10490,6 +11000,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10535,6 +11046,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10550,7 +11062,13 @@
     {
       "type": "Feature",
       "id": "通彎里北-縱貫線-k158576",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.6895915,
+          24.5095824
+        ]
+      },
       "properties": {
         "crossing_id": "通彎里北-縱貫線-k158576",
         "name": "通彎里北",
@@ -10566,17 +11084,25 @@
         "county": "苗栗縣",
         "source_page": 24,
         "source_row_index": 5,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 4036446778,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "name": "通灣里北",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -10612,6 +11138,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功路",
           "19甲"
@@ -10627,7 +11154,13 @@
     {
       "type": "Feature",
       "id": "通彎里南-縱貫線-k159251",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.6873549,
+          24.5039132
+        ]
+      },
       "properties": {
         "crossing_id": "通彎里南-縱貫線-k159251",
         "name": "通彎里南",
@@ -10643,17 +11176,25 @@
         "county": "苗栗縣",
         "source_page": 24,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 3053379398,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "name": "通灣里南",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -10689,6 +11230,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "海濱路"
         ],
@@ -10736,6 +11278,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "五南路"
         ],
@@ -10783,6 +11326,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -10828,6 +11372,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路89巷"
         ],
@@ -10875,6 +11420,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "苗47-1"
         ],
@@ -10922,6 +11468,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "慈德路",
           "121"
@@ -10970,6 +11517,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路一段1158巷",
           "中15"
@@ -11018,6 +11566,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "二崁路",
           "中30"
@@ -11066,6 +11615,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "海濱路",
           "中50-1"
@@ -11114,6 +11664,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "鰲峰路",
           "中53"
@@ -11162,6 +11713,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路田尾巷"
         ],
@@ -11209,6 +11761,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "興安路",
           "中68-1"
@@ -11251,6 +11804,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [],
         "osm_tags": {}
@@ -11289,6 +11843,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山一路一段"
         ],
@@ -11336,6 +11891,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "海岸線",
@@ -11381,6 +11937,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "茄投路一段",
           "中62"
@@ -11429,6 +11986,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "文昌路一段",
           "中61"
@@ -11477,6 +12035,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "永和街"
         ],
@@ -11494,7 +12053,13 @@
     {
       "type": "Feature",
       "id": "溪州路-縱貫線北段-k204505",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.5441951,
+          24.144651
+        ]
+      },
       "properties": {
         "crossing_id": "溪州路-縱貫線北段-k204505",
         "name": "溪州路(溪州寮)",
@@ -11510,23 +12075,37 @@
         "county": "臺中市",
         "source_page": 26,
         "source_row_index": 6,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 4372089563,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "name": "溪州寮",
+          "railway": "level_crossing"
+        }
       }
     },
     {
       "type": "Feature",
       "id": "社腳路-縱貫線-k206773",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.556042,
+          24.1273455
+        ]
+      },
       "properties": {
         "crossing_id": "社腳路-縱貫線-k206773",
         "name": "社腳路",
@@ -11542,17 +12121,24 @@
         "county": "臺中市",
         "source_page": 26,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 3496995692,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "海岸線",
+          "縱貫線",
+          "海線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -11588,6 +12174,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "營埔二街"
         ],
@@ -11635,6 +12222,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "泰和路三段"
         ],
@@ -11685,6 +12273,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "長順街"
         ],
@@ -11735,6 +12324,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "永安街",
           "彰15"
@@ -11786,6 +12376,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路一段395巷",
           "彰16"
@@ -11833,6 +12424,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "花秀路",
           "彰54"
@@ -11880,6 +12472,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "明德街"
         ],
@@ -11926,6 +12519,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "番花路",
           "146甲"
@@ -11973,6 +12567,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "金福街"
         ],
@@ -12019,6 +12614,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "慶安路",
           "彰58"
@@ -12066,6 +12662,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中正西路",
           "146"
@@ -12113,6 +12710,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "擺塘巷"
         ],
@@ -12159,6 +12757,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中央路",
           "彰80",
@@ -12207,6 +12806,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "機踏車專用平交道",
           "彰79;彰80-1"
@@ -12254,6 +12854,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "永興路一段",
           "彰144"
@@ -12301,6 +12902,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "湳底路"
         ],
@@ -12347,6 +12949,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路",
           "彰81"
@@ -12394,6 +12997,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "社斗路一段",
           "彰154"
@@ -12441,6 +13045,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "雙義路"
         ],
@@ -12457,7 +13062,13 @@
     {
       "type": "Feature",
       "id": "魚寮路-縱貫線-k239142",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.5840064,
+          23.8814593
+        ]
+      },
       "properties": {
         "crossing_id": "魚寮路-縱貫線-k239142",
         "name": "魚寮路",
@@ -12473,17 +13084,23 @@
         "county": "彰化縣",
         "source_page": 28,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 3906191491,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "魚寮巷"
+        ],
         "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_tags": {
+          "name": "魚寮巷",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -12519,6 +13136,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民生路",
           "投54"
@@ -12569,6 +13187,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "復興路",
           "彰96"
@@ -12616,6 +13235,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "員集路一段",
           "彰111"
@@ -12663,6 +13283,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "十五路"
         ],
@@ -12709,6 +13330,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "員集路四段"
         ],
@@ -12755,6 +13377,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "修仁路",
           "彰114-1"
@@ -12802,6 +13425,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "英義路"
         ],
@@ -12848,6 +13472,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "增產路",
           "雲59"
@@ -12895,6 +13520,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中西路"
         ],
@@ -12941,6 +13567,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "文化路633巷"
         ],
@@ -12987,6 +13614,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "豐興路"
         ],
@@ -13033,6 +13661,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "育英北街"
         ],
@@ -13079,6 +13708,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "鎮北路",
           "雲51"
@@ -13126,6 +13756,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "鎮西路",
           "保長路",
@@ -13174,6 +13805,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "後庄"
         ],
@@ -13220,6 +13852,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "後庄"
         ],
@@ -13266,6 +13899,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "長林路",
           "雲81"
@@ -13313,6 +13947,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -13357,6 +13992,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新庄路",
           "雲82"
@@ -13404,6 +14040,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "興國路"
         ],
@@ -13450,6 +14087,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "雲184"
         ],
@@ -13496,6 +14134,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "延平路三段167巷"
         ],
@@ -13542,6 +14181,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南生路",
           "雲186"
@@ -13589,6 +14229,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "四維路",
           "雲188"
@@ -13636,6 +14277,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "高雄花卉農園中心五分車",
@@ -13679,6 +14321,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -13724,6 +14367,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -13768,6 +14412,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "水源路73巷"
         ],
@@ -13814,6 +14459,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -13858,6 +14504,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -13902,6 +14549,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "嘉88"
         ],
@@ -13949,6 +14597,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -13993,6 +14642,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東榮路",
           "嘉106",
@@ -14043,6 +14693,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "166"
         ],
@@ -14090,6 +14741,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -14105,7 +14757,13 @@
     {
       "type": "Feature",
       "id": "老藤宅-縱貫線北段-k292780",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.4400907,
+          23.5182463
+        ]
+      },
       "properties": {
         "crossing_id": "老藤宅-縱貫線北段-k292780",
         "name": "老藤宅",
@@ -14121,17 +14779,24 @@
         "county": "嘉義市",
         "source_page": 32,
         "source_row_index": 3,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 3287145260,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "縱貫線",
+          "縱貫鐵路"
+        ],
+        "osm_tags": {
+          "crossing:barrier": "full",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -14167,6 +14832,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "荖藤宅"
         ],
@@ -14214,6 +14880,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "保建街"
         ],
@@ -14261,6 +14928,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "國華街"
         ],
@@ -14308,6 +14976,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -14352,6 +15021,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "嘉42"
         ],
@@ -14399,6 +15069,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "嘉42-1"
         ],
@@ -14446,6 +15117,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線",
@@ -14490,6 +15162,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路三段",
           "宜24"
@@ -14538,6 +15211,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "市政街31巷"
         ],
@@ -14584,6 +15258,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "龍安街96巷"
         ],
@@ -14630,6 +15305,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "嘉41"
         ],
@@ -14676,6 +15352,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "彰113"
         ],
@@ -14722,6 +15399,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "惠民路",
           "彰112"
@@ -14739,7 +15417,13 @@
     {
       "type": "Feature",
       "id": "加田村-縱貫線-k308517",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.3775859,
+          23.3909814
+        ]
+      },
       "properties": {
         "crossing_id": "加田村-縱貫線-k308517",
         "name": "加田村",
@@ -14755,17 +15439,22 @@
         "county": "臺南市",
         "source_page": 33,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 3285338898,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "縱貫線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -14801,6 +15490,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南91"
         ],
@@ -14847,6 +15537,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -14890,6 +15581,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -14937,6 +15629,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -14983,6 +15676,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南80"
         ],
@@ -15029,6 +15723,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南78"
         ],
@@ -15074,6 +15769,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南74"
         ],
@@ -15120,6 +15816,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南76"
         ],
@@ -15165,6 +15862,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東山路"
         ],
@@ -15210,6 +15908,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "工業街"
         ],
@@ -15255,6 +15954,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "義士路五段",
           "南108"
@@ -15301,6 +16001,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山西路一段",
           "南316"
@@ -15341,6 +16042,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [],
         "osm_tags": {}
@@ -15373,6 +16075,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [],
         "osm_tags": {}
@@ -15411,6 +16114,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路六段1巷"
         ],
@@ -15456,6 +16160,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫鐵路東正線(南段)",
@@ -15501,6 +16206,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫鐵路東正線(南段)",
@@ -15546,6 +16252,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "富強路",
           "南114"
@@ -15594,6 +16301,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "裕農路",
           "南64"
@@ -15642,6 +16350,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -15685,6 +16394,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南130"
         ],
@@ -15730,6 +16440,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -15773,6 +16484,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -15816,6 +16528,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民族路",
           "高17"
@@ -15862,6 +16575,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "光華街188巷"
         ],
@@ -15907,6 +16621,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "光華街"
         ],
@@ -15953,6 +16668,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中正路",
           "19甲"
@@ -16000,6 +16716,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "龍橋街",
           "南143"
@@ -16046,6 +16763,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "四維街"
         ],
@@ -16061,7 +16779,13 @@
     {
       "type": "Feature",
       "id": "四叉巷-縱貫線北段-k353375",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.2371122,
+          23.0277097
+        ]
+      },
       "properties": {
         "crossing_id": "四叉巷-縱貫線北段-k353375",
         "name": "四叉巷",
@@ -16077,17 +16801,25 @@
         "county": "臺南市",
         "source_page": 36,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1736183429,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "正南三路126巷"
+        ],
+        "osm_rail_names": [
+          "縱貫線"
+        ],
+        "osm_tags": {
+          "name": "康橋大道",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -16123,6 +16855,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "實踐街"
         ],
@@ -16169,6 +16902,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東豐路",
           "180"
@@ -16217,6 +16951,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "青年路"
         ],
@@ -16263,6 +16998,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "九如一路",
           "1"
@@ -16310,6 +17046,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "榮譽街"
         ],
@@ -16355,6 +17092,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "生產路",
           "282"
@@ -16401,6 +17139,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "保仁路"
         ],
@@ -16446,6 +17185,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -16489,6 +17229,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "文賢路一段81巷"
         ],
@@ -16534,6 +17275,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "文華路二段"
         ],
@@ -16579,6 +17321,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中正路一段",
           "177"
@@ -16625,6 +17368,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中洲路",
           "南352"
@@ -16641,7 +17385,13 @@
     {
       "type": "Feature",
       "id": "田尾路-縱貫線北段-k371236",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.2536805,
+          22.8885716
+        ]
+      },
       "properties": {
         "crossing_id": "田尾路-縱貫線北段-k371236",
         "name": "田尾路",
@@ -16657,17 +17407,24 @@
         "county": "高雄市",
         "source_page": 37,
         "source_row_index": 10,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 5147497365,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "環球北路66巷"
+        ],
+        "osm_rail_names": [
+          "縱貫線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -16703,6 +17460,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中興路197巷"
         ],
@@ -16748,6 +17506,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "復興路",
           "高18"
@@ -16794,6 +17553,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "新民路",
           "高17"
@@ -16840,6 +17600,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "民族路",
           "高17"
@@ -16886,6 +17647,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "為隨西路",
           "高7"
@@ -16932,6 +17694,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功路",
           "19甲"
@@ -16977,6 +17740,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "崙子頂路"
         ],
@@ -17023,6 +17787,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "筆秀路",
           "高36"
@@ -17070,6 +17835,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "橋燕路",
           "高34"
@@ -17117,6 +17883,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "糖廠路"
         ],
@@ -17162,6 +17929,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "興糖路17巷"
         ],
@@ -17207,6 +17975,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "縱貫線"
@@ -17220,7 +17989,13 @@
     {
       "type": "Feature",
       "id": "楠梓路-縱貫線北段-k388856",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.3195056,
+          22.7440067
+        ]
+      },
       "properties": {
         "crossing_id": "楠梓路-縱貫線北段-k388856",
         "name": "楠梓路",
@@ -17236,17 +18011,27 @@
         "county": "高雄市",
         "source_page": 39,
         "source_row_index": 3,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 265591746,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "橋南路",
+          "高30"
+        ],
+        "osm_rail_names": [
+          "縱貫線"
+        ],
+        "osm_tags": {
+          "crossing:barrier": "double_half",
+          "name": "橋南路",
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -17282,6 +18067,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "高楠公路1003巷"
         ],
@@ -17327,6 +18113,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "屏山巷"
         ],
@@ -17372,6 +18159,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "苗14;苗15"
         ],
@@ -17419,6 +18207,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "宜春路"
         ],
@@ -17466,6 +18255,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "苗82"
         ],
@@ -17516,6 +18306,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "學田路",
           "125"
@@ -17567,6 +18358,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "成功西路",
           "中75-1"
@@ -17618,6 +18410,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路三段登寺巷"
         ],
@@ -17668,6 +18461,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中線",
@@ -17716,6 +18510,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "臺中線",
@@ -17761,6 +18556,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "行人與自行車可通行"
         ],
@@ -17814,6 +18610,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "鳳屏二路"
         ],
@@ -17859,6 +18656,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "俊英街",
           "北73"
@@ -17876,7 +18674,13 @@
     {
       "type": "Feature",
       "id": "旗官路-屏東線-k043300",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.5229837,
+          22.5217013
+        ]
+      },
       "properties": {
         "crossing_id": "旗官路-屏東線-k043300",
         "name": "旗官路",
@@ -17892,17 +18696,24 @@
         "county": "屏東縣",
         "source_page": 40,
         "source_row_index": 7,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 8571552810,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "屏75"
+        ],
+        "osm_rail_names": [
+          "屏東線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -17938,6 +18749,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "瓦窯路",
           "屏70",
@@ -17985,6 +18797,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "屏東線"
@@ -18028,6 +18841,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "社尾路",
           "屏72"
@@ -18074,6 +18888,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "屏東線"
@@ -18118,6 +18933,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大仁路",
           "高10"
@@ -18165,6 +18981,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "忠孝路",
           "高10-1"
@@ -18181,7 +18998,13 @@
     {
       "type": "Feature",
       "id": "三民路-屏東線-k047240",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.5119574,
+          22.4897599
+        ]
+      },
       "properties": {
         "crossing_id": "三民路-屏東線-k047240",
         "name": "三民路",
@@ -18197,17 +19020,27 @@
         "county": "屏東縣",
         "source_page": 41,
         "source_row_index": 4,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 1363794164,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
-        "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "manual_mapping_applied": true,
+        "osm_road_names": [
+          "勝利路",
+          "187乙"
+        ],
+        "osm_rail_names": [
+          "屏東線"
+        ],
+        "osm_tags": {
+          "name": "勝利路",
+          "railway": "level_crossing",
+          "source": "Bing"
+        }
       }
     },
     {
@@ -18243,6 +19076,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東佳路"
         ],
@@ -18289,6 +19123,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "屏東線"
@@ -18332,6 +19167,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "永和路",
           "屏124"
@@ -18378,6 +19214,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "佳豐路",
           "屏134"
@@ -18424,6 +19261,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "復興路"
         ],
@@ -18469,6 +19307,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "十全路"
         ],
@@ -18514,6 +19353,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "大平路"
         ],
@@ -18559,6 +19399,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [],
         "osm_rail_names": [
           "屏東線"
@@ -18572,7 +19413,13 @@
     {
       "type": "Feature",
       "id": "燕巢路-屏東線-k060710",
-      "geometry": null,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          120.5715691,
+          22.3998591
+        ]
+      },
       "properties": {
         "crossing_id": "燕巢路-屏東線-k060710",
         "name": "燕巢路",
@@ -18588,17 +19435,22 @@
         "county": "屏東縣",
         "source_page": 42,
         "source_row_index": 3,
-        "matched_osm_id": null,
-        "match_score": 0.0,
-        "match_method": null,
-        "geolocation_confidence": "low",
+        "matched_osm_id": 9886570792,
+        "match_score": 100.0,
+        "match_method": "manual_override",
+        "geolocation_confidence": "high",
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": true,
         "osm_road_names": [],
-        "osm_rail_names": [],
-        "osm_tags": {}
+        "osm_rail_names": [
+          "屏東線"
+        ],
+        "osm_tags": {
+          "railway": "level_crossing"
+        }
       }
     },
     {
@@ -18634,6 +19486,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "南山路"
         ],
@@ -18679,6 +19532,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "東林路589巷"
         ],
@@ -18725,6 +19579,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "建興路"
         ],
@@ -18770,6 +19625,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "建興路459巷"
         ],
@@ -18815,6 +19671,7 @@
         "station_a_id": null,
         "station_b_id": null,
         "segment_ratio": null,
+        "manual_mapping_applied": false,
         "osm_road_names": [
           "中山路"
         ],

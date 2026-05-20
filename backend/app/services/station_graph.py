@@ -7,6 +7,12 @@ from backend.app.models.crossing import GeoPoint
 from backend.app.utils import normalize_text, point_ratio_between_stations
 
 
+STATION_NAME_ALIASES = {
+    "中州": "中洲",
+    "蘇澳新站": "蘇澳新",
+}
+
+
 class StationGraphService:
     def __init__(self, tdx_client: TdxTraClient) -> None:
         self.tdx_client = tdx_client
@@ -30,7 +36,29 @@ class StationGraphService:
         if not station_name:
             return None
         lookup = await self.get_station_lookup()
-        return lookup.get(normalize_text(station_name))
+        for candidate in self._candidate_station_keys(station_name):
+            station = lookup.get(candidate)
+            if station is not None:
+                return station
+        return None
+
+    def _candidate_station_keys(self, station_name: str) -> list[str]:
+        normalized = normalize_text(station_name)
+        if not normalized:
+            return []
+
+        candidates = [normalized]
+        alias = STATION_NAME_ALIASES.get(normalized)
+        if alias:
+            candidates.append(normalize_text(alias))
+        if normalized.endswith("站"):
+            candidates.append(normalized[:-1])
+
+        deduped: list[str] = []
+        for candidate in candidates:
+            if candidate and candidate not in deduped:
+                deduped.append(candidate)
+        return deduped
 
     async def enrich_crossing_properties(self, properties: dict[str, Any]) -> dict[str, Any]:
         station_a = await self.resolve_station(properties.get("station_a_name"))

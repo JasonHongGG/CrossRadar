@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from backend.app.config import Settings, get_settings
@@ -32,9 +33,25 @@ class CrossingCatalogService:
         return curated
 
     async def load(self) -> dict[str, Any]:
-        if not self.settings.curated_crossings_geojson_path.exists():
+        if self._is_curated_cache_stale():
             return await self.refresh(force_refresh=False)
         return json.loads(self.settings.curated_crossings_geojson_path.read_text(encoding="utf-8"))
+
+    def _is_curated_cache_stale(self) -> bool:
+        curated_path = self.settings.curated_crossings_geojson_path
+        if not curated_path.exists():
+            return True
+
+        curated_mtime = curated_path.stat().st_mtime
+        dependencies = (
+            self.settings.manual_mappings_json_path,
+            self.settings.official_crossings_json_path,
+            self.settings.osm_geojson_path,
+        )
+        return any(self._path_is_newer(path, curated_mtime) for path in dependencies)
+
+    def _path_is_newer(self, path: Path, baseline_mtime: float) -> bool:
+        return path.exists() and path.stat().st_mtime > baseline_mtime
 
     async def list_crossings(
         self,
@@ -69,15 +86,28 @@ class CrossingCatalogService:
 
     def _build_curated_geojson(self, official_records: list[CrossingRecord], osm_geojson: dict[str, Any]) -> dict[str, Any]:
         osm_features = osm_geojson.get("features", [])
+        manual_mapping_lookup = self._load_manual_mapping_lookup()
         features: list[dict[str, Any]] = []
         mapped_count = 0
 
         for official in official_records:
-            matched_feature, score, match_method, confidence = self._match_official_to_osm(official, osm_features)
+            manual_mapping = manual_mapping_lookup.get(official.crossing_id)
+            if manual_mapping is not None:
+                matched_feature = self._find_osm_feature_by_id(osm_features, manual_mapping.get("osm_id"))
+                if matched_feature is not None:
+                    score = 100.0
+                    match_method = "manual_override"
+                    confidence = "high"
+                else:
+                    matched_feature, score, match_method, confidence = self._match_official_to_osm(official, osm_features)
+            else:
+                matched_feature, score, match_method, confidence = self._match_official_to_osm(official, osm_features)
+
             updated = official.model_copy(deep=True)
             updated.match_score = score
             updated.match_method = match_method
             updated.geolocation_confidence = confidence
+            updated.manual_mapping_applied = matched_feature is not None and manual_mapping is not None
 
             if matched_feature is not None and confidence in ("high", "medium"):
                 properties = matched_feature.get("properties", {})
@@ -104,6 +134,28 @@ class CrossingCatalogService:
             },
             "features": features,
         }
+
+    def _find_osm_feature_by_id(self, osm_features: list[dict[str, Any]], osm_id: int | str | None) -> dict[str, Any] | None:
+        if osm_id is None:
+            return None
+        for feature in osm_features:
+            if feature.get("properties", {}).get("osm_id") == osm_id:
+                return feature
+        return None
+
+    def _load_manual_mapping_lookup(self) -> dict[str, dict[str, Any]]:
+        if not self.settings.manual_mappings_json_path.exists():
+            return {}
+
+        payload = json.loads(self.settings.manual_mappings_json_path.read_text(encoding="utf-8"))
+        mappings = payload.get("mappings", [])
+        lookup: dict[str, dict[str, Any]] = {}
+        for item in mappings:
+            crossing_id = item.get("crossing_id")
+            osm_id = item.get("osm_id")
+            if crossing_id and osm_id is not None:
+                lookup[str(crossing_id)] = item
+        return lookup
 
     def _match_official_to_osm(
         self,

@@ -6,6 +6,7 @@ from backend.app.clients.tdx_auth import TdxTokenManager
 from backend.app.clients.tdx_tra import TdxTraClient
 from backend.app.config import get_settings
 from backend.app.services.crossing_catalog import CrossingCatalogService
+from backend.app.services.manual_mapping import ManualOsmMappingService
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
 from backend.app.services.predictor import PredictorService
@@ -35,6 +36,16 @@ def get_osm_enricher() -> OsmEnricher:
 @lru_cache(maxsize=1)
 def get_crossing_catalog_service() -> CrossingCatalogService:
     return CrossingCatalogService(get_crossing_scraper(), get_osm_enricher(), get_settings())
+
+
+@lru_cache(maxsize=1)
+def get_manual_mapping_service() -> ManualOsmMappingService:
+    return ManualOsmMappingService(
+        get_crossing_catalog_service(),
+        get_osm_enricher(),
+        get_settings(),
+        get_station_graph_service(),
+    )
 
 
 @lru_cache(maxsize=1)
