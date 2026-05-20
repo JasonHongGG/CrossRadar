@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CrossRadar Mapping Studio</title>
+    <title>CrossRadar Crossing Watch</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,134 +20,93 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
+      <header class="topbar panel-shell">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">
             <svg viewBox="0 0 48 48" fill="none">
               <rect x="4" y="4" width="40" height="40" rx="14" />
-              <path d="M16 15L32 33" />
-              <path d="M32 15L16 33" />
-              <path d="M24 10V38" />
-              <circle cx="24" cy="24" r="6" />
+              <path d="M15 32L24 16L33 32" />
+              <path d="M15 21H33" />
+              <circle cx="24" cy="24" r="4.5" />
             </svg>
           </span>
           <div class="brand-copy">
             <strong>CrossRadar</strong>
-            <span>mapping studio</span>
+            <span>crossing watch</span>
           </div>
         </div>
 
-        <div class="progress-cluster">
-          <div id="progressRing" class="progress-ring" style="--progress: 0deg">
-            <span id="progressPercent">0%</span>
-          </div>
-          <div class="metric-strip">
-            <article class="metric-pill">
-              <span id="mappedMetric">0</span>
-              <small>mapped</small>
-            </article>
-            <article class="metric-pill metric-pill-alert">
-              <span id="pendingMetric">0</span>
-              <small>pending</small>
-            </article>
-            <article class="metric-pill metric-pill-success">
-              <span id="resolvedMetric">0</span>
-              <small>resolved</small>
-            </article>
-          </div>
-        </div>
+        <form id="regionForm" class="search-shell" autocomplete="off">
+          <label class="sr-only" for="regionInput">輸入地區或平交道名稱</label>
+          <input
+            id="regionInput"
+            class="search-input"
+            list="regionSuggestions"
+            type="text"
+            placeholder="輸入縣市、鄉鎮、車站或平交道名稱"
+          />
+          <datalist id="regionSuggestions"></datalist>
+          <button id="focusRegionButton" class="primary-button" type="submit">聚焦地區</button>
+          <button id="resetRegionButton" class="ghost-button" type="button">全部顯示</button>
+        </form>
 
-        <div class="toolbar">
-          <button id="curatedToggleButton" class="icon-button is-active" type="button" title="切換 curated 圖層" aria-pressed="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M5 18L10 6L14 18L19 9" />
-              <circle cx="5" cy="18" r="2" />
-              <circle cx="10" cy="6" r="2" />
-              <circle cx="14" cy="18" r="2" />
-              <circle cx="19" cy="9" r="2" />
-            </svg>
-            <span class="sr-only">切換 curated 圖層</span>
-          </button>
-          <button id="osmToggleButton" class="icon-button is-active" type="button" title="切換 OSM 圖層" aria-pressed="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M6 7L12 12L18 7" />
-              <path d="M12 12L12 19" />
-              <circle cx="6" cy="7" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="18" cy="7" r="2" />
-              <circle cx="12" cy="19" r="2" />
-            </svg>
-            <span class="sr-only">切換 OSM 圖層</span>
-          </button>
-          <button id="fitActiveButton" class="icon-button" type="button" title="聚焦目前項目與前後站">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 9V4H9" />
-              <path d="M15 4H20V9" />
-              <path d="M20 15V20H15" />
-              <path d="M9 20H4V15" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            <span class="sr-only">聚焦目前項目與前後站</span>
-          </button>
-          <button id="reloadButton" class="icon-button" type="button" title="重新同步資料">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M20 11A8 8 0 0 0 6.3 6.3" />
-              <path d="M4 4V9H9" />
-              <path d="M4 13A8 8 0 0 0 17.7 17.7" />
-              <path d="M20 20V15H15" />
-            </svg>
-            <span class="sr-only">重新同步資料</span>
-          </button>
+        <div class="metric-strip">
+          <article class="metric-pill">
+            <span id="mappedMetric">0</span>
+            <small>已整合平交道</small>
+          </article>
+          <article class="metric-pill metric-pill-soft">
+            <span id="filteredMetric">0</span>
+            <small>目前地區</small>
+          </article>
+          <article class="metric-pill metric-pill-alert">
+            <span id="warningMetric">0</span>
+            <small>即將通過</small>
+          </article>
         </div>
       </header>
 
-      <main class="studio-grid">
-        <aside class="queue-panel panel">
-          <div class="queue-toolbar">
-            <div id="queueFilter" class="segmented-control">
-              <button class="segmented-button is-active" type="button" data-filter="pending">待處理</button>
-              <button class="segmented-button" type="button" data-filter="all">全部</button>
-              <button class="segmented-button" type="button" data-filter="resolved">已完成</button>
+      <main class="experience-grid">
+        <aside class="results-panel panel-shell">
+          <div class="section-head">
+            <div>
+              <p class="section-kicker">地區結果</p>
+              <h1>可選平交道</h1>
             </div>
-            <button id="nextPendingButton" class="pill-button" type="button">
-              <svg viewBox="0 0 20 20" fill="none">
-                <path d="M4 10H16" />
-                <path d="M11 5L16 10L11 15" />
-              </svg>
-              <span>下一筆</span>
-            </button>
+            <button id="focusSelectionButton" class="ghost-button" type="button">定位目標</button>
           </div>
-          <div id="queueList" class="queue-list"></div>
+          <p id="filterSummary" class="panel-copy">輸入地區後，地圖會聚焦到對應範圍。</p>
+          <div id="resultsList" class="results-list"></div>
         </aside>
 
-        <section class="map-panel panel">
-          <div class="map-overlay overlay-left">
-            <div id="activeBadge" class="active-badge"></div>
+        <section class="map-panel panel-shell">
+          <div class="map-overlay overlay-top">
+            <div id="selectionBadge" class="selection-badge"></div>
           </div>
           <div class="map-overlay overlay-bottom">
             <div class="legend-strip">
-              <span class="legend-chip"><i class="legend-dot legend-dot-curated"></i><b>curated</b></span>
-              <span class="legend-chip"><i class="legend-dot legend-dot-osm"></i><b>raw</b></span>
-              <span class="legend-chip"><i class="legend-dot legend-dot-draft"></i><b>draft</b></span>
-              <span class="legend-chip"><i class="legend-dot legend-dot-saved"></i><b>saved</b></span>
+              <span class="legend-chip"><i class="legend-dot legend-dot-crossing"></i><b>crossing</b></span>
+              <span class="legend-chip"><i class="legend-dot legend-dot-selected"></i><b>selected</b></span>
               <span class="legend-chip"><i class="legend-dot legend-dot-station"></i><b>stations</b></span>
             </div>
           </div>
           <div id="map"></div>
         </section>
 
-        <aside class="dock-panel panel">
-          <div id="officialCard" class="dock-card official-card"></div>
-          <div id="candidateCard" class="dock-card candidate-card"></div>
-          <div class="dock-switches">
-            <button id="autoAdvanceButton" class="pill-toggle" type="button" aria-pressed="false">Auto next</button>
-            <button id="clearDraftButton" class="ghost-action" type="button">清除草稿</button>
-          </div>
-          <div class="dock-footer">
-            <button id="saveMappingButton" class="primary-action" type="button" disabled>儲存映射</button>
-            <button id="removeMappingButton" class="ghost-action" type="button" disabled>移除已存</button>
-            <div id="statusBar" class="status-bar">載入中…</div>
-          </div>
+        <aside class="insights-panel panel-shell">
+          <section id="selectedCrossingCard" class="insight-card"></section>
+          <section id="warningCard" class="insight-card warning-card"></section>
+          <section class="insight-card prediction-shell">
+            <div class="section-head compact">
+              <div>
+                <p class="section-kicker">即時提醒</p>
+                <h2>列車通過預估</h2>
+              </div>
+              <button id="refreshSelectionButton" class="ghost-button" type="button">更新預測</button>
+            </div>
+            <div id="predictionList" class="prediction-list"></div>
+          </section>
+          <div id="statusBar" class="status-bar">載入中…</div>
         </aside>
       </main>
     </div>
