@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "crossradar"
+version = "0.1.0"
+description = "CrossRadar Python prototype for TRA level crossing train approach prediction"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "anyio>=4.9.0",
+  "beautifulsoup4>=4.12.3",
+  "certifi>=2025.4.26",
+  "fastapi>=0.115.12",
+  "httpx>=0.28.1",
+  "pydantic-settings>=2.9.1",
+  "shapely>=2.1.1",
+  "uvicorn[standard]>=0.34.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.5",
+  "pytest-asyncio>=0.26.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/backend",
+  "/frontend",
+  "/scripts",
+  "/tests",
+  "/README.md",
+  "/pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

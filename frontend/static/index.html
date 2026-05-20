@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CrossRadar Prototype</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="panel">
+        <div>
+          <p class="eyebrow">CrossRadar</p>
+          <h1>台鐵平交道列車接近驗證版</h1>
+          <p class="summary">
+            這個頁面只顯示已有可信地理座標的平交道。資料來源混合台鐵官方平交道清冊、OpenStreetMap 與 TDX 台鐵資料。
+          </p>
+        </div>
+
+        <label class="field">
+          <span>縣市</span>
+          <select id="countySelect">
+            <option value="">全部</option>
+          </select>
+        </label>
+
+        <button id="reloadButton" type="button">重新整理</button>
+
+        <div id="status" class="status">載入中…</div>
+
+        <section class="detail" id="detailPanel">
+          <h2>平交道資訊</h2>
+          <p class="placeholder">請先在地圖上選擇平交道。</p>
+        </section>
+
+        <footer class="source-note">
+          <p>地圖資料 © OpenStreetMap contributors，依 ODbL 授權。</p>
+          <p>平交道名錄來源：國營臺灣鐵路股份有限公司公開資訊頁。</p>
+        </footer>
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map"></div>
+      </main>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
