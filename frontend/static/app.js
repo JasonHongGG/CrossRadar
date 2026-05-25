@@ -6,15 +6,24 @@ const TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
 const MAP_HOME = [23.7, 121.0];
 const MAP_HOME_ZOOM = 7;
 const COUNTDOWN_TICK_MS = 1000;
-const AUTO_REFRESH_INTERVAL_MS = 60000;
 const DISPLAY_UPCOMING_PREDICTIONS = 2;
-const canvasRenderer = L.canvas({ padding: 0.5 });
+const PREDICTION_PREVIEW_HORIZON_MINUTES = 120;
+const PREDICTION_RECENT_WINDOW_MINUTES = 10;
+const PREDICTION_WARNING_WINDOW_MINUTES = 5;
 
 const map = L.map('map', {
   zoomControl: false,
   preferCanvas: true,
   scrollWheelZoom: true,
 }).setView(MAP_HOME, MAP_HOME_ZOOM);
+
+map.createPane('stationPane');
+map.getPane('stationPane').style.zIndex = '410';
+map.createPane('crossingPane');
+map.getPane('crossingPane').style.zIndex = '430';
+
+const crossingRenderer = L.canvas({ padding: 0.5, pane: 'crossingPane' });
+const stationRenderer = L.canvas({ padding: 0.5, pane: 'stationPane' });
 
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -24,7 +33,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 const state = {
-  overview: null,
   crossings: [],
   filteredCrossings: [],
   countyGroups: [],
@@ -38,7 +46,6 @@ const state = {
   selectionRequestToken: 0,
   timers: {
     countdown: null,
-    autoRefresh: null,
   },
   crossingLayer: L.layerGroup().addTo(map),
   stationLayer: L.layerGroup().addTo(map),
@@ -90,6 +97,48 @@ function squishLabel(value) {
 function displayLabel(value, fallback = '') {
   const text = squishLabel(value);
   return text || fallback;
+}
+
+function getPairSourceLabel(value) {
+  if (value === 'authoritative_reference') return '站間：官方校正';
+  if (value === 'official_query') return '站間：官網欄位';
+  return '站間：未標示';
+}
+
+function getRatioSourceLabel(value) {
+  if (value === 'official_route_mileage') return '比例：官方鏈公里';
+  if (value === 'osm_path') return '比例：OSM 軌道路徑';
+  if (value === 'geometry_projection') return '比例：座標投影';
+  if (value === 'midpoint') return '比例：中點 fallback';
+  return '比例：未標示';
+}
+
+function buildPredictionSourceLine(record) {
+  const parts = [];
+  if (record?.ratio_source) parts.push(getRatioSourceLabel(record.ratio_source));
+  if (record?.station_pair_source) parts.push(getPairSourceLabel(record.station_pair_source));
+  return parts.join(' · ');
+}
+
+function isLivePrediction(record) {
+  return record?.data_basis === 'liveboard';
+}
+
+function getPredictionBasisLabel(record) {
+  return isLivePrediction(record) ? '即時' : '班表';
+}
+
+function getPredictionTone(record) {
+  return isLivePrediction(record) ? 'is-live' : 'is-scheduled';
+}
+
+function getConfidenceHint(meta) {
+  if (meta.manualMappingApplied) return { label: '人工校正', tone: 'is-reviewed' };
+  if (meta.ratioSource === 'official_route_mileage') return { label: '官方鏈公里', tone: 'is-strong' };
+  if (meta.ratioSource === 'osm_path') return { label: '軌道路徑', tone: 'is-soft' };
+  if (meta.ratioSource === 'geometry_projection') return { label: '座標估算', tone: 'is-caution' };
+  if (meta.ratioSource === 'midpoint') return { label: '資料不足', tone: 'is-caution' };
+  return null;
 }
 
 function normalizeSearchText(value) {
@@ -216,6 +265,10 @@ function getFeatureMeta(feature) {
     stationA: displayLabel(properties.station_a_name, ''),
     stationB: displayLabel(properties.station_b_name, ''),
     stationPair: displayLabel(properties.station_pair_text, ''),
+    queryStationPair: displayLabel(properties.query_station_pair_text, ''),
+    stationPairSource: displayLabel(properties.station_pair_source, ''),
+    ratioSource: displayLabel(properties.ratio_source, ''),
+    segmentConfidenceReason: displayLabel(properties.segment_confidence_reason, ''),
     manualMappingApplied: Boolean(properties.manual_mapping_applied),
   };
 }
@@ -439,6 +492,16 @@ function getDirectionLabel(record) {
     return northbound ? '北上' : '南下';
   }
 
+  if (stationA && stationB && record?.direction != null) {
+    const canonicalNorthbound = stationB[0] > stationA[0];
+    if (record.direction === 0) {
+      return canonicalNorthbound ? '北上' : '南下';
+    }
+    if (record.direction === 1) {
+      return canonicalNorthbound ? '南下' : '北上';
+    }
+  }
+
   if (record?.direction === 0) return '順行';
   if (record?.direction === 1) return '逆行';
   return '行駛中';
@@ -450,6 +513,15 @@ function getPredictionRoute(record) {
     destination: displayLabel(record?.destination_station_name || record?.downstream_station_name, '未知'),
     approachFrom: displayLabel(record?.upstream_station_name, '未知'),
     approachTo: displayLabel(record?.downstream_station_name, '未知'),
+  };
+}
+
+function getStopTiming(record) {
+  return {
+    previousName: displayLabel(record?.previous_stop_station_name || record?.upstream_station_name, '未提供'),
+    previousDeparture: formatTime(record?.previous_stop_departure),
+    nextName: displayLabel(record?.next_stop_station_name || record?.downstream_station_name, '未提供'),
+    nextArrival: formatTime(record?.next_stop_arrival),
   };
 }
 
@@ -486,7 +558,7 @@ function getRecentPrediction() {
 
 function getScheduleSlots() {
   const recentWindow = state.predictionEnvelope?.recent_window_minutes || 10;
-  const horizonMinutes = state.predictionEnvelope?.horizon_minutes || 30;
+  const horizonMinutes = state.predictionEnvelope?.horizon_minutes || PREDICTION_PREVIEW_HORIZON_MINUTES;
   const upcoming = getUpcomingPredictions();
 
   return [
@@ -517,7 +589,10 @@ function getScheduleSlots() {
 function getPrimaryPrediction() {
   const predictions = getAllUpcomingPredictions();
   if (!predictions.length) return null;
-  return predictions.find((record) => isWithinWarningWindow(record)) || predictions[0];
+  return predictions.find((record) => isLivePrediction(record) && isWithinWarningWindow(record))
+    || predictions.find((record) => isLivePrediction(record))
+    || predictions.find((record) => isWithinWarningWindow(record))
+    || predictions[0];
 }
 
 function fitMapToPoints(points, { maxZoom = 14 } = {}) {
@@ -729,8 +804,8 @@ function updateControls() {
 }
 
 function updateMetrics() {
-  const mappedCount = state.overview?.dataset?.mapped_feature_count ?? state.crossings.length;
-  const warningCount = getAllUpcomingPredictions().filter((record) => isWithinWarningWindow(record)).length;
+  const mappedCount = state.crossings.length;
+  const warningCount = getAllUpcomingPredictions().filter((record) => isLivePrediction(record) && isWithinWarningWindow(record)).length;
   elements.mappedMetric.textContent = String(mappedCount);
   elements.filteredMetric.textContent = String(state.filteredCrossings.length);
   elements.warningMetric.textContent = String(warningCount);
@@ -753,7 +828,6 @@ function renderSelectionBadge() {
       <div class="selection-shell is-empty">
         <span>${escapeHtml(state.query || '全台')}</span>
         <strong>${escapeHtml(String(state.filteredCrossings.length))}</strong>
-        <small>crossings in view</small>
       </div>
     `;
     return;
@@ -762,9 +836,8 @@ function renderSelectionBadge() {
   const meta = getFeatureMeta(state.selectedCrossingDetail || selected);
   elements.selectionBadge.innerHTML = `
     <div class="selection-shell">
-      <span>${escapeHtml(meta.line)} · ${escapeHtml(meta.km)}</span>
       <strong>${escapeHtml(meta.name)}</strong>
-      <small>${escapeHtml(meta.stationPair || `${meta.stationA} - ${meta.stationB}`)}</small>
+      <small>${escapeHtml(meta.km)} · ${escapeHtml(meta.stationPair || `${meta.stationA} - ${meta.stationB}`)}</small>
     </div>
   `;
 }
@@ -813,23 +886,23 @@ function renderCrossingMarkers() {
 
     if (isSelected) {
       L.circleMarker(point, {
-        renderer: canvasRenderer,
-        radius: 18,
+        renderer: crossingRenderer,
+        radius: 17,
         weight: 0,
-        color: '#ffd36a',
-        fillColor: '#ffd36a',
-        fillOpacity: 0.18,
+        color: '#ff845f',
+        fillColor: '#ff845f',
+        fillOpacity: 0.22,
         interactive: false,
       }).addTo(state.crossingLayer);
     }
 
     const marker = L.circleMarker(point, {
-      renderer: canvasRenderer,
-      radius: isSelected ? 8.5 : 5.1,
-      weight: isSelected ? 3 : 1.6,
-      color: isSelected ? '#ffeab2' : '#ffffff',
-      fillColor: isSelected ? '#16a392' : '#ff7b5b',
-      fillOpacity: 0.96,
+      renderer: crossingRenderer,
+      radius: isSelected ? 9.4 : 6.2,
+      weight: isSelected ? 2.8 : 1.5,
+      color: isSelected ? '#fff6e9' : '#ffffff',
+      fillColor: isSelected ? '#1f446a' : '#ff7b5b',
+      fillOpacity: 0.98,
     });
     marker.on('click', () => {
       selectCrossing(feature.id, { focusMap: false });
@@ -845,10 +918,11 @@ function renderStationContext() {
 
   if (stations.length === 2) {
     L.polyline(stations.map((station) => station.coords), {
+      renderer: stationRenderer,
       color: '#2c5e87',
-      weight: 4,
-      opacity: 0.68,
-      dashArray: '10 10',
+      weight: 3.2,
+      opacity: 0.48,
+      dashArray: '8 10',
       lineCap: 'round',
       interactive: false,
     }).addTo(state.stationLayer);
@@ -856,17 +930,17 @@ function renderStationContext() {
 
   stations.forEach((station) => {
     L.circleMarker(station.coords, {
-      renderer: canvasRenderer,
-      radius: 13,
+      renderer: stationRenderer,
+      radius: 12,
       weight: 2,
       color: station.color,
       fillColor: station.color,
-      fillOpacity: 0.16,
+      fillOpacity: 0.14,
       interactive: false,
     }).addTo(state.stationLayer);
 
     const marker = L.circleMarker(station.coords, {
-      renderer: canvasRenderer,
+      renderer: stationRenderer,
       radius: 7,
       weight: 2.8,
       color: '#17304d',
@@ -905,21 +979,29 @@ function renderSelectedCrossingCard() {
   }
 
   const meta = getFeatureMeta(state.selectedCrossingDetail || selected);
+  const confidenceHint = getConfidenceHint(meta);
   elements.selectedCrossingCard.innerHTML = `
-    <div class="crossing-top-row">
+    <div class="crossing-top-row compact">
       <span class="tiny-pill">${escapeHtml(meta.county)}</span>
-      <span class="tiny-pill ${meta.manualMappingApplied ? 'is-reviewed' : ''}">${meta.manualMappingApplied ? '人工校正' : '已整合'}</span>
+      ${confidenceHint ? `<span class="tiny-pill ${escapeHtml(confidenceHint.tone)}">${escapeHtml(confidenceHint.label)}</span>` : ''}
     </div>
-    <h2 class="crossing-title">${escapeHtml(meta.name)}</h2>
-    <div class="crossing-chip-row">
-      <span class="route-pill">${escapeHtml(meta.line)}</span>
-      <span class="route-pill">${escapeHtml(meta.km)}</span>
-      ${meta.roadType ? `<span class="route-pill is-soft">${escapeHtml(meta.roadType)}</span>` : ''}
+    <div class="crossing-head">
+      <h2 class="crossing-title">${escapeHtml(meta.name)}</h2>
+      <div class="crossing-meta-line">
+        <span>${escapeHtml(meta.line)}</span>
+        <i class="crossing-meta-separator" aria-hidden="true"></i>
+        <span>${escapeHtml(meta.km)}</span>
+        ${meta.roadType ? `<i class="crossing-meta-separator" aria-hidden="true"></i><span>${escapeHtml(meta.roadType)}</span>` : ''}
+      </div>
     </div>
-    <div class="station-band">
+    <div class="station-band is-compact">
       <span>${escapeHtml(meta.stationA || '未提供')}</span>
       ${icon('route')}
       <span>${escapeHtml(meta.stationB || '未提供')}</span>
+    </div>
+    <div class="crossing-foot-row">
+      <span class="source-pill">${escapeHtml(getPairSourceLabel(meta.stationPairSource).replace('站間：', ''))}</span>
+      <span class="source-pill is-soft">${escapeHtml(getRatioSourceLabel(meta.ratioSource).replace('比例：', ''))}</span>
     </div>
   `;
 }
@@ -950,7 +1032,7 @@ function renderWarningCard() {
         </div>
         <div class="hero-countdown">
           <strong>SAFE</strong>
-          <span>${escapeHtml(`${state.predictionEnvelope?.horizon_minutes || 30} 分鐘內沒有接近列車`)}</span>
+          <span>${escapeHtml(`${state.predictionEnvelope?.horizon_minutes || PREDICTION_PREVIEW_HORIZON_MINUTES} 分鐘內沒有接近列車`)}</span>
         </div>
       </div>
     `;
@@ -959,19 +1041,21 @@ function renderWarningCard() {
 
   const countdown = getCountdownParts(primary.eta);
   const route = getPredictionRoute(primary);
+  const stopTiming = getStopTiming(primary);
   const directionLabel = getDirectionLabel(primary);
-  const warning = isWithinWarningWindow(primary);
+  const isLive = isLivePrediction(primary);
+  const warning = isLive && isWithinWarningWindow(primary);
 
   elements.warningCard.innerHTML = `
-    <div class="hero-shell ${warning ? 'is-alert' : 'is-watch'}">
+    <div class="hero-shell ${warning ? 'is-alert' : isLive ? 'is-watch' : 'is-scheduled'}">
       <div class="hero-chip-row">
-        <span class="hero-chip">${escapeHtml(primary.train_type || '列車')}</span>
+        <span class="hero-chip ${escapeHtml(getPredictionTone(primary))}">${escapeHtml(getPredictionBasisLabel(primary))}</span>
         <span class="hero-chip is-strong">${escapeHtml(formatTrainNo(primary))}</span>
         <span class="hero-chip">${escapeHtml(directionLabel)}</span>
       </div>
       <div class="hero-countdown">
-        <strong>${escapeHtml(countdown.timer)}</strong>
-        <span>${escapeHtml(countdown.label)}</span>
+        <strong>${escapeHtml(countdown.short)}</strong>
+        <span>${escapeHtml(`${formatTime(primary.eta)} 通過`)}</span>
       </div>
       <div class="hero-route-line">
         <span>${escapeHtml(route.origin)}</span>
@@ -979,8 +1063,20 @@ function renderWarningCard() {
         <span>${escapeHtml(route.destination)}</span>
       </div>
       <div class="hero-route-meta">
-        <span>${escapeHtml(`${route.approachFrom} → ${route.approachTo}`)}</span>
-        <span>${escapeHtml(formatTime(primary.eta))}</span>
+        <span>${escapeHtml(primary.train_type || '列車')}</span>
+        <span>${escapeHtml(isLive ? `即時倒數 · ${route.approachFrom} → ${route.approachTo}` : `班表預估 · ${route.approachFrom} → ${route.approachTo}`)}</span>
+      </div>
+      <div class="hero-stop-grid">
+        <div class="stop-timing-card">
+          <span class="stop-timing-label">上一停靠</span>
+          <strong>${escapeHtml(stopTiming.previousName)}</strong>
+          <span class="stop-timing-time">${escapeHtml(`${stopTiming.previousDeparture} 離站`)}</span>
+        </div>
+        <div class="stop-timing-card">
+          <span class="stop-timing-label">下一停靠</span>
+          <strong>${escapeHtml(stopTiming.nextName)}</strong>
+          <span class="stop-timing-time">${escapeHtml(`${stopTiming.nextArrival} 到站`)}</span>
+        </div>
       </div>
     </div>
   `;
@@ -1022,21 +1118,35 @@ function renderPredictionList() {
       const record = slot.record;
       const countdown = getRelativeEtaParts(record.eta);
       const route = getPredictionRoute(record);
-      const warning = isWithinWarningWindow(record);
+      const stopTiming = getStopTiming(record);
+      const isLive = isLivePrediction(record);
+      const warning = isLive && isWithinWarningWindow(record);
       const isPast = countdown.isPast;
       return `
-        <article class="train-card ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''}">
+        <article class="train-card ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''} ${escapeHtml(getPredictionTone(record))}">
           <div class="train-main">
             <div class="train-slot-row">
               <span class="train-slot-label">${escapeHtml(slot.label)}</span>
-              <span class="train-slot-status">${escapeHtml(isPast ? '已通過' : '即將通過')}</span>
+              <span class="train-slot-status ${escapeHtml(getPredictionTone(record))}">${escapeHtml(isPast ? '已通過' : getPredictionBasisLabel(record))}</span>
             </div>
             <div class="train-title-row">
               <strong>${escapeHtml(formatTrainNo(record))}</strong>
               <span>${escapeHtml(record.train_type || '列車')}</span>
             </div>
             <div class="train-route">${escapeHtml(route.origin)} → ${escapeHtml(route.destination)}</div>
-            <div class="train-subroute">${escapeHtml(getDirectionLabel(record))} · ${escapeHtml(`${route.approachFrom} → ${route.approachTo}`)}</div>
+            <div class="train-subroute">${escapeHtml(getDirectionLabel(record))}</div>
+            <div class="train-stop-grid">
+              <div class="train-stop-item">
+                <span class="stop-timing-label">上一停靠</span>
+                <strong>${escapeHtml(stopTiming.previousName)}</strong>
+                <span class="stop-timing-time">${escapeHtml(`${stopTiming.previousDeparture} 離站`)}</span>
+              </div>
+              <div class="train-stop-item">
+                <span class="stop-timing-label">下一停靠</span>
+                <strong>${escapeHtml(stopTiming.nextName)}</strong>
+                <span class="stop-timing-time">${escapeHtml(`${stopTiming.nextArrival} 到站`)}</span>
+              </div>
+            </div>
           </div>
           <div class="train-side">
             <span class="countdown-pill ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''}">${escapeHtml(countdown.short)}</span>
@@ -1127,12 +1237,17 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
 
   const token = ++state.selectionRequestToken;
   try {
-    const [detail, envelope] = await Promise.all([
-      apiRequest(`/api/crossings/${encodeURIComponent(crossingId)}`),
-      apiRequest(`/api/predictions/${encodeURIComponent(crossingId)}`, {
-        params: new URLSearchParams({ horizon_minutes: '30', recent_minutes: '10', warning_minutes: '5' }),
-      }),
-    ]);
+    const predictionRequest = apiRequest(`/api/predictions/${encodeURIComponent(crossingId)}`, {
+        params: new URLSearchParams({
+          horizon_minutes: String(PREDICTION_PREVIEW_HORIZON_MINUTES),
+          recent_minutes: String(PREDICTION_RECENT_WINDOW_MINUTES),
+          warning_minutes: String(PREDICTION_WARNING_WINDOW_MINUTES),
+        }),
+      });
+    const detailRequest = refreshOnly && state.selectedCrossingDetail
+      ? Promise.resolve(state.selectedCrossingDetail)
+      : apiRequest(`/api/crossings/${encodeURIComponent(crossingId)}`);
+    const [detail, envelope] = await Promise.all([detailRequest, predictionRequest]);
 
     if (token !== state.selectionRequestToken) return;
     state.selectedCrossingDetail = detail;
@@ -1143,7 +1258,7 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
       focusSelectedCrossing();
     }
 
-    const warningCount = getAllUpcomingPredictions().filter((record) => isWithinWarningWindow(record)).length;
+    const warningCount = getAllUpcomingPredictions().filter((record) => isLivePrediction(record) && isWithinWarningWindow(record)).length;
     if (!silent) {
       setStatus(
         warningCount
@@ -1168,9 +1283,6 @@ function startTimers() {
   if (state.timers.countdown) {
     window.clearInterval(state.timers.countdown);
   }
-  if (state.timers.autoRefresh) {
-    window.clearInterval(state.timers.autoRefresh);
-  }
 
   state.timers.countdown = window.setInterval(() => {
     if (!state.predictionEnvelope) return;
@@ -1178,11 +1290,6 @@ function startTimers() {
     renderPredictionList();
     updateMetrics();
   }, COUNTDOWN_TICK_MS);
-
-  state.timers.autoRefresh = window.setInterval(() => {
-    if (document.hidden || !state.selectedCrossingId || state.selectionLoading) return;
-    selectCrossing(state.selectedCrossingId, { focusMap: false, refreshOnly: true, silent: true });
-  }, AUTO_REFRESH_INTERVAL_MS);
 }
 
 function attachEventListeners() {
@@ -1273,12 +1380,7 @@ function attachEventListeners() {
 
 async function bootstrap() {
   setStatus('載入平交道與列車資料中…');
-  const [overview, crossingsPayload] = await Promise.all([
-    apiRequest('/api/system/overview'),
-    apiRequest('/api/crossings', { params: new URLSearchParams({ limit: '5000', mapped_only: 'true' }) }),
-  ]);
-
-  state.overview = overview;
+  const crossingsPayload = await apiRequest('/api/crossings', { params: new URLSearchParams({ limit: '5000', mapped_only: 'true' }) });
   state.crossings = sortFeaturesSouthToNorth(safeArray(crossingsPayload.features)).map((feature) => {
     const meta = getFeatureMeta(feature);
     return {

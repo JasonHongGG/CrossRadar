@@ -22,9 +22,16 @@ class CrossingRecord(BaseModel):
     km_prefix: str | None = None
     km_value_meters: int | None = None
     road_type: str | None = None
+    query_station_pair_text: str | None = None
+    query_station_a_name: str | None = None
+    query_station_b_name: str | None = None
     station_pair_text: str | None = None
     station_a_name: str | None = None
     station_b_name: str | None = None
+    station_pair_source: str = "official_query"
+    station_pair_reference_id: str | None = None
+    station_pair_reference_note: str | None = None
+    authoritative_reference_applied: bool = False
     county: str | None = None
     source_page: int
     source_row_index: int
@@ -35,11 +42,24 @@ class CrossingRecord(BaseModel):
     segment_confidence: ConfidenceLevel = "low"
     station_a_id: str | None = None
     station_b_id: str | None = None
+    station_a_route_km_meters: int | None = None
+    station_b_route_km_meters: int | None = None
+    station_route_reference_note: str | None = None
+    segment_ratio_override: float | None = None
+    segment_ratio_override_source: str | None = None
+    segment_ratio_override_confidence: ConfidenceLevel | None = None
+    segment_ratio_override_note: str | None = None
     segment_ratio: float | None = None
+    ratio_source: str | None = None
+    official_segment_ratio: float | None = None
+    path_segment_ratio: float | None = None
+    geometry_segment_ratio: float | None = None
+    segment_confidence_reason: str | None = None
     manual_mapping_applied: bool = False
     geometry: GeoPoint | None = None
     osm_road_names: list[str] = Field(default_factory=list)
     osm_rail_names: list[str] = Field(default_factory=list)
+    osm_rail_way_ids: list[int] = Field(default_factory=list)
     osm_tags: dict[str, Any] = Field(default_factory=dict)
 
     def to_feature(self) -> dict[str, Any]:

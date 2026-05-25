@@ -21,23 +21,28 @@ class OsmEnricher:
 
         south, west, north, east = TAIWAN_BBOX
         query = f"""
-[out:json][timeout:300];
+[out:json][timeout:600];
 (
   node[\"railway\"=\"level_crossing\"]({south},{west},{north},{east})->.crossings;
-  .crossings;
-  way(bn.crossings)[\"railway\"];
-  way(bn.crossings)[\"highway\"];
+    way[\"railway\"]({south},{west},{north},{east})->.railways;
+    way(bn.crossings)[\"highway\"]->.roads;
 );
+(.crossings; .railways; .roads;);
 out body geom;
 """.strip()
-        payload = await request_json(
-            "POST",
-            self.settings.osm_overpass_url,
-            settings=self.settings,
-            data={"data": query},
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=180.0,
-        )
+        try:
+            payload = await request_json(
+                "POST",
+                self.settings.osm_overpass_url,
+                settings=self.settings,
+                data={"data": query},
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=180.0,
+            )
+        except Exception:
+            if self.settings.osm_raw_json_path.exists():
+                return json.loads(self.settings.osm_raw_json_path.read_text(encoding="utf-8"))
+            raise
         self.settings.osm_raw_json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         return payload
 
@@ -54,13 +59,12 @@ out body geom;
         for node in nodes:
             ways_by_crossing[node["id"]] = {"road": [], "rail": []}
         for way in ways:
-            node_ids = set(way.get("nodes", []))
             category = self._way_category(way.get("tags", {}))
             if category is None:
                 continue
-            for node in nodes:
-                if node["id"] in node_ids:
-                    ways_by_crossing[node["id"]][category].append(way)
+            for node_id in way.get("nodes", []):
+                if node_id in ways_by_crossing:
+                    ways_by_crossing[node_id][category].append(way)
 
         features: list[dict[str, Any]] = []
         for node in nodes:

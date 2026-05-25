@@ -8,6 +8,7 @@ from backend.app.config import Settings, get_settings
 from backend.app.models.crossing import ConfidenceLevel, CrossingRecord, GeoPoint
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
+from backend.app.services.route_reference import RouteReferenceService
 from backend.app.utils import normalize_text
 
 
@@ -17,10 +18,12 @@ class CrossingCatalogService:
         scraper: TraOfficialCrossingScraper,
         osm_enricher: OsmEnricher,
         settings: Settings | None = None,
+        route_reference_service: RouteReferenceService | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.scraper = scraper
         self.osm_enricher = osm_enricher
+        self.route_reference_service = route_reference_service or RouteReferenceService(self.settings)
 
     async def refresh(self, *, force_refresh: bool = False) -> dict[str, Any]:
         official_records = await self.scraper.scrape_all(force_refresh=force_refresh)
@@ -47,6 +50,7 @@ class CrossingCatalogService:
             self.settings.manual_mappings_json_path,
             self.settings.official_crossings_json_path,
             self.settings.osm_geojson_path,
+            self.settings.route_reference_json_path,
         )
         return any(self._path_is_newer(path, curated_mtime) for path in dependencies)
 
@@ -87,10 +91,16 @@ class CrossingCatalogService:
     def _build_curated_geojson(self, official_records: list[CrossingRecord], osm_geojson: dict[str, Any]) -> dict[str, Any]:
         osm_features = osm_geojson.get("features", [])
         manual_mapping_lookup = self._load_manual_mapping_lookup()
+        route_reference_metadata = self.route_reference_service.metadata()
         features: list[dict[str, Any]] = []
         mapped_count = 0
+        authoritative_pair_count = 0
 
         for official in official_records:
+            updated = self.route_reference_service.apply(official.model_copy(deep=True))
+            if updated.authoritative_reference_applied:
+                authoritative_pair_count += 1
+
             manual_mapping = manual_mapping_lookup.get(official.crossing_id)
             if manual_mapping is not None:
                 matched_feature = self._find_osm_feature_by_id(osm_features, manual_mapping.get("osm_id"))
@@ -103,7 +113,6 @@ class CrossingCatalogService:
             else:
                 matched_feature, score, match_method, confidence = self._match_official_to_osm(official, osm_features)
 
-            updated = official.model_copy(deep=True)
             updated.match_score = score
             updated.match_method = match_method
             updated.geolocation_confidence = confidence
@@ -118,6 +127,7 @@ class CrossingCatalogService:
                     updated.matched_osm_id = properties.get("osm_id")
                     updated.osm_road_names = properties.get("road_names", [])
                     updated.osm_rail_names = properties.get("rail_names", [])
+                    updated.osm_rail_way_ids = properties.get("rail_way_ids", [])
                     updated.osm_tags = properties.get("tags", {})
                     mapped_count += 1
 
@@ -129,8 +139,10 @@ class CrossingCatalogService:
                 "source": "official+osm",
                 "official_count": len(official_records),
                 "mapped_count": mapped_count,
+                "authoritative_pair_count": authoritative_pair_count,
                 "osm_feature_count": len(osm_features),
                 "osm_raw_path": str(self.settings.osm_raw_json_path),
+                "route_reference": route_reference_metadata,
             },
             "features": features,
         }
@@ -190,6 +202,14 @@ class CrossingCatalogService:
         if not official_name:
             return (0.0, None)
 
+        official_line = normalize_text(official.line)
+        rail_names = properties.get("rail_names", [])
+        line_matches = bool(official_line) and any(
+            official_line in normalize_text(value) or normalize_text(value) in official_line
+            for value in rail_names
+            if value
+        )
+
         candidates = [
             (properties.get("normalized_name") or "", "node_name"),
             *[(normalize_text(value), "road_name") for value in properties.get("road_names", [])],
@@ -208,13 +228,14 @@ class CrossingCatalogService:
             else:
                 continue
 
+            if method in {"node_name", "road_name"} and rail_names and not line_matches:
+                continue
+
             if official.km_value_meters and properties.get("railway_position_meters"):
                 if abs(official.km_value_meters - properties["railway_position_meters"]) <= 500:
                     score += 8.0
 
-            if normalize_text(official.line) and any(
-                normalize_text(official.line) in normalize_text(value) for value in properties.get("rail_names", [])
-            ):
+            if line_matches:
                 score += 5.0
 
             if score > best_score:

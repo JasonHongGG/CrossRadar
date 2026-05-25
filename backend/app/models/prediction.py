@@ -19,6 +19,12 @@ class PredictionRecord(BaseModel):
     destination_station_name: str | None = None
     source_station_id: str | None = None
     source_station_name: str | None = None
+    previous_stop_station_id: str | None = None
+    previous_stop_station_name: str | None = None
+    previous_stop_departure: datetime | None = None
+    next_stop_station_id: str | None = None
+    next_stop_station_name: str | None = None
+    next_stop_arrival: datetime | None = None
     upstream_station_id: str
     upstream_station_name: str
     downstream_station_id: str
@@ -27,9 +33,14 @@ class PredictionRecord(BaseModel):
     warning: bool
     warning_window_minutes: int
     confidence: ConfidenceLevel
+    confidence_reason: str | None = None
     delay_minutes: int = 0
     data_basis: Literal["liveboard", "timetable"]
+    prediction_method: str | None = None
     reason: str
+    station_pair_source: str | None = None
+    ratio_source: str | None = None
+    segment_confidence: ConfidenceLevel | None = None
     segment_ratio: float = Field(ge=0.0, le=1.0)
 
 

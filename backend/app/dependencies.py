@@ -10,6 +10,7 @@ from backend.app.services.manual_mapping import ManualOsmMappingService
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
 from backend.app.services.predictor import PredictorService
+from backend.app.services.rail_path import RailPathService
 from backend.app.services.station_graph import StationGraphService
 
 
@@ -39,6 +40,11 @@ def get_crossing_catalog_service() -> CrossingCatalogService:
 
 
 @lru_cache(maxsize=1)
+def get_rail_path_service() -> RailPathService:
+    return RailPathService(get_settings())
+
+
+@lru_cache(maxsize=1)
 def get_manual_mapping_service() -> ManualOsmMappingService:
     return ManualOsmMappingService(
         get_crossing_catalog_service(),
@@ -50,7 +56,7 @@ def get_manual_mapping_service() -> ManualOsmMappingService:
 
 @lru_cache(maxsize=1)
 def get_station_graph_service() -> StationGraphService:
-    return StationGraphService(get_tdx_client())
+    return StationGraphService(get_tdx_client(), get_rail_path_service())
 
 
 @lru_cache(maxsize=1)

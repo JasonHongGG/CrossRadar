@@ -1,0 +1,67 @@
+{
+  "metadata": {
+    "scope": "臺南市 / 縱貫線",
+    "version": 1,
+    "summary": "Correct stale Tainan station-pair labels using official incident and route-chainage references. Operating mileage is intentionally excluded from this reference.",
+    "sources": [
+      "TRA crossing incident tables (四維路 K351+802 listed as 永康~大橋 in 113 年資料)",
+      "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)"
+    ]
+  },
+  "rules": [
+    {
+      "id": "tainan-fourwei-yongkang-daqiao",
+      "match": {
+        "county": "臺南市",
+        "line": "縱貫線",
+        "name": "四維路",
+        "km_value_meters": 351802
+      },
+      "override": {
+        "station_pair_text": "永康-大橋",
+        "station_a_name": "永康",
+        "station_b_name": "大橋"
+      },
+      "pair_source": "authoritative_reference",
+      "reference_note": "Official TRA incident data for 四維路平交道 (K351+802) lists the operational section as 永康~大橋."
+    },
+    {
+      "id": "tainan-sichaxiang-ratio-override",
+      "match": {
+        "county": "臺南市",
+        "line": "縱貫線北段",
+        "name": "四叉巷",
+        "km_value_meters": 353375
+      },
+      "override": {
+        "segment_ratio_override": 0.3273477076302729,
+        "segment_ratio_override_source": "geometry_projection",
+        "segment_ratio_override_confidence": "medium",
+        "segment_ratio_override_note": "Pinned 四叉巷 to the station-to-crossing geometric projection because the current OSM path ratio places the crossing implausibly close to 臺南 and overstates the 永康-to-crossing path length."
+      },
+      "pair_source": "official_query",
+      "reference_note": "Temporary ratio correction for 四叉巷 pending an authoritative route-chainage anchor for the 永康-臺南 segment."
+    },
+    {
+      "id": "tainan-daqiao-tainan-range",
+      "match": {
+        "county": "臺南市",
+        "line": "縱貫線",
+        "km_range": {
+          "gte": 355300,
+          "lt": 357800
+        }
+      },
+      "override": {
+        "station_pair_text": "大橋-臺南",
+        "station_a_name": "大橋",
+        "station_b_name": "臺南",
+        "station_a_route_km_meters": 355300,
+        "station_b_route_km_meters": 357800,
+        "station_route_reference_note": "Uses official Tainan route-chainage anchors for the Daqiao south end and Tainan station reference point."
+      },
+      "pair_source": "authoritative_reference",
+      "reference_note": "Crossings between K355+300 and UK357+800 are treated as the 大橋-臺南 operational segment instead of the stale 永康-台南 query label."
+    }
+  ]
+}

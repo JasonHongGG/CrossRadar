@@ -20,6 +20,8 @@ class TraOfficialCrossingScraper:
         if not force_refresh and self.settings.official_crossings_json_path.exists():
             return self.load_cached()
 
+        cached_records = self.load_cached() if self.settings.official_crossings_json_path.exists() else []
+
         page_number = 1
         total_pages: int | None = None
         records: list[CrossingRecord] = []
@@ -36,6 +38,9 @@ class TraOfficialCrossingScraper:
             if total_pages is not None and page_number >= total_pages:
                 break
             page_number += 1
+
+        if cached_records and len(records) < max(50, int(len(cached_records) * 0.9)):
+            return cached_records
 
         payload = {
             "metadata": {
@@ -87,6 +92,9 @@ class TraOfficialCrossingScraper:
                 km_prefix=km_parts["km_prefix"],
                 km_value_meters=km_parts["km_value_meters"],
                 road_type=columns[3],
+                query_station_pair_text=columns[4],
+                query_station_a_name=station_a_name,
+                query_station_b_name=station_b_name,
                 station_pair_text=columns[4],
                 station_a_name=station_a_name,
                 station_b_name=station_b_name,
