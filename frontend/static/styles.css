@@ -701,7 +701,8 @@ svg {
 .hero-chip-row,
 .hero-route-meta,
 .schedule-head,
-.train-title-row {
+.train-title-row,
+.train-slot-row {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -838,6 +839,17 @@ svg {
   box-shadow: inset 0 0 0 1px rgba(255, 116, 81, 0.14);
 }
 
+.train-card.is-passed {
+  background: linear-gradient(145deg, rgba(231, 239, 247, 0.92), rgba(255, 255, 255, 0.98));
+  box-shadow: inset 0 0 0 1px rgba(44, 94, 135, 0.12);
+}
+
+.train-card.is-empty {
+  grid-template-columns: minmax(0, 1fr);
+  background: rgba(23, 48, 77, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(23, 48, 77, 0.05);
+}
+
 .train-main {
   display: grid;
   gap: 4px;
@@ -847,6 +859,33 @@ svg {
 .train-title-row strong {
   font-family: var(--font-head);
   font-size: 1rem;
+}
+
+.train-slot-label,
+.train-slot-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.train-slot-label {
+  background: rgba(23, 48, 77, 0.06);
+  color: var(--navy);
+}
+
+.train-slot-status {
+  background: rgba(23, 48, 77, 0.05);
+  color: var(--muted);
+}
+
+.train-card.is-passed .train-slot-status {
+  background: rgba(44, 94, 135, 0.12);
+  color: #2c5e87;
 }
 
 .train-title-row span,
@@ -880,6 +919,11 @@ svg {
 .countdown-pill.is-warning {
   background: rgba(255, 116, 81, 0.14);
   color: #c34c31;
+}
+
+.countdown-pill.is-passed {
+  background: rgba(44, 94, 135, 0.12);
+  color: #2c5e87;
 }
 
 .status-bar {

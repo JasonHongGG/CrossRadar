@@ -7,7 +7,7 @@ const MAP_HOME = [23.7, 121.0];
 const MAP_HOME_ZOOM = 7;
 const COUNTDOWN_TICK_MS = 1000;
 const AUTO_REFRESH_INTERVAL_MS = 60000;
-const MAX_VISIBLE_PREDICTIONS = 4;
+const DISPLAY_UPCOMING_PREDICTIONS = 2;
 const canvasRenderer = L.canvas({ padding: 0.5 });
 
 const map = L.map('map', {
@@ -373,11 +373,54 @@ function getCountdownParts(value) {
   };
 }
 
+function getRelativeEtaParts(value) {
+  const target = new Date(value).getTime();
+  if (Number.isNaN(target)) {
+    return {
+      seconds: null,
+      label: '時間未知',
+      short: '時間未知',
+      isPast: false,
+    };
+  }
+
+  const deltaSeconds = Math.round((target - Date.now()) / 1000);
+  const isPast = deltaSeconds < 0;
+  const totalSeconds = Math.abs(deltaSeconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (totalSeconds === 0) {
+    return {
+      seconds: totalSeconds,
+      label: '即將通過',
+      short: '即將通過',
+      isPast: false,
+    };
+  }
+
+  if (isPast) {
+    return {
+      seconds: totalSeconds,
+      label: `${minutes ? `${minutes} 分 ` : ''}${seconds} 秒前通過`,
+      short: minutes ? `${minutes}分${String(seconds).padStart(2, '0')}秒前` : `${seconds}秒前`,
+      isPast: true,
+    };
+  }
+
+  return {
+    seconds: totalSeconds,
+    label: `${minutes ? `${minutes} 分 ` : ''}${seconds} 秒後`,
+    short: minutes ? `${minutes}分${String(seconds).padStart(2, '0')}秒` : `${seconds}秒`,
+    isPast: false,
+  };
+}
+
 function isWithinWarningWindow(record) {
   const eta = new Date(record?.eta).getTime();
   if (Number.isNaN(eta)) return false;
   const warningWindowMinutes = Number(record?.warning_window_minutes ?? state.predictionEnvelope?.warning_window_minutes ?? 0);
-  return eta <= Date.now() + (warningWindowMinutes * 60 * 1000);
+  return eta >= Date.now() && eta <= Date.now() + (warningWindowMinutes * 60 * 1000);
 }
 
 function getDirectionLabel(record) {
@@ -410,17 +453,69 @@ function getPredictionRoute(record) {
   };
 }
 
-function getVisiblePredictions() {
+function getAllUpcomingPredictions() {
   return safeArray(state.predictionEnvelope?.predictions)
     .filter((record) => {
       const eta = new Date(record?.eta).getTime();
-      return Number.isFinite(eta) && eta >= Date.now() - 60000;
-    })
-    .slice(0, MAX_VISIBLE_PREDICTIONS);
+      return Number.isFinite(eta) && eta >= Date.now();
+    });
+}
+
+function getUpcomingPredictions() {
+  const envelopeUpcoming = safeArray(state.predictionEnvelope?.upcoming_predictions)
+    .filter((record) => {
+      const eta = new Date(record?.eta).getTime();
+      return Number.isFinite(eta) && eta >= Date.now();
+    });
+
+  if (envelopeUpcoming.length) {
+    return envelopeUpcoming.slice(0, DISPLAY_UPCOMING_PREDICTIONS);
+  }
+
+  return getAllUpcomingPredictions().slice(0, DISPLAY_UPCOMING_PREDICTIONS);
+}
+
+function getRecentPrediction() {
+  const record = state.predictionEnvelope?.recent_prediction;
+  const eta = new Date(record?.eta).getTime();
+  if (!record || !Number.isFinite(eta) || eta >= Date.now()) {
+    return null;
+  }
+  return record;
+}
+
+function getScheduleSlots() {
+  const recentWindow = state.predictionEnvelope?.recent_window_minutes || 10;
+  const horizonMinutes = state.predictionEnvelope?.horizon_minutes || 30;
+  const upcoming = getUpcomingPredictions();
+
+  return [
+    {
+      key: 'recent',
+      label: '最近通過',
+      record: getRecentPrediction(),
+      emptyTitle: '暫無上一班資料',
+      emptySubtitle: `最近 ${recentWindow} 分鐘內沒有可用通過紀錄`,
+    },
+    {
+      key: 'next',
+      label: '下一班',
+      record: upcoming[0] || null,
+      emptyTitle: '暫無下一班資料',
+      emptySubtitle: `${horizonMinutes} 分鐘內沒有接近平交道的列車`,
+    },
+    {
+      key: 'following',
+      label: '第二班',
+      record: upcoming[1] || null,
+      emptyTitle: '暫無第二班資料',
+      emptySubtitle: `${horizonMinutes} 分鐘內沒有第二班預測`,
+    },
+  ];
 }
 
 function getPrimaryPrediction() {
-  const predictions = getVisiblePredictions();
+  const predictions = getAllUpcomingPredictions();
   if (!predictions.length) return null;
   return predictions.find((record) => isWithinWarningWindow(record)) || predictions[0];
 }
@@ -635,7 +730,7 @@ function updateControls() {
 
 function updateMetrics() {
   const mappedCount = state.overview?.dataset?.mapped_feature_count ?? state.crossings.length;
-  const warningCount = getVisiblePredictions().filter((record) => isWithinWarningWindow(record)).length;
+  const warningCount = getAllUpcomingPredictions().filter((record) => isWithinWarningWindow(record)).length;
   elements.mappedMetric.textContent = String(mappedCount);
   elements.filteredMetric.textContent = String(state.filteredCrossings.length);
   elements.warningMetric.textContent = String(warningCount);
@@ -908,25 +1003,34 @@ function renderPredictionList() {
     return;
   }
 
-  const predictions = getVisiblePredictions();
-  if (!predictions.length) {
-    elements.predictionList.innerHTML = `
-      <div class="empty-block compact">
-        <strong>目前空檔</strong>
-        <span>未來 ${escapeHtml(String(state.predictionEnvelope?.horizon_minutes || 30))} 分鐘沒有接近平交道的列車</span>
-      </div>
-    `;
-    return;
-  }
+  elements.predictionList.innerHTML = getScheduleSlots()
+    .map((slot) => {
+      if (!slot.record) {
+        return `
+          <article class="train-card is-empty">
+            <div class="train-main">
+              <div class="train-slot-row">
+                <span class="train-slot-label">${escapeHtml(slot.label)}</span>
+              </div>
+              <div class="train-route">${escapeHtml(slot.emptyTitle)}</div>
+              <div class="train-subroute">${escapeHtml(slot.emptySubtitle)}</div>
+            </div>
+          </article>
+        `;
+      }
 
-  elements.predictionList.innerHTML = predictions
-    .map((record) => {
-      const countdown = getCountdownParts(record.eta);
+      const record = slot.record;
+      const countdown = getRelativeEtaParts(record.eta);
       const route = getPredictionRoute(record);
       const warning = isWithinWarningWindow(record);
+      const isPast = countdown.isPast;
       return `
-        <article class="train-card ${warning ? 'is-warning' : ''}">
+        <article class="train-card ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''}">
           <div class="train-main">
+            <div class="train-slot-row">
+              <span class="train-slot-label">${escapeHtml(slot.label)}</span>
+              <span class="train-slot-status">${escapeHtml(isPast ? '已通過' : '即將通過')}</span>
+            </div>
             <div class="train-title-row">
               <strong>${escapeHtml(formatTrainNo(record))}</strong>
               <span>${escapeHtml(record.train_type || '列車')}</span>
@@ -935,7 +1039,7 @@ function renderPredictionList() {
             <div class="train-subroute">${escapeHtml(getDirectionLabel(record))} · ${escapeHtml(`${route.approachFrom} → ${route.approachTo}`)}</div>
           </div>
           <div class="train-side">
-            <span class="countdown-pill ${warning ? 'is-warning' : ''}">${escapeHtml(countdown.short)}</span>
+            <span class="countdown-pill ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''}">${escapeHtml(countdown.short)}</span>
             <small>${escapeHtml(formatTime(record.eta))}</small>
           </div>
         </article>
@@ -1026,7 +1130,7 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
     const [detail, envelope] = await Promise.all([
       apiRequest(`/api/crossings/${encodeURIComponent(crossingId)}`),
       apiRequest(`/api/predictions/${encodeURIComponent(crossingId)}`, {
-        params: new URLSearchParams({ horizon_minutes: '30', warning_minutes: '5' }),
+        params: new URLSearchParams({ horizon_minutes: '30', recent_minutes: '10', warning_minutes: '5' }),
       }),
     ]);
 
@@ -1039,7 +1143,7 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
       focusSelectedCrossing();
     }
 
-    const warningCount = getVisiblePredictions().filter((record) => isWithinWarningWindow(record)).length;
+    const warningCount = getAllUpcomingPredictions().filter((record) => isWithinWarningWindow(record)).length;
     if (!silent) {
       setStatus(
         warningCount

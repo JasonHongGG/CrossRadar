@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
+from backend.app.models.prediction import PredictionRecord
 from backend.app.services.predictor import PredictorService
 from backend.app.utils import parse_time_on_date
 
@@ -62,3 +63,45 @@ def test_reverse_direction_eta_preserves_crossing_order() -> None:
 
     assert south_ratio < north_ratio
     assert south_eta < north_eta
+
+
+def test_partition_predictions_keeps_recent_past_and_next_two_upcoming() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    now = parse_time_on_date(date(2026, 5, 20), "10:00")
+    assert now is not None
+
+    def build_prediction(train_no: str, offset_minutes: int) -> PredictionRecord:
+        eta = now + timedelta(minutes=offset_minutes)
+        return PredictionRecord(
+            train_no=train_no,
+            upstream_station_id="A",
+            upstream_station_name="甲站",
+            downstream_station_id="B",
+            downstream_station_name="乙站",
+            eta=eta,
+            warning=offset_minutes >= 0 and offset_minutes <= 5,
+            warning_window_minutes=5,
+            confidence="medium",
+            data_basis="timetable",
+            reason="test",
+            segment_ratio=0.5,
+        )
+
+    predictions = [
+        build_prediction("1001", -12),
+        build_prediction("1002", -3),
+        build_prediction("1003", 2),
+        build_prediction("1004", 7),
+        build_prediction("1005", 11),
+    ]
+
+    recent_prediction, upcoming_predictions, all_upcoming_predictions = predictor._partition_predictions(
+        predictions,
+        now=now,
+        recent_minutes=10,
+    )
+
+    assert recent_prediction is not None
+    assert recent_prediction.train_no == "1002"
+    assert [record.train_no for record in upcoming_predictions] == ["1003", "1004"]
+    assert [record.train_no for record in all_upcoming_predictions] == ["1003", "1004", "1005"]

@@ -27,6 +27,7 @@ class PredictorService:
         crossing_id: str,
         *,
         horizon_minutes: int = 20,
+        recent_minutes: int = 10,
         warning_minutes: int = 5,
     ) -> PredictionEnvelope:
         feature = await self.catalog_service.get_crossing(crossing_id)
@@ -53,6 +54,7 @@ class PredictorService:
                     timetables,
                     now=now,
                     horizon_minutes=horizon_minutes,
+                    recent_minutes=recent_minutes,
                     warning_minutes=warning_minutes,
                 )
             )
@@ -64,6 +66,7 @@ class PredictorService:
                         timetables,
                         now=now,
                         horizon_minutes=horizon_minutes,
+                        recent_minutes=recent_minutes,
                         warning_minutes=warning_minutes,
                     )
                 )
@@ -78,12 +81,21 @@ class PredictorService:
             seen.add(key)
             deduped.append(prediction)
 
+        recent_prediction, upcoming_predictions, all_upcoming_predictions = self._partition_predictions(
+            deduped,
+            now=now,
+            recent_minutes=recent_minutes,
+        )
+
         return PredictionEnvelope(
             crossing_id=crossing_id,
             generated_at=now,
             warning_window_minutes=warning_minutes,
             horizon_minutes=horizon_minutes,
-            predictions=deduped,
+            recent_window_minutes=recent_minutes,
+            recent_prediction=recent_prediction,
+            upcoming_predictions=upcoming_predictions,
+            predictions=all_upcoming_predictions,
         )
 
     async def _load_segment_data(
@@ -104,6 +116,7 @@ class PredictorService:
         *,
         now,
         horizon_minutes: int,
+        recent_minutes: int,
         warning_minutes: int,
     ) -> list[PredictionRecord]:
         predictions: list[PredictionRecord] = []
@@ -148,7 +161,12 @@ class PredictorService:
                 upstream_departure=actual_upstream,
                 downstream_arrival=actual_downstream,
             )
-            if eta < now - timedelta(minutes=2) or eta > now + timedelta(minutes=horizon_minutes):
+            if not self._is_prediction_in_window(
+                eta,
+                now=now,
+                horizon_minutes=horizon_minutes,
+                recent_minutes=recent_minutes,
+            ):
                 continue
 
             prediction = PredictionRecord(
@@ -190,6 +208,7 @@ class PredictorService:
         *,
         now,
         horizon_minutes: int,
+        recent_minutes: int,
         warning_minutes: int,
     ) -> list[PredictionRecord]:
         predictions: list[PredictionRecord] = []
@@ -217,7 +236,12 @@ class PredictorService:
                 upstream_departure=upstream_departure,
                 downstream_arrival=downstream_arrival,
             )
-            if eta < now or eta > now + timedelta(minutes=horizon_minutes):
+            if not self._is_prediction_in_window(
+                eta,
+                now=now,
+                horizon_minutes=horizon_minutes,
+                recent_minutes=recent_minutes,
+            ):
                 continue
 
             predictions.append(
@@ -247,6 +271,37 @@ class PredictorService:
                 )
             )
         return predictions[:10]
+
+    def _is_prediction_in_window(
+        self,
+        eta,
+        *,
+        now,
+        horizon_minutes: int,
+        recent_minutes: int,
+    ) -> bool:
+        return now - timedelta(minutes=recent_minutes) <= eta <= now + timedelta(minutes=horizon_minutes)
+
+    def _partition_predictions(
+        self,
+        predictions: list[PredictionRecord],
+        *,
+        now,
+        recent_minutes: int,
+        upcoming_limit: int = 2,
+    ) -> tuple[PredictionRecord | None, list[PredictionRecord], list[PredictionRecord]]:
+        recent_cutoff = now - timedelta(minutes=recent_minutes)
+        recent_prediction: PredictionRecord | None = None
+        all_upcoming_predictions: list[PredictionRecord] = []
+
+        for prediction in predictions:
+            if prediction.eta >= now:
+                all_upcoming_predictions.append(prediction)
+                continue
+            if prediction.eta >= recent_cutoff:
+                recent_prediction = prediction
+
+        return (recent_prediction, all_upcoming_predictions[:upcoming_limit], all_upcoming_predictions)
 
     def _build_timetable_index(self, timetables: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
         index: dict[str, list[dict[str, Any]]] = {}

@@ -38,4 +38,7 @@ class PredictionEnvelope(BaseModel):
     generated_at: datetime
     warning_window_minutes: int
     horizon_minutes: int
+    recent_window_minutes: int
+    recent_prediction: PredictionRecord | None = None
+    upcoming_predictions: list[PredictionRecord] = Field(default_factory=list)
     predictions: list[PredictionRecord]
