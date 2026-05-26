@@ -35,7 +35,9 @@ async def get_overview() -> dict:
     settings = get_settings()
     catalog = get_crossing_catalog_service()
     dataset = await catalog.load()
+    full_dataset = await catalog.load_full()
     features = dataset.get("features", [])
+    full_features = full_dataset.get("features", [])
 
     confidence_counts = {"high": 0, "medium": 0, "low": 0}
     mapped_count = 0
@@ -60,9 +62,13 @@ async def get_overview() -> dict:
             **dataset.get("metadata", {}),
             "feature_count": len(features),
             "mapped_feature_count": mapped_count,
+            "full_feature_count": len(full_features),
             "county_count": len(counties),
             "confidence_counts": confidence_counts,
             "curated_file": _file_meta(settings.curated_crossings_geojson_path),
+            "full_file": _file_meta(settings.full_crossings_geojson_path),
+            "tainan_curated_file": _file_meta(settings.curated_tainan_crossings_geojson_path),
+            "tainan_official_file": _file_meta(settings.official_tainan_crossings_json_path),
         },
         "cache": {
             "official_crossings": _file_meta(settings.official_crossings_json_path),

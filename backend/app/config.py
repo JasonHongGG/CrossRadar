@@ -39,13 +39,20 @@ class Settings(BaseSettings):
     crossings_raw_html_dir: Path = ROOT_DIR / ".runtime" / "crossings" / "raw_html"
     osm_runtime_dir: Path = ROOT_DIR / ".runtime" / "osm"
     crossings_data_dir: Path = ROOT_DIR / "data" / "crossings"
+    stations_data_dir: Path = ROOT_DIR / "data" / "stations"
     official_crossings_json_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_official.json"
+    official_tainan_crossings_json_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_official_tainan.json"
     curated_crossings_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_curated.geojson"
+    full_crossings_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_full.geojson"
+    curated_tainan_crossings_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_curated_tainan.geojson"
     manual_mappings_json_path: Path = ROOT_DIR / "data" / "crossings" / "manual_osm_mappings.json"
     route_reference_json_path: Path = ROOT_DIR / "data" / "crossings" / "tainan_route_reference.json"
     unmatched_analysis_json_path: Path = ROOT_DIR / "data" / "crossings" / "unmatched_crossings_analysis.json"
     osm_raw_json_path: Path = ROOT_DIR / ".runtime" / "osm" / "taiwan_crossings.overpass.json"
     osm_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "osm_crossings.geojson"
+    station_source_json_path: Path = ROOT_DIR / "車站基本資料集.json"
+    stations_official_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_official.json"
+    tainan_stations_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_tainan.json"
     tdx_runtime_dir: Path = ROOT_DIR / ".runtime" / "tdx"
     station_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "stations.json"
     timetable_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_timetables.json"
@@ -59,6 +66,7 @@ class Settings(BaseSettings):
             self.crossings_raw_html_dir,
             self.osm_runtime_dir,
             self.crossings_data_dir,
+            self.stations_data_dir,
             self.tdx_runtime_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)

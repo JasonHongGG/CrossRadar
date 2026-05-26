@@ -28,31 +28,57 @@ class CrossingCatalogService:
     async def refresh(self, *, force_refresh: bool = False) -> dict[str, Any]:
         official_records = await self.scraper.scrape_all(force_refresh=force_refresh)
         osm_geojson = await self.osm_enricher.build_geojson(force_refresh=force_refresh)
-        curated = self._build_curated_geojson(official_records, osm_geojson)
-        self.settings.curated_crossings_geojson_path.write_text(
-            json.dumps(curated, ensure_ascii=False, indent=2),
+        full_dataset = self._build_curated_geojson(official_records, osm_geojson)
+        active_dataset = self._build_active_geojson(full_dataset)
+        official_tainan_dataset = self._build_official_county_subset(official_records, county="臺南市")
+        curated_tainan_dataset = self._build_geojson_county_subset(active_dataset, county="臺南市")
+
+        self.settings.full_crossings_geojson_path.write_text(
+            json.dumps(full_dataset, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        return curated
+        self.settings.curated_crossings_geojson_path.write_text(
+            json.dumps(active_dataset, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        self.settings.official_tainan_crossings_json_path.write_text(
+            json.dumps(official_tainan_dataset, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        self.settings.curated_tainan_crossings_geojson_path.write_text(
+            json.dumps(curated_tainan_dataset, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return active_dataset
 
     async def load(self) -> dict[str, Any]:
-        if self._is_curated_cache_stale():
+        if self._is_crossing_cache_stale():
             return await self.refresh(force_refresh=False)
         return json.loads(self.settings.curated_crossings_geojson_path.read_text(encoding="utf-8"))
 
-    def _is_curated_cache_stale(self) -> bool:
-        curated_path = self.settings.curated_crossings_geojson_path
-        if not curated_path.exists():
+    async def load_full(self) -> dict[str, Any]:
+        if self._is_crossing_cache_stale():
+            await self.refresh(force_refresh=False)
+        return json.loads(self.settings.full_crossings_geojson_path.read_text(encoding="utf-8"))
+
+    def _is_crossing_cache_stale(self) -> bool:
+        generated_paths = (
+            self.settings.curated_crossings_geojson_path,
+            self.settings.full_crossings_geojson_path,
+            self.settings.official_tainan_crossings_json_path,
+            self.settings.curated_tainan_crossings_geojson_path,
+        )
+        if any(not path.exists() for path in generated_paths):
             return True
 
-        curated_mtime = curated_path.stat().st_mtime
+        baseline_mtime = min(path.stat().st_mtime for path in generated_paths)
         dependencies = (
             self.settings.manual_mappings_json_path,
             self.settings.official_crossings_json_path,
             self.settings.osm_geojson_path,
             self.settings.route_reference_json_path,
         )
-        return any(self._path_is_newer(path, curated_mtime) for path in dependencies)
+        return any(self._path_is_newer(path, baseline_mtime) for path in dependencies)
 
     def _path_is_newer(self, path: Path, baseline_mtime: float) -> bool:
         return path.exists() and path.stat().st_mtime > baseline_mtime
@@ -87,6 +113,58 @@ class CrossingCatalogService:
             if feature.get("id") == crossing_id or feature.get("properties", {}).get("crossing_id") == crossing_id:
                 return feature
         return None
+
+    def _build_active_geojson(self, dataset: dict[str, Any]) -> dict[str, Any]:
+        all_features = dataset.get("features", [])
+        active_features = [feature for feature in all_features if feature.get("geometry") is not None]
+        metadata = {
+            **dataset.get("metadata", {}),
+            "source": "official+osm_active",
+            "selection_rule": "Only crossings with an adopted geometry are included; unresolved or stale location records are excluded from the runtime dataset.",
+            "feature_count": len(active_features),
+            "excluded_feature_count": max(len(all_features) - len(active_features), 0),
+            "full_feature_count": len(all_features),
+            "full_dataset_path": str(self.settings.full_crossings_geojson_path),
+        }
+        return {
+            "type": "FeatureCollection",
+            "metadata": metadata,
+            "features": active_features,
+        }
+
+    def _build_geojson_county_subset(self, dataset: dict[str, Any], *, county: str) -> dict[str, Any]:
+        features = [
+            feature
+            for feature in dataset.get("features", [])
+            if normalize_text(feature.get("properties", {}).get("county")) == normalize_text(county)
+        ]
+        metadata = {
+            **dataset.get("metadata", {}),
+            "scope_county": county,
+            "feature_count": len(features),
+            "source_feature_count": len(dataset.get("features", [])),
+        }
+        return {
+            "type": "FeatureCollection",
+            "metadata": metadata,
+            "features": features,
+        }
+
+    def _build_official_county_subset(self, official_records: list[CrossingRecord], *, county: str) -> dict[str, Any]:
+        records = [
+            record.model_dump()
+            for record in official_records
+            if normalize_text(record.county) == normalize_text(county)
+        ]
+        return {
+            "metadata": {
+                "source": str(self.settings.official_crossings_json_path),
+                "scope_county": county,
+                "count": len(records),
+                "full_count": len(official_records),
+            },
+            "crossings": records,
+        }
 
     def _build_curated_geojson(self, official_records: list[CrossingRecord], osm_geojson: dict[str, Any]) -> dict[str, Any]:
         osm_features = osm_geojson.get("features", [])

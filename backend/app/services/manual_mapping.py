@@ -217,7 +217,11 @@ class ManualOsmMappingService:
         return lookup
 
     async def _find_existing_conflict(self, crossing_id: str, osm_id: int) -> dict[str, Any] | None:
-        dataset = await self.catalog.load()
+        load_full = getattr(self.catalog, "load_full", None)
+        if callable(load_full):
+            dataset = await load_full()
+        else:
+            dataset = await self.catalog.load()
         for feature in dataset.get("features", []):
             properties = feature.get("properties", {})
             if properties.get("crossing_id") == crossing_id:

@@ -637,7 +637,7 @@
           24379140
         ],
         "rail_way_ids": [
-          25488903
+          1521591426
         ],
         "tags": {
           "railway": "level_crossing"
@@ -2429,8 +2429,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.4806792,
-          23.9492345
+          120.4806658,
+          23.9492353
         ]
       },
       "properties": {
@@ -39028,8 +39028,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.4699487,
-          23.9334476
+          120.469963,
+          23.9334688
         ]
       },
       "properties": {
@@ -66080,7 +66080,7 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.4817666,
+          120.4818077,
           23.9506681
         ]
       },
@@ -66104,7 +66104,7 @@
           1257094805
         ],
         "rail_way_ids": [
-          25488903
+          1521591426
         ],
         "tags": {
           "railway": "level_crossing"
@@ -67403,8 +67403,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.4782525,
-          23.9476781
+          120.4782364,
+          23.9476944
         ]
       },
       "properties": {
@@ -71630,9 +71630,7 @@
         "road_names_normalized": [],
         "rail_names": [],
         "rail_names_normalized": [],
-        "road_way_ids": [
-          1500654294
-        ],
+        "road_way_ids": [],
         "rail_way_ids": [
           1501064750
         ],
@@ -71661,9 +71659,7 @@
         "road_names_normalized": [],
         "rail_names": [],
         "rail_names_normalized": [],
-        "road_way_ids": [
-          1500654293
-        ],
+        "road_way_ids": [],
         "rail_way_ids": [
           1501064750
         ],
@@ -71727,9 +71723,7 @@
         "road_names_normalized": [],
         "rail_names": [],
         "rail_names_normalized": [],
-        "road_way_ids": [
-          1500654293
-        ],
+        "road_way_ids": [],
         "rail_way_ids": [
           1501064749
         ],
@@ -71758,9 +71752,7 @@
         "road_names_normalized": [],
         "rail_names": [],
         "rail_names_normalized": [],
-        "road_way_ids": [
-          1500654294
-        ],
+        "road_way_ids": [],
         "rail_way_ids": [
           1501064749
         ],
@@ -71810,8 +71802,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          121.420348,
-          25.1805355
+          121.4203434,
+          25.1805381
         ]
       },
       "properties": {
@@ -71959,8 +71951,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          121.4203823,
-          25.1805762
+          121.4203759,
+          25.1805778
         ]
       },
       "properties": {

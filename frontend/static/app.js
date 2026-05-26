@@ -3,6 +3,12 @@ const TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
   minute: '2-digit',
 });
 
+const PRECISE_TIME_FORMAT = new Intl.DateTimeFormat('zh-TW', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
 const MAP_HOME = [23.7, 121.0];
 const MAP_HOME_ZOOM = 7;
 const COUNTDOWN_TICK_MS = 1000;
@@ -44,6 +50,11 @@ const state = {
   predictionEnvelope: null,
   selectionLoading: false,
   selectionRequestToken: 0,
+  clock: {
+    nowMs: Date.now(),
+    envelopeGeneratedAtMs: null,
+  },
+  predictionRuntimeByCrossing: new Map(),
   timers: {
     countdown: null,
   },
@@ -391,13 +402,104 @@ function formatTime(value) {
   return TIME_FORMAT.format(date);
 }
 
+function formatPreciseTime(value) {
+  if (!value) return '--:--:--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--:--:--';
+  return PRECISE_TIME_FORMAT.format(date);
+}
+
+function formatClockMs(value) {
+  if (!Number.isFinite(value)) return '--:--:--';
+  return PRECISE_TIME_FORMAT.format(new Date(value));
+}
+
+function parseTimestampMs(value) {
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function syncNow(nowMs = Date.now()) {
+  state.clock.nowMs = nowMs;
+}
+
+function syncEnvelopeClock(envelope, receivedAtMs = Date.now()) {
+  syncNow(receivedAtMs);
+  state.clock.envelopeGeneratedAtMs = parseTimestampMs(envelope?.generated_at);
+}
+
+function getNowMs() {
+  return Number.isFinite(state.clock.nowMs) ? state.clock.nowMs : Date.now();
+}
+
+function getPredictionRuntime(crossingId = state.selectedCrossingId, create = true) {
+  if (!crossingId) return null;
+  let runtime = state.predictionRuntimeByCrossing.get(crossingId) || null;
+  if (!runtime && create) {
+    runtime = {
+      lastPassedRecord: null,
+      processedKeys: new Set(),
+    };
+    state.predictionRuntimeByCrossing.set(crossingId, runtime);
+  }
+  return runtime;
+}
+
+function getPredictionKey(record) {
+  return [
+    record?.train_no,
+    record?.upstream_station_id,
+    record?.downstream_station_id,
+    record?.eta,
+  ].map((value) => String(value ?? '')).join('|');
+}
+
+function primePredictionRuntime(crossingId, envelope) {
+  const runtime = getPredictionRuntime(crossingId);
+  if (!runtime) return;
+  const nowMs = getNowMs();
+  safeArray(envelope?.predictions).forEach((record) => {
+    const etaMs = parseTimestampMs(record?.eta);
+    if (Number.isFinite(etaMs) && etaMs <= nowMs) {
+      runtime.processedKeys.add(getPredictionKey(record));
+    }
+  });
+}
+
+function updateLastPassedPrediction(crossingId = state.selectedCrossingId) {
+  if (!crossingId || !state.predictionEnvelope || crossingId !== state.selectedCrossingId) {
+    return;
+  }
+
+  const runtime = getPredictionRuntime(crossingId, false);
+  if (!runtime) return;
+
+  const nowMs = getNowMs();
+  const newlyPassed = safeArray(state.predictionEnvelope?.predictions)
+    .filter((record) => {
+      const etaMs = parseTimestampMs(record?.eta);
+      if (!Number.isFinite(etaMs) || etaMs > nowMs) {
+        return false;
+      }
+      return !runtime.processedKeys.has(getPredictionKey(record));
+    })
+    .sort((recordA, recordB) => parseTimestampMs(recordA?.eta) - parseTimestampMs(recordB?.eta));
+
+  if (!newlyPassed.length) return;
+
+  newlyPassed.forEach((record) => {
+    runtime.processedKeys.add(getPredictionKey(record));
+  });
+  runtime.lastPassedRecord = { ...newlyPassed[newlyPassed.length - 1] };
+}
+
 function formatTrainNo(record) {
   return record?.train_no ? `${record.train_no}次` : '未提供班次';
 }
 
 function getCountdownParts(value) {
-  const target = new Date(value).getTime();
-  if (Number.isNaN(target)) {
+  const target = parseTimestampMs(value);
+  if (!Number.isFinite(target)) {
     return {
       seconds: null,
       timer: '--:--',
@@ -406,7 +508,7 @@ function getCountdownParts(value) {
     };
   }
 
-  const totalSeconds = Math.max(0, Math.round((target - Date.now()) / 1000));
+  const totalSeconds = Math.max(0, Math.ceil((target - getNowMs()) / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   if (totalSeconds === 0) {
@@ -427,8 +529,8 @@ function getCountdownParts(value) {
 }
 
 function getRelativeEtaParts(value) {
-  const target = new Date(value).getTime();
-  if (Number.isNaN(target)) {
+  const target = parseTimestampMs(value);
+  if (!Number.isFinite(target)) {
     return {
       seconds: null,
       label: '時間未知',
@@ -437,9 +539,9 @@ function getRelativeEtaParts(value) {
     };
   }
 
-  const deltaSeconds = Math.round((target - Date.now()) / 1000);
-  const isPast = deltaSeconds < 0;
-  const totalSeconds = Math.abs(deltaSeconds);
+  const deltaMs = target - getNowMs();
+  const isPast = deltaMs < 0;
+  const totalSeconds = Math.ceil(Math.abs(deltaMs) / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
 
@@ -470,10 +572,11 @@ function getRelativeEtaParts(value) {
 }
 
 function isWithinWarningWindow(record) {
-  const eta = new Date(record?.eta).getTime();
-  if (Number.isNaN(eta)) return false;
+  const eta = parseTimestampMs(record?.eta);
+  if (!Number.isFinite(eta)) return false;
   const warningWindowMinutes = Number(record?.warning_window_minutes ?? state.predictionEnvelope?.warning_window_minutes ?? 0);
-  return eta >= Date.now() && eta <= Date.now() + (warningWindowMinutes * 60 * 1000);
+  const nowMs = getNowMs();
+  return eta >= nowMs && eta <= nowMs + (warningWindowMinutes * 60 * 1000);
 }
 
 function getDirectionLabel(record) {
@@ -526,18 +629,20 @@ function getStopTiming(record) {
 }
 
 function getAllUpcomingPredictions() {
+  const nowMs = getNowMs();
   return safeArray(state.predictionEnvelope?.predictions)
     .filter((record) => {
-      const eta = new Date(record?.eta).getTime();
-      return Number.isFinite(eta) && eta >= Date.now();
+      const eta = parseTimestampMs(record?.eta);
+      return Number.isFinite(eta) && eta >= nowMs;
     });
 }
 
 function getUpcomingPredictions() {
+  const nowMs = getNowMs();
   const envelopeUpcoming = safeArray(state.predictionEnvelope?.upcoming_predictions)
     .filter((record) => {
-      const eta = new Date(record?.eta).getTime();
-      return Number.isFinite(eta) && eta >= Date.now();
+      const eta = parseTimestampMs(record?.eta);
+      return Number.isFinite(eta) && eta >= nowMs;
     });
 
   if (envelopeUpcoming.length) {
@@ -548,26 +653,26 @@ function getUpcomingPredictions() {
 }
 
 function getRecentPrediction() {
-  const record = state.predictionEnvelope?.recent_prediction;
-  const eta = new Date(record?.eta).getTime();
-  if (!record || !Number.isFinite(eta) || eta >= Date.now()) {
+  const runtime = getPredictionRuntime(state.selectedCrossingId, false);
+  const record = runtime?.lastPassedRecord || null;
+  const eta = parseTimestampMs(record?.eta);
+  if (!record || !Number.isFinite(eta) || eta > getNowMs()) {
     return null;
   }
   return record;
 }
 
 function getScheduleSlots() {
-  const recentWindow = state.predictionEnvelope?.recent_window_minutes || 10;
   const horizonMinutes = state.predictionEnvelope?.horizon_minutes || PREDICTION_PREVIEW_HORIZON_MINUTES;
   const upcoming = getUpcomingPredictions();
 
   return [
     {
       key: 'recent',
-      label: '最近通過',
+      label: '上一班',
       record: getRecentPrediction(),
       emptyTitle: '暫無上一班資料',
-      emptySubtitle: `最近 ${recentWindow} 分鐘內沒有可用通過紀錄`,
+      emptySubtitle: '本次開啟後尚未記錄到通過列車',
     },
     {
       key: 'next',
@@ -1055,7 +1160,7 @@ function renderWarningCard() {
       </div>
       <div class="hero-countdown">
         <strong>${escapeHtml(countdown.short)}</strong>
-        <span>${escapeHtml(`${formatTime(primary.eta)} 通過`)}</span>
+        <span>${escapeHtml(`現在 ${formatClockMs(getNowMs())} · 預計 ${formatPreciseTime(primary.eta)} 通過`)}</span>
       </div>
       <div class="hero-route-line">
         <span>${escapeHtml(route.origin)}</span>
@@ -1150,7 +1255,7 @@ function renderPredictionList() {
           </div>
           <div class="train-side">
             <span class="countdown-pill ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''}">${escapeHtml(countdown.short)}</span>
-            <small>${escapeHtml(formatTime(record.eta))}</small>
+            <small>${escapeHtml(formatPreciseTime(record.eta))}</small>
           </div>
         </article>
       `;
@@ -1159,6 +1264,10 @@ function renderPredictionList() {
 }
 
 function renderStaticUi() {
+  syncNow();
+  if (state.predictionEnvelope) {
+    updateLastPassedPrediction();
+  }
   renderScopeSummary();
   renderResults();
   renderSelectionBadge();
@@ -1177,6 +1286,7 @@ function clearSelection() {
   state.selectedCrossingDetail = null;
   state.predictionEnvelope = null;
   state.selectionLoading = false;
+  state.clock.envelopeGeneratedAtMs = null;
 }
 
 function setSearchPanelOpen(isOpen) {
@@ -1248,10 +1358,15 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
       ? Promise.resolve(state.selectedCrossingDetail)
       : apiRequest(`/api/crossings/${encodeURIComponent(crossingId)}`);
     const [detail, envelope] = await Promise.all([detailRequest, predictionRequest]);
+    const receivedAtMs = Date.now();
 
     if (token !== state.selectionRequestToken) return;
+    syncNow(receivedAtMs);
+    updateLastPassedPrediction(crossingId);
     state.selectedCrossingDetail = detail;
     state.predictionEnvelope = envelope;
+    syncEnvelopeClock(envelope, receivedAtMs);
+    primePredictionRuntime(crossingId, envelope);
     state.selectionLoading = false;
     renderStaticUi();
     if (focusMap) {
@@ -1286,6 +1401,8 @@ function startTimers() {
 
   state.timers.countdown = window.setInterval(() => {
     if (!state.predictionEnvelope) return;
+    syncNow();
+    updateLastPassedPrediction();
     renderWarningCard();
     renderPredictionList();
     updateMetrics();

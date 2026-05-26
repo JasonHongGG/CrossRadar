@@ -200,6 +200,9 @@ def test_manual_review_entries_fallback_when_station_lookup_fails(tmp_path) -> N
 def test_catalog_load_refreshes_when_manual_mapping_file_is_newer(tmp_path) -> None:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     settings.curated_crossings_geojson_path = tmp_path / "crossings_curated.geojson"
+    settings.full_crossings_geojson_path = tmp_path / "crossings_full.geojson"
+    settings.curated_tainan_crossings_geojson_path = tmp_path / "crossings_curated_tainan.geojson"
+    settings.official_tainan_crossings_json_path = tmp_path / "crossings_official_tainan.json"
     settings.manual_mappings_json_path = tmp_path / "manual_osm_mappings.json"
     settings.official_crossings_json_path = tmp_path / "crossings_official.json"
     settings.osm_geojson_path = tmp_path / "osm_crossings.geojson"
@@ -273,3 +276,38 @@ def test_catalog_load_refreshes_when_manual_mapping_file_is_newer(tmp_path) -> N
     assert feature["properties"]["matched_osm_id"] == 123
     assert feature["properties"]["match_method"] == "manual_override"
     assert feature["properties"]["manual_mapping_applied"] is True
+    assert settings.full_crossings_geojson_path.exists()
+    assert settings.curated_tainan_crossings_geojson_path.exists()
+    assert settings.official_tainan_crossings_json_path.exists()
+
+
+def test_active_dataset_excludes_crossings_without_geometry() -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    catalog = CrossingCatalogService(None, None, settings)  # type: ignore[arg-type]
+
+    full_dataset = {
+        "type": "FeatureCollection",
+        "metadata": {"mapped_count": 1},
+        "features": [
+            {
+                "type": "Feature",
+                "id": "mapped",
+                "geometry": {"type": "Point", "coordinates": [121.5, 25.0]},
+                "properties": {"crossing_id": "mapped", "county": "臺南市"},
+            },
+            {
+                "type": "Feature",
+                "id": "unmapped",
+                "geometry": None,
+                "properties": {"crossing_id": "unmapped", "county": "臺南市"},
+            },
+        ],
+    }
+
+    active_dataset = catalog._build_active_geojson(full_dataset)
+    tainan_dataset = catalog._build_geojson_county_subset(active_dataset, county="臺南市")
+
+    assert len(active_dataset["features"]) == 1
+    assert active_dataset["metadata"]["excluded_feature_count"] == 1
+    assert active_dataset["features"][0]["properties"]["crossing_id"] == "mapped"
+    assert len(tainan_dataset["features"]) == 1
