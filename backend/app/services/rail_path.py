@@ -4,6 +4,7 @@ import heapq
 import json
 from dataclasses import dataclass
 from functools import cached_property
+from typing import Any
 
 from shapely.geometry import LineString, Point
 from shapely.strtree import STRtree
@@ -50,8 +51,11 @@ class _Segment:
 @dataclass(frozen=True)
 class _SnappedPoint:
     segment_id: int
+    way_id: int
     start_node: int
     end_node: int
+    lon: float
+    lat: float
     distance_from_start_meters: float
     distance_to_end_meters: float
     snap_distance_meters: float
@@ -64,6 +68,7 @@ class _GraphData:
     adjacency: dict[int, list[tuple[int, float]]]
     way_to_segments: dict[int, list[int]]
     segment_components: list[int]
+    node_coordinates: list[tuple[float, float]]
     tree: STRtree
 
 
@@ -123,6 +128,123 @@ class RailPathService:
             station_b_snap_distance_meters=station_b.snap_distance_meters,
         )
 
+    def explain_segment_ratio(
+        self,
+        *,
+        station_a_position: dict[str, float],
+        station_b_position: dict[str, float],
+        crossing_point: GeoPoint,
+        crossing_way_ids: list[int] | None = None,
+    ) -> dict[str, Any]:
+        graph = self._graph
+        if graph is None:
+            return {
+                "available": False,
+                "reason": "graph_unavailable",
+                "note": "No cached OSM rail graph is available, so along-track measurement cannot be shown.",
+            }
+
+        crossing = self._snap_point(
+            crossing_point.lon,
+            crossing_point.lat,
+            candidate_way_ids=crossing_way_ids,
+            max_snap_distance_meters=150.0,
+        )
+        if crossing is None:
+            return {
+                "available": False,
+                "reason": "crossing_cannot_snap",
+                "note": "The crossing geometry could not snap onto an OSM rail segment within 150 meters.",
+            }
+
+        component_id = graph.segment_components[crossing.segment_id]
+        station_a, distance_from_station_a = self._select_station_snap(
+            station_a_position.get("PositionLon"),
+            station_a_position.get("PositionLat"),
+            crossing,
+            max_snap_distance_meters=1_500.0,
+            measure_from_start=True,
+        )
+        station_b, distance_to_station_b = self._select_station_snap(
+            station_b_position.get("PositionLon"),
+            station_b_position.get("PositionLat"),
+            crossing,
+            max_snap_distance_meters=1_500.0,
+            measure_from_start=False,
+        )
+
+        payload: dict[str, Any] = {
+            "available": False,
+            "reason": None,
+            "component_id": component_id,
+            "crossing_snap": self._snapped_point_payload(crossing),
+            "station_a_snap": self._snapped_point_payload(station_a),
+            "station_b_snap": self._snapped_point_payload(station_b),
+        }
+
+        if station_a is None or distance_from_station_a is None:
+            payload.update(
+                {
+                    "reason": "station_a_cannot_snap_same_component",
+                    "note": "Station A could not snap onto the same connected OSM rail component as the crossing within 1,500 meters.",
+                }
+            )
+            return payload
+
+        if station_b is None or distance_to_station_b is None:
+            payload.update(
+                {
+                    "reason": "station_b_cannot_snap_same_component",
+                    "note": "Station B could not snap onto the same connected OSM rail component as the crossing within 1,500 meters.",
+                }
+            )
+            return payload
+
+        station_a_path = self._path_between_snapped(station_a, crossing)
+        station_b_path = self._path_between_snapped(crossing, station_b)
+        if station_a_path is None or station_b_path is None:
+            payload.update(
+                {
+                    "reason": "path_geometry_unavailable",
+                    "note": "A connected OSM rail path could not be reconstructed between the snapped station anchors and the crossing.",
+                }
+            )
+            return payload
+
+        total_distance = distance_from_station_a + distance_to_station_b
+        if total_distance <= 0:
+            payload.update(
+                {
+                    "reason": "invalid_total_distance",
+                    "note": "The reconstructed along-track distance collapsed to zero, so no ratio can be derived.",
+                }
+            )
+            return payload
+
+        payload.update(
+            {
+                "available": True,
+                "ratio": max(0.0, min(1.0, distance_from_station_a / total_distance)),
+                "reason": "ok",
+                "note": "Measured along connected OSM rail geometry from station A to the crossing and from the crossing to station B.",
+                "distance_from_station_a_meters": distance_from_station_a,
+                "distance_to_station_b_meters": distance_to_station_b,
+                "total_distance_meters": total_distance,
+                "crossing_snap_distance_meters": crossing.snap_distance_meters,
+                "station_a_snap_distance_meters": station_a.snap_distance_meters,
+                "station_b_snap_distance_meters": station_b.snap_distance_meters,
+                "station_a_path": {
+                    "distance_meters": station_a_path[0],
+                    "coordinates": station_a_path[1],
+                },
+                "station_b_path": {
+                    "distance_meters": station_b_path[0],
+                    "coordinates": station_b_path[1],
+                },
+            }
+        )
+        return payload
+
     @cached_property
     def _graph(self) -> _GraphData | None:
         path = self.settings.osm_raw_json_path
@@ -136,6 +258,7 @@ class RailPathService:
             return None
 
         node_lookup: dict[tuple[float, float], int] = {}
+        node_coordinates: list[tuple[float, float]] = []
         segments: list[_Segment] = []
         segment_geometries: list[LineString] = []
         adjacency: dict[int, list[tuple[int, float]]] = {}
@@ -145,8 +268,9 @@ class RailPathService:
             key = (round(lon, 7), round(lat, 7))
             node_id = node_lookup.get(key)
             if node_id is None:
-                node_id = len(node_lookup)
+                node_id = len(node_coordinates)
                 node_lookup[key] = node_id
+                node_coordinates.append((lon, lat))
             return node_id
 
         for way in ways:
@@ -189,6 +313,7 @@ class RailPathService:
             adjacency=adjacency,
             way_to_segments=way_to_segments,
             segment_components=self._build_segment_components(segments, adjacency),
+            node_coordinates=node_coordinates,
             tree=STRtree(segment_geometries),
         )
 
@@ -273,6 +398,17 @@ class RailPathService:
                 range(len(graph.segment_geometries)),
                 key=lambda index: graph.segment_geometries[index].distance(point),
             )[: max_candidates * 4]
+        else:
+            distance_by_segment: dict[int, float] = {}
+
+            def segment_distance(index: int) -> float:
+                distance = distance_by_segment.get(index)
+                if distance is None:
+                    distance = graph.segment_geometries[index].distance(point)
+                    distance_by_segment[index] = distance
+                return distance
+
+            candidate_segment_ids = sorted(candidate_segment_ids, key=segment_distance)[: max_candidates * 8]
 
         candidates: list[_SnappedPoint] = []
         seen_segments: set[int] = set()
@@ -292,8 +428,11 @@ class RailPathService:
             candidates.append(
                 _SnappedPoint(
                     segment_id=segment.segment_id,
+                    way_id=segment.way_id,
                     start_node=segment.start_node,
                     end_node=segment.end_node,
+                    lon=float(snapped.x),
+                    lat=float(snapped.y),
                     distance_from_start_meters=distance_from_start,
                     distance_to_end_meters=segment.length_meters - distance_from_start,
                     snap_distance_meters=snap_distance_meters,
@@ -362,6 +501,130 @@ class RailPathService:
         if best is None:
             return graph_distance
         return min(best, graph_distance)
+
+    def _path_between_snapped(self, start: _SnappedPoint, end: _SnappedPoint) -> tuple[float, list[list[float]]] | None:
+        direct_distance: float | None = None
+        direct_coordinates: list[list[float]] | None = None
+        if start.segment_id == end.segment_id:
+            direct_distance = abs(start.distance_from_start_meters - end.distance_from_start_meters)
+            direct_coordinates = self._dedupe_coordinates(
+                [
+                    [start.lon, start.lat],
+                    [end.lon, end.lat],
+                ]
+            )
+
+        graph_result = self._dijkstra_path(
+            [
+                (start.start_node, start.distance_from_start_meters),
+                (start.end_node, start.distance_to_end_meters),
+            ],
+            {
+                end.start_node: end.distance_from_start_meters,
+                end.end_node: end.distance_to_end_meters,
+            },
+        )
+        if graph_result is None:
+            if direct_distance is None or direct_coordinates is None:
+                return None
+            return direct_distance, direct_coordinates
+
+        graph_distance, node_path = graph_result
+        graph_coordinates = self._coordinates_for_node_path(start, node_path, end)
+        if direct_distance is not None and direct_coordinates is not None and direct_distance <= graph_distance:
+            return direct_distance, direct_coordinates
+        return graph_distance, graph_coordinates
+
+    def _coordinates_for_node_path(
+        self,
+        start: _SnappedPoint,
+        node_path: list[int],
+        end: _SnappedPoint,
+    ) -> list[list[float]]:
+        graph = self._graph
+        if graph is None:
+            return self._dedupe_coordinates([[start.lon, start.lat], [end.lon, end.lat]])
+
+        coordinates: list[list[float]] = [[start.lon, start.lat]]
+        for node_id in node_path:
+            lon, lat = graph.node_coordinates[node_id]
+            coordinates.append([lon, lat])
+        coordinates.append([end.lon, end.lat])
+        return self._dedupe_coordinates(coordinates)
+
+    def _dedupe_coordinates(self, coordinates: list[list[float]]) -> list[list[float]]:
+        deduped: list[list[float]] = []
+        for coordinate in coordinates:
+            if not deduped or deduped[-1] != coordinate:
+                deduped.append(coordinate)
+        return deduped
+
+    def _snapped_point_payload(self, snapped: _SnappedPoint | None) -> dict[str, Any] | None:
+        if snapped is None:
+            return None
+        graph = self._graph
+        component_id = None
+        if graph is not None:
+            component_id = graph.segment_components[snapped.segment_id]
+        return {
+            "lon": snapped.lon,
+            "lat": snapped.lat,
+            "segment_id": snapped.segment_id,
+            "way_id": snapped.way_id,
+            "component_id": component_id,
+            "snap_distance_meters": snapped.snap_distance_meters,
+            "distance_from_start_meters": snapped.distance_from_start_meters,
+            "distance_to_end_meters": snapped.distance_to_end_meters,
+        }
+
+    def _dijkstra_path(self, sources: list[tuple[int, float]], targets: dict[int, float]) -> tuple[float, list[int]] | None:
+        graph = self._graph
+        if graph is None:
+            return None
+
+        distances: dict[int, float] = {}
+        previous: dict[int, int | None] = {}
+        heap: list[tuple[float, int]] = []
+        for node_id, distance in sources:
+            current = distances.get(node_id)
+            if current is None or distance < current:
+                distances[node_id] = distance
+                previous[node_id] = None
+                heapq.heappush(heap, (distance, node_id))
+
+        best_target_distance: float | None = None
+        best_target_node: int | None = None
+        while heap:
+            distance, node_id = heapq.heappop(heap)
+            if distance > distances.get(node_id, float("inf")):
+                continue
+            if best_target_distance is not None and distance >= best_target_distance:
+                continue
+
+            if node_id in targets:
+                candidate = distance + targets[node_id]
+                if best_target_distance is None or candidate < best_target_distance:
+                    best_target_distance = candidate
+                    best_target_node = node_id
+
+            for neighbor_id, weight in graph.adjacency.get(node_id, []):
+                candidate = distance + weight
+                if candidate >= distances.get(neighbor_id, float("inf")):
+                    continue
+                distances[neighbor_id] = candidate
+                previous[neighbor_id] = node_id
+                heapq.heappush(heap, (candidate, neighbor_id))
+
+        if best_target_distance is None or best_target_node is None:
+            return None
+
+        path_nodes: list[int] = []
+        cursor: int | None = best_target_node
+        while cursor is not None:
+            path_nodes.append(cursor)
+            cursor = previous.get(cursor)
+        path_nodes.reverse()
+        return best_target_distance, path_nodes
 
     def _dijkstra(self, sources: list[tuple[int, float]], targets: dict[int, float]) -> float | None:
         graph = self._graph

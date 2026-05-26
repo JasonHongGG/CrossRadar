@@ -9,7 +9,12 @@ from backend.app.models.crossing import ConfidenceLevel, CrossingRecord, GeoPoin
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
 from backend.app.services.route_reference import RouteReferenceService
-from backend.app.utils import normalize_text
+from backend.app.services.station_graph import StationGraphService
+from backend.app.utils import haversine_meters, normalize_text, project_point_onto_station_line
+
+
+OSM_STATION_CORRIDOR_MAX_OFFSET_MULTIPLIER = 2.0
+OSM_STATION_CORRIDOR_MAX_OFFSET_METERS = 10_000.0
 
 
 class CrossingCatalogService:
@@ -19,16 +24,20 @@ class CrossingCatalogService:
         osm_enricher: OsmEnricher,
         settings: Settings | None = None,
         route_reference_service: RouteReferenceService | None = None,
+        station_graph_service: StationGraphService | None = None,
     ) -> None:
         self.settings = settings or get_settings()
         self.scraper = scraper
         self.osm_enricher = osm_enricher
         self.route_reference_service = route_reference_service or RouteReferenceService(self.settings)
+        self.station_graph_service = station_graph_service
 
     async def refresh(self, *, force_refresh: bool = False) -> dict[str, Any]:
         official_records = await self.scraper.scrape_all(force_refresh=force_refresh)
         osm_geojson = await self.osm_enricher.build_geojson(force_refresh=force_refresh)
-        full_dataset = self._build_curated_geojson(official_records, osm_geojson)
+        route_referenced_records = [self.route_reference_service.apply(record.model_copy(deep=True)) for record in official_records]
+        station_context_lookup = await self._build_station_context_lookup(route_referenced_records)
+        full_dataset = self._build_curated_geojson(official_records, osm_geojson, station_context_lookup=station_context_lookup)
         active_dataset = self._build_active_geojson(full_dataset)
         official_tainan_dataset = self._build_official_county_subset(official_records, county="臺南市")
         curated_tainan_dataset = self._build_geojson_county_subset(active_dataset, county="臺南市")
@@ -166,7 +175,13 @@ class CrossingCatalogService:
             "crossings": records,
         }
 
-    def _build_curated_geojson(self, official_records: list[CrossingRecord], osm_geojson: dict[str, Any]) -> dict[str, Any]:
+    def _build_curated_geojson(
+        self,
+        official_records: list[CrossingRecord],
+        osm_geojson: dict[str, Any],
+        *,
+        station_context_lookup: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         osm_features = osm_geojson.get("features", [])
         manual_mapping_lookup = self._load_manual_mapping_lookup()
         route_reference_metadata = self.route_reference_service.metadata()
@@ -176,6 +191,7 @@ class CrossingCatalogService:
 
         for official in official_records:
             updated = self.route_reference_service.apply(official.model_copy(deep=True))
+            station_context = (station_context_lookup or {}).get(updated.crossing_id)
             if updated.authoritative_reference_applied:
                 authoritative_pair_count += 1
 
@@ -187,9 +203,9 @@ class CrossingCatalogService:
                     match_method = "manual_override"
                     confidence = "high"
                 else:
-                    matched_feature, score, match_method, confidence = self._match_official_to_osm(official, osm_features)
+                    matched_feature, score, match_method, confidence = self._match_official_to_osm(updated, osm_features, station_context=station_context)
             else:
-                matched_feature, score, match_method, confidence = self._match_official_to_osm(official, osm_features)
+                matched_feature, score, match_method, confidence = self._match_official_to_osm(updated, osm_features, station_context=station_context)
 
             updated.match_score = score
             updated.match_method = match_method
@@ -207,7 +223,10 @@ class CrossingCatalogService:
                     updated.osm_rail_names = properties.get("rail_names", [])
                     updated.osm_rail_way_ids = properties.get("rail_way_ids", [])
                     updated.osm_tags = properties.get("tags", {})
-                    mapped_count += 1
+                    if self._matched_geometry_is_plausible(updated, station_context=station_context):
+                        mapped_count += 1
+                    else:
+                        self._clear_osm_match(updated)
 
             features.append(updated.to_feature())
 
@@ -224,6 +243,105 @@ class CrossingCatalogService:
             },
             "features": features,
         }
+
+    async def _build_station_context_lookup(self, records: list[CrossingRecord]) -> dict[str, dict[str, Any]]:
+        if self.station_graph_service is None:
+            return {}
+
+        lookup: dict[str, dict[str, Any]] = {}
+        for record in records:
+            station_context = await self._build_station_context(record)
+            if station_context is not None:
+                lookup[record.crossing_id] = station_context
+        return lookup
+
+    async def _build_station_context(self, record: CrossingRecord) -> dict[str, Any] | None:
+        if self.station_graph_service is None:
+            return None
+
+        station_a = await self.station_graph_service.resolve_station(record.station_a_name)
+        station_b = await self.station_graph_service.resolve_station(record.station_b_name)
+        if station_a is None or station_b is None:
+            return None
+
+        station_a_position = station_a.get("StationPosition", {})
+        station_b_position = station_b.get("StationPosition", {})
+        station_a_lon = station_a_position.get("PositionLon")
+        station_a_lat = station_a_position.get("PositionLat")
+        station_b_lon = station_b_position.get("PositionLon")
+        station_b_lat = station_b_position.get("PositionLat")
+        if station_a_lon is None or station_a_lat is None or station_b_lon is None or station_b_lat is None:
+            return None
+
+        return {
+            "station_a_position": station_a_position,
+            "station_b_position": station_b_position,
+            "station_span_meters": haversine_meters(
+                float(station_a_lat),
+                float(station_a_lon),
+                float(station_b_lat),
+                float(station_b_lon),
+            ),
+        }
+
+    def _corridor_match_assessment(self, osm_feature: dict[str, Any], station_context: dict[str, Any] | None) -> dict[str, Any]:
+        if station_context is None:
+            return {"reject": False, "score_boost": 0.0}
+
+        station_a_position = station_context.get("station_a_position", {})
+        station_b_position = station_context.get("station_b_position", {})
+        station_span_meters = float(station_context.get("station_span_meters") or 0.0)
+        coordinates = osm_feature.get("geometry", {}).get("coordinates") or [None, None]
+        if coordinates[0] is None or coordinates[1] is None:
+            return {"reject": False, "score_boost": 0.0}
+
+        projection = project_point_onto_station_line(
+            station_a_position.get("PositionLon"),
+            station_a_position.get("PositionLat"),
+            station_b_position.get("PositionLon"),
+            station_b_position.get("PositionLat"),
+            coordinates[0],
+            coordinates[1],
+        )
+        offset_meters = float(projection["offset_meters"])
+        if offset_meters > max(station_span_meters * OSM_STATION_CORRIDOR_MAX_OFFSET_MULTIPLIER, OSM_STATION_CORRIDOR_MAX_OFFSET_METERS):
+            return {"reject": True, "score_boost": 0.0, "offset_meters": offset_meters}
+        if offset_meters <= 300.0:
+            score_boost = 32.0
+        elif offset_meters <= 750.0:
+            score_boost = 24.0
+        elif offset_meters <= 1_500.0:
+            score_boost = 16.0
+        elif offset_meters <= 3_000.0:
+            score_boost = 8.0
+        else:
+            score_boost = 0.0
+        return {"reject": False, "score_boost": score_boost, "offset_meters": offset_meters}
+
+    def _matched_geometry_is_plausible(self, crossing: CrossingRecord, *, station_context: dict[str, Any] | None) -> bool:
+        if crossing.geometry is None:
+            return False
+        assessment = self._corridor_match_assessment(
+            {
+                "geometry": {
+                    "coordinates": [crossing.geometry.lon, crossing.geometry.lat],
+                }
+            },
+            station_context,
+        )
+        return not assessment.get("reject", False)
+
+    def _clear_osm_match(self, crossing: CrossingRecord) -> None:
+        crossing.geometry = None
+        crossing.matched_osm_id = None
+        crossing.match_score = 0.0
+        crossing.match_method = f"{crossing.match_method}_rejected_by_station_corridor" if crossing.match_method else "rejected_by_station_corridor"
+        crossing.geolocation_confidence = "low"
+        crossing.manual_mapping_applied = False
+        crossing.osm_road_names = []
+        crossing.osm_rail_names = []
+        crossing.osm_rail_way_ids = []
+        crossing.osm_tags = {}
 
     def _find_osm_feature_by_id(self, osm_features: list[dict[str, Any]], osm_id: int | str | None) -> dict[str, Any] | None:
         if osm_id is None:
@@ -251,6 +369,8 @@ class CrossingCatalogService:
         self,
         official: CrossingRecord,
         osm_features: list[dict[str, Any]],
+        *,
+        station_context: dict[str, Any] | None = None,
     ) -> tuple[dict[str, Any] | None, float, str | None, ConfidenceLevel]:
         best_feature: dict[str, Any] | None = None
         best_score = 0.0
@@ -258,7 +378,7 @@ class CrossingCatalogService:
         second_best = 0.0
 
         for feature in osm_features:
-            score, method = self._score_match(official, feature)
+            score, method = self._score_match(official, feature, station_context=station_context)
             if score > best_score:
                 second_best = best_score
                 best_feature = feature
@@ -274,10 +394,20 @@ class CrossingCatalogService:
             return (best_feature, best_score, best_method, "high")
         return (best_feature, best_score, best_method, "medium")
 
-    def _score_match(self, official: CrossingRecord, osm_feature: dict[str, Any]) -> tuple[float, str | None]:
+    def _score_match(
+        self,
+        official: CrossingRecord,
+        osm_feature: dict[str, Any],
+        *,
+        station_context: dict[str, Any] | None = None,
+    ) -> tuple[float, str | None]:
         properties = osm_feature.get("properties", {})
         official_name = official.normalized_name
         if not official_name:
+            return (0.0, None)
+
+        corridor_assessment = self._corridor_match_assessment(osm_feature, station_context)
+        if corridor_assessment.get("reject"):
             return (0.0, None)
 
         official_line = normalize_text(official.line)
@@ -315,6 +445,8 @@ class CrossingCatalogService:
 
             if line_matches:
                 score += 5.0
+
+            score += float(corridor_assessment.get("score_boost", 0.0))
 
             if score > best_score:
                 best_score = score

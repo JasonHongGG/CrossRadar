@@ -36,7 +36,12 @@ def get_osm_enricher() -> OsmEnricher:
 
 @lru_cache(maxsize=1)
 def get_crossing_catalog_service() -> CrossingCatalogService:
-    return CrossingCatalogService(get_crossing_scraper(), get_osm_enricher(), get_settings())
+    return CrossingCatalogService(
+        get_crossing_scraper(),
+        get_osm_enricher(),
+        get_settings(),
+        station_graph_service=get_station_graph_service(),
+    )
 
 
 @lru_cache(maxsize=1)

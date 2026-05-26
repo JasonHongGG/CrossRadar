@@ -99,3 +99,19 @@ async def get_crossing(crossing_id: str) -> dict:
     enriched = await station_graph.enrich_crossing_properties(properties)
     feature["properties"] = enriched
     return feature
+
+
+@router.get("/{crossing_id}/ratio-explanation")
+async def get_crossing_ratio_explanation(crossing_id: str) -> dict:
+    catalog = get_crossing_catalog_service()
+    station_graph = get_station_graph_service()
+    feature = await catalog.get_crossing(crossing_id)
+    if feature is None:
+        raise HTTPException(status_code=404, detail="Crossing not found")
+
+    properties = dict(feature.get("properties", {}))
+    if feature.get("geometry") is not None:
+        coordinates = feature["geometry"]["coordinates"]
+        properties["geometry"] = {"lon": coordinates[0], "lat": coordinates[1]}
+
+    return await station_graph.explain_crossing_properties(properties)

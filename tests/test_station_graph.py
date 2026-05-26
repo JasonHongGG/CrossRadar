@@ -110,3 +110,113 @@ def test_enrich_crossing_uses_osm_path_before_geometry(tmp_path) -> None:
     assert 0.23 < enriched["segment_ratio"] < 0.27
     assert enriched["path_segment_ratio"] == enriched["segment_ratio"]
     assert "geometry_segment_ratio" in enriched
+
+
+def test_explain_crossing_properties_returns_geometry_and_path_payloads(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.osm_raw_json_path = tmp_path / "raw_osm.json"
+    settings.osm_raw_json_path.write_text(
+        json.dumps(
+            {
+                "elements": [
+                    {
+                        "type": "way",
+                        "id": 1001,
+                        "tags": {"railway": "rail", "name": "測試線"},
+                        "geometry": [
+                            {"lon": 120.0, "lat": 23.0},
+                            {"lon": 120.01, "lat": 23.0},
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    service = StationGraphService(_StubTdxClient(), RailPathService(settings))
+    explanation = asyncio.run(
+        service.explain_crossing_properties(
+            {
+                "crossing_id": "demo",
+                "name": "測試平交道",
+                "line": "測試線",
+                "station_a_name": "永康",
+                "station_b_name": "大橋",
+                "geometry": {"lon": 120.0025, "lat": 23.0},
+                "osm_rail_way_ids": [1001],
+            }
+        )
+    )
+
+    assert explanation["ratios"]["selected"]["source"] == "osm_path"
+    assert explanation["ratios"]["osm_path"]["available"] is True
+    assert explanation["ratios"]["osm_path"]["reason"] == "ok"
+    assert explanation["ratios"]["osm_path"]["plausible"] is True
+    assert explanation["ratios"]["osm_path"]["selected_eligible"] is True
+    assert explanation["ratios"]["osm_path"]["station_a_path"]["coordinates"][0] == [120.0, 23.0]
+    assert explanation["ratios"]["osm_path"]["station_b_path"]["coordinates"][-1] == [120.01, 23.0]
+    assert explanation["ratios"]["geometry_projection"]["available"] is True
+    assert explanation["ratios"]["geometry_projection"]["projected_point"] == {"lon": 120.0025, "lat": 23.0}
+
+
+def test_enrich_crossing_rejects_implausible_osm_path(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.osm_raw_json_path = tmp_path / "raw_osm.json"
+    settings.osm_raw_json_path.write_text(
+        json.dumps(
+            {
+                "elements": [
+                    {
+                        "type": "way",
+                        "id": 2001,
+                        "tags": {"railway": "rail", "name": "繞遠測試線"},
+                        "geometry": [
+                            {"lon": 120.0, "lat": 23.0},
+                            {"lon": 120.0, "lat": 23.1},
+                            {"lon": 120.01, "lat": 23.1},
+                            {"lon": 120.01, "lat": 23.0},
+                        ],
+                    }
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    service = StationGraphService(_StubTdxClient(), RailPathService(settings))
+    enriched = asyncio.run(
+        service.enrich_crossing_properties(
+            {
+                "station_a_name": "永康",
+                "station_b_name": "大橋",
+                "geometry": {"lon": 120.005, "lat": 23.1},
+                "osm_rail_way_ids": [2001],
+            }
+        )
+    )
+    explanation = asyncio.run(
+        service.explain_crossing_properties(
+            {
+                "crossing_id": "looped-demo",
+                "name": "繞遠平交道",
+                "line": "測試線",
+                "station_a_name": "永康",
+                "station_b_name": "大橋",
+                "geometry": {"lon": 120.005, "lat": 23.1},
+                "osm_rail_way_ids": [2001],
+            }
+        )
+    )
+
+    assert enriched["ratio_source"] == "geometry_projection"
+    assert explanation["ratios"]["selected"]["source"] == "geometry_projection"
+    assert explanation["ratios"]["osm_path"]["available"] is True
+    assert explanation["ratios"]["osm_path"]["plausible"] is False
+    assert explanation["ratios"]["osm_path"]["selected_eligible"] is False
+    assert explanation["ratios"]["osm_path"]["reason"] == "path_exceeds_station_span"
+    assert "rejecting the osm path" in explanation["ratios"]["selected"]["note"].lower()

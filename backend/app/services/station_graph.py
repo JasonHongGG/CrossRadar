@@ -5,13 +5,19 @@ from typing import Any
 from backend.app.clients.tdx_tra import TdxTraClient
 from backend.app.models.crossing import GeoPoint
 from backend.app.services.rail_path import RailPathService
-from backend.app.utils import normalize_text, point_ratio_between_stations
+from backend.app.utils import haversine_meters, normalize_text, point_ratio_between_stations, project_point_onto_station_line
 
 
 STATION_NAME_ALIASES = {
     "中州": "中洲",
     "蘇澳新站": "蘇澳新",
 }
+
+OSM_PATH_MAX_DISTANCE_MULTIPLIER = 2.5
+OSM_PATH_MAX_DISTANCE_METERS = 20_000.0
+OSM_PATH_GEOMETRY_DELTA_THRESHOLD = 0.35
+OSM_PATH_GEOMETRY_DISTANCE_MULTIPLIER = 1.8
+OSM_PATH_GEOMETRY_MIN_DISTANCE_METERS = 8_000.0
 
 
 class StationGraphService:
@@ -97,18 +103,6 @@ class StationGraphService:
             if official_ratio is not None:
                 enriched["official_segment_ratio"] = official_ratio
 
-            path_ratio = None
-            if point is not None and self.rail_path_service is not None:
-                path_result = self.rail_path_service.compute_segment_ratio(
-                    station_a_position=pos_a,
-                    station_b_position=pos_b,
-                    crossing_point=point,
-                    crossing_way_ids=properties.get("osm_rail_way_ids") or None,
-                )
-                if path_result is not None:
-                    path_ratio = path_result.ratio
-                    enriched["path_segment_ratio"] = path_result.ratio
-
             geometry_ratio = None
             if point is not None:
                 geometry_ratio = point_ratio_between_stations(
@@ -121,10 +115,35 @@ class StationGraphService:
                 )
                 enriched["geometry_segment_ratio"] = geometry_ratio
 
+            path_ratio = None
+            path_rejection_note = None
+            if point is not None and self.rail_path_service is not None:
+                path_result = self.rail_path_service.compute_segment_ratio(
+                    station_a_position=pos_a,
+                    station_b_position=pos_b,
+                    crossing_point=point,
+                    crossing_way_ids=properties.get("osm_rail_way_ids") or None,
+                )
+                if path_result is not None:
+                    enriched["path_segment_ratio"] = path_result.ratio
+                    path_assessment = self._assess_path_plausibility(
+                        station_a_position=pos_a,
+                        station_b_position=pos_b,
+                        path_ratio=path_result.ratio,
+                        geometry_ratio=geometry_ratio,
+                        distance_from_station_a_meters=path_result.distance_from_station_a_meters,
+                        distance_to_station_b_meters=path_result.distance_to_station_b_meters,
+                    )
+                    if path_assessment["plausible"]:
+                        path_ratio = path_result.ratio
+                    else:
+                        path_rejection_note = path_assessment["note"]
+
             ratio, ratio_source, confidence, confidence_reason = self._select_segment_ratio(
                 official_ratio=official_ratio,
                 path_ratio=path_ratio,
                 geometry_ratio=geometry_ratio,
+                path_rejection_note=path_rejection_note,
                 properties=properties,
             )
             enriched["segment_ratio"] = ratio
@@ -133,6 +152,143 @@ class StationGraphService:
             enriched["segment_confidence_reason"] = confidence_reason
 
         return enriched
+
+    async def explain_crossing_properties(self, properties: dict[str, Any]) -> dict[str, Any]:
+        station_a = await self.resolve_station(properties.get("station_a_name"))
+        station_b = await self.resolve_station(properties.get("station_b_name"))
+        enriched = await self.enrich_crossing_properties(properties)
+
+        point = None
+        geometry = properties.get("geometry")
+        if geometry and isinstance(geometry, dict):
+            point = GeoPoint.model_validate(geometry)
+
+        official_ratio = self._official_segment_ratio(properties)
+        geometry_projection = self._build_geometry_projection(point, station_a, station_b)
+        path_explanation = self._build_path_explanation(
+            point,
+            station_a,
+            station_b,
+            properties,
+            geometry_projection.get("value") if geometry_projection.get("available") else None,
+        )
+
+        return {
+            "crossing": {
+                "crossing_id": properties.get("crossing_id"),
+                "name": properties.get("name"),
+                "line": properties.get("line"),
+                "county": properties.get("county"),
+                "km_marker": properties.get("km_marker"),
+                "km_value_meters": properties.get("km_value_meters"),
+                "station_pair_text": properties.get("station_pair_text"),
+                "query_station_pair_text": properties.get("query_station_pair_text"),
+                "station_pair_source": properties.get("station_pair_source"),
+                "matched_osm_id": properties.get("matched_osm_id"),
+                "manual_mapping_applied": bool(properties.get("manual_mapping_applied")),
+                "geometry": {"lon": point.lon, "lat": point.lat} if point is not None else None,
+            },
+            "stations": {
+                "station_a": self._station_summary(station_a, properties.get("station_a_name")),
+                "station_b": self._station_summary(station_b, properties.get("station_b_name")),
+            },
+            "ratios": {
+                "selected": {
+                    "value": enriched.get("segment_ratio"),
+                    "source": enriched.get("ratio_source"),
+                    "confidence": enriched.get("segment_confidence"),
+                    "note": enriched.get("segment_confidence_reason"),
+                },
+                "official_route_mileage": {
+                    "available": official_ratio is not None,
+                    "value": official_ratio,
+                    "station_a_km_meters": properties.get("station_a_route_km_meters"),
+                    "crossing_km_meters": properties.get("km_value_meters"),
+                    "station_b_km_meters": properties.get("station_b_route_km_meters"),
+                    "note": properties.get("station_route_reference_note")
+                    or properties.get("station_pair_reference_note")
+                    or "No authoritative route-mileage anchor is available for this crossing.",
+                },
+                "osm_path": path_explanation,
+                "geometry_projection": geometry_projection,
+            },
+        }
+
+    def _station_span_meters(self, station_a_position: dict[str, Any], station_b_position: dict[str, Any]) -> float | None:
+        station_a_lon = station_a_position.get("PositionLon")
+        station_a_lat = station_a_position.get("PositionLat")
+        station_b_lon = station_b_position.get("PositionLon")
+        station_b_lat = station_b_position.get("PositionLat")
+        if station_a_lon is None or station_a_lat is None or station_b_lon is None or station_b_lat is None:
+            return None
+        return haversine_meters(
+            float(station_a_lat),
+            float(station_a_lon),
+            float(station_b_lat),
+            float(station_b_lon),
+        )
+
+    def _assess_path_plausibility(
+        self,
+        *,
+        station_a_position: dict[str, Any],
+        station_b_position: dict[str, Any],
+        path_ratio: float,
+        geometry_ratio: float | None,
+        distance_from_station_a_meters: float,
+        distance_to_station_b_meters: float,
+    ) -> dict[str, Any]:
+        station_span_meters = self._station_span_meters(station_a_position, station_b_position)
+        total_distance_meters = distance_from_station_a_meters + distance_to_station_b_meters
+        distance_multiple = (
+            total_distance_meters / station_span_meters
+            if station_span_meters is not None and station_span_meters > 0
+            else None
+        )
+        ratio_delta_from_projection = abs(path_ratio - geometry_ratio) if geometry_ratio is not None else None
+
+        if distance_multiple is not None and total_distance_meters > max(station_span_meters * OSM_PATH_MAX_DISTANCE_MULTIPLIER, OSM_PATH_MAX_DISTANCE_METERS):
+            return {
+                "plausible": False,
+                "reason": "path_exceeds_station_span",
+                "note": (
+                    f"Rejected the OSM path because the reconstructed rail distance ({total_distance_meters:.0f} m) is "
+                    f"{distance_multiple:.1f}x the straight-line station span ({station_span_meters:.0f} m), which strongly suggests an OSM mismatch or a looping route."
+                ),
+                "station_span_meters": station_span_meters,
+                "total_distance_meters": total_distance_meters,
+                "distance_multiple": distance_multiple,
+                "ratio_delta_from_projection": ratio_delta_from_projection,
+            }
+
+        if (
+            ratio_delta_from_projection is not None
+            and distance_multiple is not None
+            and ratio_delta_from_projection >= OSM_PATH_GEOMETRY_DELTA_THRESHOLD
+            and total_distance_meters > max(station_span_meters * OSM_PATH_GEOMETRY_DISTANCE_MULTIPLIER, OSM_PATH_GEOMETRY_MIN_DISTANCE_METERS)
+        ):
+            return {
+                "plausible": False,
+                "reason": "path_ratio_conflicts_with_geometry",
+                "note": (
+                    f"Rejected the OSM path because its ratio ({path_ratio:.3f}) diverges too far from the station-line projection "
+                    f"({geometry_ratio:.3f}) while the reconstructed rail distance is already unusually long ({total_distance_meters:.0f} m)."
+                ),
+                "station_span_meters": station_span_meters,
+                "total_distance_meters": total_distance_meters,
+                "distance_multiple": distance_multiple,
+                "ratio_delta_from_projection": ratio_delta_from_projection,
+            }
+
+        return {
+            "plausible": True,
+            "reason": "ok",
+            "note": "Measured along connected OSM rail geometry from station A to the crossing and from the crossing to station B.",
+            "station_span_meters": station_span_meters,
+            "total_distance_meters": total_distance_meters,
+            "distance_multiple": distance_multiple,
+            "ratio_delta_from_projection": ratio_delta_from_projection,
+        }
 
     def _official_segment_ratio(self, properties: dict[str, Any]) -> float | None:
         crossing_km = properties.get("km_value_meters")
@@ -146,12 +302,133 @@ class StationGraphService:
         ratio = (float(crossing_km) - float(station_a_km)) / span
         return max(0.0, min(1.0, ratio))
 
+    def _station_summary(self, station: dict[str, Any] | None, label: str | None) -> dict[str, Any]:
+        position = station.get("StationPosition") if station else None
+        return {
+            "label": label,
+            "resolved": station is not None,
+            "station_id": station.get("StationID") if station else None,
+            "name": station.get("StationName", {}).get("Zh_tw") if station else None,
+            "position": position,
+        }
+
+    def _build_geometry_projection(
+        self,
+        point: GeoPoint | None,
+        station_a: dict[str, Any] | None,
+        station_b: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        if point is None:
+            return {
+                "available": False,
+                "reason": "crossing_geometry_missing",
+                "note": "The crossing has no adopted geometry, so straight-line projection cannot be shown.",
+            }
+        if station_a is None or station_b is None:
+            return {
+                "available": False,
+                "reason": "station_pair_unresolved",
+                "note": "At least one station in the crossing pair could not be resolved from the TDX station dataset.",
+            }
+
+        pos_a = station_a.get("StationPosition", {})
+        pos_b = station_b.get("StationPosition", {})
+        projection = project_point_onto_station_line(
+            pos_a.get("PositionLon"),
+            pos_a.get("PositionLat"),
+            pos_b.get("PositionLon"),
+            pos_b.get("PositionLat"),
+            point.lon,
+            point.lat,
+        )
+        return {
+            "available": True,
+            "reason": "ok",
+            "note": "Projected the crossing onto the straight station-to-station line segment. This is a geometric fallback, not along-track distance.",
+            "value": projection["ratio"],
+            "offset_meters": projection["offset_meters"],
+            "projected_point": {
+                "lon": projection["projected_lon"],
+                "lat": projection["projected_lat"],
+            },
+            "station_line": {
+                "coordinates": [
+                    [pos_a.get("PositionLon"), pos_a.get("PositionLat")],
+                    [pos_b.get("PositionLon"), pos_b.get("PositionLat")],
+                ]
+            },
+            "crossing_to_projection_line": {
+                "coordinates": [
+                    [point.lon, point.lat],
+                    [projection["projected_lon"], projection["projected_lat"]],
+                ]
+            },
+        }
+
+    def _build_path_explanation(
+        self,
+        point: GeoPoint | None,
+        station_a: dict[str, Any] | None,
+        station_b: dict[str, Any] | None,
+        properties: dict[str, Any],
+        geometry_ratio: float | None,
+    ) -> dict[str, Any]:
+        if point is None:
+            return {
+                "available": False,
+                "reason": "crossing_geometry_missing",
+                "note": "The crossing has no adopted geometry, so OSM along-track measurement cannot be shown.",
+            }
+        if station_a is None or station_b is None:
+            return {
+                "available": False,
+                "reason": "station_pair_unresolved",
+                "note": "At least one station in the crossing pair could not be resolved from the TDX station dataset.",
+            }
+        if self.rail_path_service is None:
+            return {
+                "available": False,
+                "reason": "rail_path_service_unavailable",
+                "note": "The rail-path service is not configured, so OSM along-track measurement cannot be shown.",
+            }
+        explanation = self.rail_path_service.explain_segment_ratio(
+            station_a_position=station_a.get("StationPosition", {}),
+            station_b_position=station_b.get("StationPosition", {}),
+            crossing_point=point,
+            crossing_way_ids=properties.get("osm_rail_way_ids") or None,
+        )
+        if not explanation.get("available"):
+            return explanation
+
+        plausibility = self._assess_path_plausibility(
+            station_a_position=station_a.get("StationPosition", {}),
+            station_b_position=station_b.get("StationPosition", {}),
+            path_ratio=float(explanation.get("ratio") or 0.0),
+            geometry_ratio=geometry_ratio,
+            distance_from_station_a_meters=float(explanation.get("distance_from_station_a_meters") or 0.0),
+            distance_to_station_b_meters=float(explanation.get("distance_to_station_b_meters") or 0.0),
+        )
+        explanation.update(
+            {
+                "plausible": plausibility["plausible"],
+                "selected_eligible": plausibility["plausible"],
+                "station_span_meters": plausibility["station_span_meters"],
+                "distance_multiple": plausibility["distance_multiple"],
+                "ratio_delta_from_projection": plausibility["ratio_delta_from_projection"],
+            }
+        )
+        if not plausibility["plausible"]:
+            explanation["reason"] = plausibility["reason"]
+            explanation["note"] = plausibility["note"]
+        return explanation
+
     def _select_segment_ratio(
         self,
         *,
         official_ratio: float | None,
         path_ratio: float | None,
         geometry_ratio: float | None,
+        path_rejection_note: str | None,
         properties: dict[str, Any],
     ) -> tuple[float, str, str, str]:
         ratio_override = properties.get("segment_ratio_override")
@@ -181,6 +458,13 @@ class StationGraphService:
                 "Used OSM rail-way geometry to measure along-track distance from station A to the crossing and from the crossing to station B.",
             )
         if geometry_ratio is not None:
+            if path_rejection_note:
+                return (
+                    geometry_ratio,
+                    "geometry_projection",
+                    "medium",
+                    f"Fell back to straight-line projection after rejecting the OSM path as implausible. {path_rejection_note}",
+                )
             return (
                 geometry_ratio,
                 "geometry_projection",

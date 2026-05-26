@@ -86,11 +86,39 @@ def point_ratio_between_stations(
     point_lon: float,
     point_lat: float,
 ) -> float:
+    return project_point_onto_station_line(
+        start_lon,
+        start_lat,
+        end_lon,
+        end_lat,
+        point_lon,
+        point_lat,
+    )["ratio"]
+
+
+def project_point_onto_station_line(
+    start_lon: float,
+    start_lat: float,
+    end_lon: float,
+    end_lat: float,
+    point_lon: float,
+    point_lat: float,
+) -> dict[str, float]:
     line = LineString([(start_lon, start_lat), (end_lon, end_lat)])
+    point = Point(point_lon, point_lat)
     if line.length == 0:
-        return 0.5
-    ratio = line.project(Point(point_lon, point_lat), normalized=True)
-    return float(max(0.0, min(1.0, ratio)))
+        projected = point
+        ratio = 0.5
+    else:
+        ratio = float(max(0.0, min(1.0, line.project(point, normalized=True))))
+        projected = line.interpolate(ratio, normalized=True)
+
+    return {
+        "ratio": ratio,
+        "projected_lon": float(projected.x),
+        "projected_lat": float(projected.y),
+        "offset_meters": haversine_meters(point_lat, point_lon, float(projected.y), float(projected.x)),
+    }
 
 
 def haversine_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CrossRadar Ratio Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="workspace-page">
+    <div class="workspace-shell">
+      <header class="workspace-topbar panel-shell">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none">
+              <rect x="4" y="4" width="40" height="40" rx="14" />
+              <path d="M14 31L24 15L34 31" />
+              <path d="M16 21H32" />
+              <circle cx="24" cy="24" r="4.5" />
+            </svg>
+          </span>
+          <div class="brand-copy">
+            <strong>CrossRadar</strong>
+            <span>ratio workspace</span>
+          </div>
+        </div>
+
+        <div class="workspace-switch">
+          <a class="workspace-link" href="/">工作區 1: Crossing Watch</a>
+          <span class="workspace-chip">工作區 2: 軌道路徑 / 比例解剖</span>
+        </div>
+
+        <div class="workspace-copy">
+          <strong>把比例拆成看得見的幾何</strong>
+          <span>這個地圖會同時畫出平交道、前後站、OSM 軌道路徑、車站直線投影、snap 點，讓你看到目前 ratio 到底是怎麼來的。</span>
+        </div>
+      </header>
+
+      <main class="workspace-grid">
+        <aside class="workspace-sidebar panel-shell">
+          <div class="workspace-sidebar-head">
+            <h1>選擇平交道</h1>
+            <p>先從 active dataset 裡選一筆。這裡只放目前 app 實際會用到的 405 筆有採用幾何的平交道。</p>
+          </div>
+
+          <div class="workspace-search-box">
+            <input id="workspaceSearchInput" type="text" placeholder="搜尋縣市、平交道、車站、路線" />
+            <div id="workspaceCount" class="workspace-count">載入中…</div>
+          </div>
+
+          <div id="workspaceCrossingList" class="workspace-crossing-list"></div>
+        </aside>
+
+        <section class="workspace-map-stack">
+          <section class="workspace-map-panel panel-shell">
+            <div class="workspace-map-overlay is-bottom">
+              <div class="workspace-map-legend">
+                <span class="workspace-legend-chip"><i class="workspace-legend-dot is-crossing"></i>平交道</span>
+                <span class="workspace-legend-chip"><i class="workspace-legend-dot is-station"></i>前後站</span>
+              </div>
+            </div>
+            <div id="ratioMap"></div>
+          </section>
+        </section>
+
+        <aside class="workspace-insights panel-shell">
+          <section id="workspaceSummaryCard" class="workspace-card is-selected"></section>
+          <section id="workspaceDiagnosticCard" class="workspace-card"></section>
+        </aside>
+      </main>
+    </div>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/ratio-workspace.js"></script>
+  </body>
+</html>

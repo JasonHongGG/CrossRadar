@@ -26,23 +26,6 @@
       "reference_note": "Official TRA incident data for 四維路平交道 (K351+802) lists the operational section as 永康~大橋."
     },
     {
-      "id": "tainan-sichaxiang-ratio-override",
-      "match": {
-        "county": "臺南市",
-        "line": "縱貫線北段",
-        "name": "四叉巷",
-        "km_value_meters": 353375
-      },
-      "override": {
-        "segment_ratio_override": 0.3273477076302729,
-        "segment_ratio_override_source": "geometry_projection",
-        "segment_ratio_override_confidence": "medium",
-        "segment_ratio_override_note": "Pinned 四叉巷 to the station-to-crossing geometric projection because the current OSM path ratio places the crossing implausibly close to 臺南 and overstates the 永康-to-crossing path length."
-      },
-      "pair_source": "official_query",
-      "reference_note": "Temporary ratio correction for 四叉巷 pending an authoritative route-chainage anchor for the 永康-臺南 segment."
-    },
-    {
       "id": "tainan-daqiao-tainan-range",
       "match": {
         "county": "臺南市",
