@@ -1,10 +1,16 @@
 {
   "metadata": {
     "scope": "Runtime curated exclusions",
-    "version": 1,
+    "version": 2,
     "summary": "Crossings intentionally excluded from crossings_curated.geojson and manual OSM review."
   },
   "exclusions": [
+    {
+      "crossing_id": "八德街-中興一號特種支線-k001705",
+      "category": "user_retired_from_runtime",
+      "reason": "User marked this crossing as a special case and requested that it be removed from runtime app consideration.",
+      "note": "Keep this crossing out of crossings_curated.geojson and record it only in unmatched_crossings_analysis.json."
+    },
     {
       "crossing_id": "十九a-台中港線-k007655",
       "category": "user_retired_from_runtime",

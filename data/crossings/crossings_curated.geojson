@@ -4,24 +4,23 @@
     "source": "official+osm_active",
     "official_count": 418,
     "mapped_count": 403,
-    "authoritative_pair_count": 4,
+    "authoritative_pair_count": 3,
     "osm_feature_count": 1900,
     "osm_raw_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\.runtime\\osm\\taiwan_crossings.overpass.json",
     "route_reference": {
       "scope": "Crossing station-pair overrides",
-      "version": 2,
+      "version": 3,
       "summary": "Correct stale or user-confirmed crossing station-pair labels using authoritative references and explicit crossing overrides. Operating mileage is intentionally excluded from this reference.",
       "sources": [
         "TRA crossing incident tables (四維路 K351+802 listed as 永康~大橋 in 113 年資料)",
-        "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)",
-        "User-confirmed override: 八德街-中興一號特種支線-k001705 should treat 基地 as 鳳鳴火車站."
+        "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)"
       ]
     },
     "selection_rule": "Only crossings with an adopted geometry are included; unresolved or stale location records and explicit runtime exclusions are omitted from the runtime dataset.",
-    "feature_count": 401,
-    "excluded_feature_count": 17,
+    "feature_count": 400,
+    "excluded_feature_count": 18,
     "excluded_without_geometry_count": 8,
-    "explicit_runtime_excluded_count": 9,
+    "explicit_runtime_excluded_count": 10,
     "full_feature_count": 418,
     "full_dataset_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\data\\crossings\\crossings_full.geojson"
   },
@@ -12130,74 +12129,6 @@
         ],
         "osm_tags": {
           "name": "瑞平",
-          "railway": "level_crossing"
-        }
-      }
-    },
-    {
-      "type": "Feature",
-      "id": "八德街-中興一號特種支線-k001705",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          121.3377749,
-          24.9487885
-        ]
-      },
-      "properties": {
-        "crossing_id": "八德街-中興一號特種支線-k001705",
-        "name": "八德街",
-        "normalized_name": "八德街",
-        "line": "中興一號特種支線",
-        "km_marker": "K001+705",
-        "km_prefix": "",
-        "km_value_meters": 1705,
-        "road_type": "縣道",
-        "query_station_pair_text": "鶯歌-基地",
-        "query_station_a_name": "鶯歌",
-        "query_station_b_name": "基地",
-        "station_pair_text": "鶯歌-鳳鳴火車站",
-        "station_a_name": "鶯歌",
-        "station_b_name": "鳳鳴火車站",
-        "station_pair_source": "explicit_crossing_override",
-        "station_pair_reference_id": "bade-yingge-fengming",
-        "station_pair_reference_note": "Explicit user-confirmed override: treat the official 基地 endpoint as 鳳鳴火車站 for 八德街.",
-        "authoritative_reference_applied": true,
-        "county": "新北市",
-        "source_page": 18,
-        "source_row_index": 7,
-        "matched_osm_id": 3047117505,
-        "match_score": 100.0,
-        "match_method": "manual_override",
-        "geolocation_confidence": "high",
-        "segment_confidence": "low",
-        "station_a_id": null,
-        "station_b_id": null,
-        "station_a_route_km_meters": null,
-        "station_b_route_km_meters": null,
-        "station_route_reference_note": null,
-        "segment_ratio_override": null,
-        "segment_ratio_override_source": null,
-        "segment_ratio_override_confidence": null,
-        "segment_ratio_override_note": null,
-        "segment_ratio": null,
-        "ratio_source": null,
-        "official_segment_ratio": null,
-        "path_segment_ratio": null,
-        "geometry_segment_ratio": null,
-        "segment_confidence_reason": null,
-        "manual_mapping_applied": true,
-        "osm_road_names": [
-          "八德路",
-          "114"
-        ],
-        "osm_rail_names": [
-          "中興一號特種支線"
-        ],
-        "osm_rail_way_ids": [
-          300628440
-        ],
-        "osm_tags": {
           "railway": "level_crossing"
         }
       }

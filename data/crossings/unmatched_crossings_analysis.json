@@ -1,13 +1,13 @@
 {
   "metadata": {
     "full_count": 418,
-    "curated_count": 401,
+    "curated_count": 400,
     "official_count": 418,
-    "mapped_count": 401,
-    "unmatched_count": 17,
-    "excluded_count": 17,
+    "mapped_count": 400,
+    "unmatched_count": 18,
+    "excluded_count": 18,
     "reviewable_count": 8,
-    "explicit_runtime_exclusion_count": 9,
+    "explicit_runtime_exclusion_count": 10,
     "osm_feature_count": 1900,
     "report_path": "data\\crossings\\unmatched_crossings_analysis.json",
     "report_scope": "crossings_full.geojson minus crossings_curated.geojson"
@@ -15,7 +15,7 @@
   "summary": {
     "reason_counts": {
       "no_adopted_geometry": 8,
-      "explicit_runtime_exclusion": 9
+      "explicit_runtime_exclusion": 10
     },
     "matcher_observation": "This report now tracks only crossings that are absent from the runtime curated dataset.",
     "km_fallback_observation": "Resolved and manually patched crossings are intentionally omitted once they are back in crossings_curated.geojson."
@@ -82,6 +82,38 @@
         "explicit_runtime_exclusion": false,
         "exclusion_note": null,
         "recommended_next_step": "Manual review or an explicit geometry override is still required before this crossing can return to crossings_curated.geojson."
+      },
+      "name_match_candidates": []
+    },
+    {
+      "crossing_id": "八德街-中興一號特種支線-k001705",
+      "name": "八德街",
+      "normalized_name": "八德街",
+      "line": "中興一號特種支線",
+      "km_marker": "K001+705",
+      "km_value_meters": 1705,
+      "road_type": "縣道",
+      "query_station_pair_text": "鶯歌-基地",
+      "query_station_a_name": "鶯歌",
+      "query_station_b_name": "基地",
+      "station_pair_text": "鶯歌-基地",
+      "station_a_name": "鶯歌",
+      "station_b_name": "基地",
+      "county": "新北市",
+      "current_match": {
+        "score": 100.0,
+        "method": "manual_override",
+        "confidence": "high",
+        "matched_osm_id": 3047117505
+      },
+      "analysis": {
+        "reason_code": "explicit_runtime_exclusion",
+        "reason_detail": "User marked this crossing as a special case and requested that it be removed from runtime app consideration.",
+        "reviewable": false,
+        "has_geometry": true,
+        "explicit_runtime_exclusion": true,
+        "exclusion_note": "Keep this crossing out of crossings_curated.geojson and record it only in unmatched_crossings_analysis.json.",
+        "recommended_next_step": null
       },
       "name_match_candidates": []
     },

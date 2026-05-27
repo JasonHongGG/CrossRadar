@@ -2,7 +2,7 @@
   "metadata": {
     "source": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\車站基本資料集.json",
     "count": 245,
-    "note": "Raw station reference dataset with no engineering-mileage enrichment applied."
+    "note": "Raw station reference dataset with UK engineering-mileage enrichment populated from station 里程.md where curated station notes are available."
   },
   "stations": [
     {
@@ -873,7 +873,8 @@
       "stationAddrEn": "No. 54, Pingren Rd., Zaoqiao Township, Miaoli County",
       "stationTel": "037-472030",
       "gps": "24.64186 120.86721",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "山線 K128 + 800"
     },
     {
       "stationCode": "3150",
@@ -885,7 +886,8 @@
       "stationAddrEn": "No. 66, Gaotie 1st Rd., Houlong Township, Miaoli County",
       "stationTel": "037-726700",
       "gps": "24.60429 120.82637",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K136 + 600"
     },
     {
       "stationCode": "3160",
@@ -897,7 +899,8 @@
       "stationAddrEn": "No. 1, Weigong Rd., Miaoli City, Miaoli County",
       "stationTel": "037-260031",
       "gps": "24.57001 120.82233",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K140 + 700"
     },
     {
       "stationCode": "3170",
@@ -909,7 +912,8 @@
       "stationAddrEn": "No. 39, Nanshi, Miaoli City, Miaoli County",
       "stationTel": "037-260031",
       "gps": "24.52246 120.79154",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "山線 K147 + 200"
     },
     {
       "stationCode": "3180",
@@ -921,7 +925,8 @@
       "stationAddrEn": "No. 13, Datong Rd., Tongluo Township, Miaoli County",
       "stationTel": "037-983838",
       "gps": "24.48713 120.78591",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K151 + 300"
     },
     {
       "stationCode": "3190",
@@ -933,7 +938,8 @@
       "stationAddrEn": "No. 90, Shuanghu, Sanyi Township, Miaoli County",
       "stationTel": "037-874763",
       "gps": "24.42066 120.77393",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K161 + 200"
     },
     {
       "stationCode": "3210",
@@ -945,7 +951,8 @@
       "stationAddrEn": "No. 37-12, Anmei Rd., Houli Dist., Taichung City",
       "stationTel": "04-25586540",
       "gps": "24.33146 120.74181",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "山線 K169 + 700"
     },
     {
       "stationCode": "3220",
@@ -957,7 +964,8 @@
       "stationAddrEn": "No. 1, Jiahou Rd., Houli Dist., Taichung City",
       "stationTel": "04-25562038",
       "gps": "24.30933 120.73288",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K172 + 300"
     },
     {
       "stationCode": "3230",
@@ -969,7 +977,8 @@
       "stationAddrEn": "No. 1-1, Zhongzheng Rd., Fengyuan Dist., Taichung City",
       "stationTel": "04-25207950#32",
       "gps": "24.25438 120.72374",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K179 + 100"
     },
     {
       "stationCode": "3240",
@@ -981,7 +990,8 @@
       "stationAddrEn": "No. 747, Section 2, Tanfeng Road, Tanzi Dist., Taichung City",
       "stationTel": "04-25391401",
       "gps": "24.23461 120.7106",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K181 + 600"
     },
     {
       "stationCode": "3250",
@@ -993,7 +1003,8 @@
       "stationAddrEn": "No. 352-1, Sec. 2, Zhongshan Rd., Tanzi Dist., Taichung City",
       "stationTel": "04-25363852",
       "gps": "24.21214 120.70564",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K183 + 500"
     },
     {
       "stationCode": "3260",
@@ -1005,7 +1016,8 @@
       "stationAddrEn": "No. 8, Ln. 43, Touzhang E. Rd., Tanzi Dist., Taichung City",
       "stationTel": "04-25391426",
       "gps": "24.19572 120.70398",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K185 + 600"
     },
     {
       "stationCode": "3270",
@@ -1017,7 +1029,8 @@
       "stationAddrEn": "No. 100, Ln. 1473, Sec. 1, Songzhu Rd., Taiwan (R.O.C.), Beitun Dist., Taichung City",
       "stationTel": "04-22473033",
       "gps": "24.18035 120.70193",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K187 + 000"
     },
     {
       "stationCode": "3280",
@@ -1029,7 +1042,8 @@
       "stationAddrEn": "No. 665, Dongguang Rd., Beitun Dist., Taichung City",
       "stationTel": "04-22313926",
       "gps": "24.16449 120.69988",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K188 + 200"
     },
     {
       "stationCode": "3290",
@@ -1041,7 +1055,8 @@
       "stationAddrEn": "No. 161, Dongguang Rd., Taiwan (R.O.C.)No. 194, Dongguang Rd., East Dist., Taichung City",
       "stationTel": "04-23606501",
       "gps": "24.14887 120.69784",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K190 + 000"
     },
     {
       "stationCode": "3300",
@@ -1053,7 +1068,8 @@
       "stationAddrEn": "No. 1, Sec. 1, Taiwan Blvd., Central Dist., Taichung City",
       "stationTel": "04-22227236",
       "gps": "24.13728 120.68691",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K192 + 300"
     },
     {
       "stationCode": "3310",
@@ -1065,7 +1081,8 @@
       "stationAddrEn": "No. 201, Sec. 2, Jianguo S. Rd., Taiwan (R.O.C.), South Dist., Taichung City",
       "stationTel": "04-22601636",
       "gps": "24.12877 120.66654",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K194 + 300"
     },
     {
       "stationCode": "3320",
@@ -1077,7 +1094,8 @@
       "stationAddrEn": "No. 130, Sec. 2, Daqing St., Taiwan (R.O.C.), South Dist., Taichung City",
       "stationTel": "04-22637940",
       "gps": "24.11911 120.64795",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K196 + 500"
     },
     {
       "stationCode": "3330",
@@ -1089,7 +1107,8 @@
       "stationAddrEn": "No. 258, Sanmin St., Wuri Dist., Taichung City",
       "stationTel": "04-23381071",
       "gps": "24.10867 120.62244",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "山線 K200 + 500"
     },
     {
       "stationCode": "3340",
@@ -1101,7 +1120,8 @@
       "stationAddrEn": "No. 26, Gaotie E. 1st Rd., Wuri Dist., Taichung City",
       "stationTel": "04-23376883",
       "gps": "24.10937 120.61421",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K201 + 300"
     },
     {
       "stationCode": "3350",
@@ -1113,7 +1133,8 @@
       "stationAddrEn": "No. 550, Sec. 3, Zhongshan Rd., Wuri Dist., Taichung City",
       "stationTel": "04-23371986",
       "gps": "24.11424 120.59021",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "山線 K203 + 700"
     },
     {
       "stationCode": "3360",
@@ -1125,7 +1146,8 @@
       "stationAddrEn": "No. 1, Sanmin Rd., Zhanghua City, Changhua County",
       "stationTel": "04-7274218#11",
       "gps": "24.08177 120.53854",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K210 + 500"
     },
     {
       "stationCode": "3370",
@@ -1137,7 +1159,8 @@
       "stationAddrEn": "No. 370, Zhongzheng Rd., Huatan Township, Changhua County",
       "stationTel": "04-7881418",
       "gps": "24.02502 120.53742",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K215 + 200"
     },
     {
       "stationCode": "3380",
@@ -1149,7 +1172,8 @@
       "stationAddrEn": "No. 100, Fujin Rd., Dacun Township, Changhua County",
       "stationTel": "04-8525148",
       "gps": "23.99003 120.56068",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K219 + 400"
     },
     {
       "stationCode": "3390",
@@ -1161,7 +1185,8 @@
       "stationAddrEn": "No. 55, Minquan St., Yuanlin City, Changhua County",
       "stationTel": "04-8320544#14",
       "gps": "23.95947 120.56977",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K223 + 600"
     },
     {
       "stationCode": "3400",
@@ -1173,7 +1198,8 @@
       "stationAddrEn": "No. 25, Yonglun Rd., Yongjing Township, Changhua County",
       "stationTel": "04-8320544#15",
       "gps": "23.92817 120.57167",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K227 + 200"
     },
     {
       "stationCode": "3410",
@@ -1185,7 +1211,8 @@
       "stationAddrEn": "No. 10, Shezhan Rd., Shetou Township, Changhua County",
       "stationTel": "04-8711646",
       "gps": "23.89573 120.58077",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K231 + 100"
     },
     {
       "stationCode": "3420",
@@ -1197,7 +1224,8 @@
       "stationAddrEn": "No. 1, Sec. 1, Zhongzhou Rd., Tianzhong Township, Changhua County",
       "stationTel": "04-8742142",
       "gps": "23.85826 120.59123",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K235 + 400"
     },
     {
       "stationCode": "3430",
@@ -1209,7 +1237,8 @@
       "stationAddrEn": "No. 1, Guangwen Rd., Ershui Township, Changhua County",
       "stationTel": "04-8792027",
       "gps": "23.81321 120.61805",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K243 + 300"
     },
     {
       "stationCode": "3431",
@@ -1221,7 +1250,8 @@
       "stationAddrEn": "Yingyi Rd. (No Station Building), Ershui Township, Changhua County",
       "stationTel": "04-8792027",
       "gps": "23.79845 120.64211",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "集集線 K2 + 900"
     },
     {
       "stationCode": "3432",
@@ -1233,7 +1263,8 @@
       "stationAddrEn": "No. 15, Chezhan Rd., Mingjian Township, Nantou County",
       "stationTel": "049-2735850",
       "gps": "23.83467 120.70467",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "集集線 K10 + 800"
     },
     {
       "stationCode": "3433",
@@ -1245,7 +1276,8 @@
       "stationAddrEn": "Longquan Ln. (No Station Building), Jiji Township, Nantou County",
       "stationTel": "04-8792027",
       "gps": "23.83521 120.75014",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "集集線 K15 + 700"
     },
     {
       "stationCode": "3434",
@@ -1257,7 +1289,8 @@
       "stationAddrEn": "No. 75, Minsheng Rd., Jiji Township, Nantou County",
       "stationTel": "049-2762546",
       "gps": "23.82647 120.78495",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "集集線 K20 + 100"
     },
     {
       "stationCode": "3435",
@@ -1269,7 +1302,8 @@
       "stationAddrEn": "No. 440, Minsheng Rd., Shuili Township, Nantou County",
       "stationTel": "049-2770015",
       "gps": "23.81845 120.85332",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "集集線 K27 + 400"
     },
     {
       "stationCode": "3436",
@@ -1281,7 +1315,8 @@
       "stationAddrEn": "No. 2, Minquan Ln., Shuili Township, Nantou County",
       "stationTel": "049-2774749",
       "gps": "23.83263 120.86572",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "集集線 K29 + 700"
     },
     {
       "stationCode": "3450",
@@ -1293,7 +1328,8 @@
       "stationAddrEn": "No. 42, Zhongshan Rd., Linnei Township, Yunlin County",
       "stationTel": "05-5892040",
       "gps": "23.75967 120.61499",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K248 + 000"
     },
     {
       "stationCode": "3460",
@@ -1305,7 +1341,8 @@
       "stationAddrEn": "No. 31, Wenming Rd., Douliu City, Yunlin County",
       "stationTel": "05-5332900",
       "gps": "23.73167 120.57998",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K253 + 600"
     },
     {
       "stationCode": "3470",
@@ -1317,7 +1354,8 @@
       "stationAddrEn": "No. 187, Minsheng Rd., Douliu City, Yunlin County",
       "stationTel": "05-5332900",
       "gps": "23.71157 120.54117",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K257 + 200"
     },
     {
       "stationCode": "3480",
@@ -1329,7 +1367,8 @@
       "stationAddrEn": "No. 2, Zhongshan Rd., Dounan Township, Yunlin County",
       "stationTel": "05-5972039",
       "gps": "23.67265 120.48056",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K264 + 700"
     },
     {
       "stationCode": "3490",
@@ -1341,7 +1380,8 @@
       "stationAddrEn": "Shigui Vil., Dounan Township, Yunlin County",
       "stationTel": "05-5972039",
       "gps": "23.63951 120.47106",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K268 + 700"
     },
     {
       "stationCode": "4050",
@@ -1353,7 +1393,8 @@
       "stationAddrEn": "No. 2, Zhongshan Rd., Dalin Township, Chiayi County",
       "stationTel": "05-2654804",
       "gps": "23.60112 120.45585",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K272 + 600"
     },
     {
       "stationCode": "4060",
@@ -1365,7 +1406,8 @@
       "stationAddrEn": "No. 2, Heping Rd., Minxiong Township, Chiayi County",
       "stationTel": "05-2264272",
       "gps": "23.55519 120.43139",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K277 + 600"
     },
     {
       "stationCode": "4070",
@@ -1377,7 +1419,8 @@
       "stationAddrEn": "No. 110, Baojian St.,  , Chiayi City",
       "stationTel": "05-2334584",
       "gps": "23.49981 120.44851",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K286 + 600"
     },
     {
       "stationCode": "4080",
@@ -1389,7 +1432,8 @@
       "stationAddrEn": "No. 528, Zhongshan Rd.,  , Chiayi City",
       "stationTel": "05-2228904",
       "gps": "23.47902 120.44124",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K289 + 150"
     },
     {
       "stationCode": "4090",
@@ -1401,7 +1445,8 @@
       "stationAddrEn": "No. 68, Couxi Village, Shuishang Township, Chiayi County",
       "stationTel": "05-2228904",
       "gps": "23.43398 120.39971",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K294 + 300"
     },
     {
       "stationCode": "4100",
@@ -1413,7 +1458,8 @@
       "stationAddrEn": "No. 26, Sanzhen Rd., Shuishang Township, Chiayi County",
       "stationTel": "05-2601232",
       "gps": "23.41344 120.38654",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K296 + 200"
     },
     {
       "stationCode": "4110",
@@ -1425,7 +1471,8 @@
       "stationAddrEn": "No. 77, Houbi, Houbi Dist., Tainan City",
       "stationTel": "06-6872055",
       "gps": "23.36626 120.36058",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K301 + 500"
     },
     {
       "stationCode": "4120",
@@ -1437,7 +1484,8 @@
       "stationAddrEn": "No. 1, Zhongshan Rd., Xinying Dist., Tainan City",
       "stationTel": "06-6322104",
       "gps": "23.30673 120.32307",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K309 + 300"
     },
     {
       "stationCode": "4130",
@@ -1449,7 +1497,8 @@
       "stationAddrEn": "No. 1, Jianguo Rd., Liuying Dist., Tainan City",
       "stationTel": "06-6226450",
       "gps": "23.27762 120.32252",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K312 + 200"
     },
     {
       "stationCode": "4140",
@@ -1461,7 +1510,8 @@
       "stationAddrEn": "No. 16, Linfengying, Liujia Dist., Tainan City",
       "stationTel": "06-6986086",
       "gps": "23.24259 120.32107",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K316 + 800"
     },
     {
       "stationCode": "4150",
@@ -1473,7 +1523,8 @@
       "stationAddrEn": "No. 1, Sec. 1, Zhongshan Rd., Guantian Dist., Tainan City",
       "stationTel": "06-5791664",
       "gps": "23.19271 120.31917",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K322 + 400"
     },
     {
       "stationCode": "4160",
@@ -1485,7 +1536,8 @@
       "stationAddrEn": "No. 83-1, Bazilin, Guantian Dist., Tainan City",
       "stationTel": "06-5791664",
       "gps": "23.17287 120.32117",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K325 + 400"
     },
     {
       "stationCode": "4170",
@@ -1497,7 +1549,8 @@
       "stationAddrEn": "No. 1, Zhongshan Rd., Shanhua Dist., Tainan City",
       "stationTel": "06-5837301",
       "gps": "23.13333 120.30653",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K329 + 800"
     },
     {
       "stationCode": "4180",
@@ -1509,7 +1562,8 @@
       "stationAddrEn": "No. 287-300, Daying, Xinshi Dist., Tainan City",
       "stationTel": "06-5896356",
       "gps": "23.10727 120.30192",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K332 + 300"
     },
     {
       "stationCode": "4190",
@@ -1521,7 +1575,8 @@
       "stationAddrEn": "No. 1, Zhonghua Rd., Xinshi Dist., Tainan City",
       "stationTel": "06-5996911",
       "gps": "23.06823 120.29004",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K336 + 100"
     },
     {
       "stationCode": "4200",
@@ -1533,7 +1588,8 @@
       "stationAddrEn": "No. 459, Zhongshan Rd., Yongkang Dist., Tainan City",
       "stationTel": "06-2323305",
       "gps": "23.03825 120.25347",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K342 + 100"
     },
     {
       "stationCode": "4210",
@@ -1545,7 +1601,8 @@
       "stationAddrEn": "No. 835, Zhonghua Rd., Yongkang Dist., Tainan City",
       "stationTel": "06-3021755",
       "gps": "23.01923 120.22429",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K345 + 500"
     },
     {
       "stationCode": "4220",
@@ -1557,7 +1614,8 @@
       "stationAddrEn": "No. 4, Sec. 2, Beimen Rd., East Dist., Tainan City",
       "stationTel": "06-2261314",
       "gps": "22.99719 120.21249",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K348 + 000"
     },
     {
       "stationCode": "4250",
@@ -1569,7 +1627,8 @@
       "stationAddrEn": "No. 10, Ln. 529, Sec. 1, Wenxian Rd., Rende Dist., Tainan City",
       "stationTel": "06-2665988",
       "gps": "22.93296 120.23158",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K355 + 700"
     },
     {
       "stationCode": "4260",
@@ -1581,7 +1640,8 @@
       "stationAddrEn": "No. 10, Yongde Rd., Rende Dist., Tainan City",
       "stationTel": "06-2669383",
       "gps": "22.92354 120.24054",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K357 + 100"
     },
     {
       "stationCode": "4270",
@@ -1593,7 +1653,8 @@
       "stationAddrEn": "No. 236, Zhongzhou 5th St., Rende Dist., Tainan City",
       "stationTel": "06-2667191",
       "gps": "22.90446 120.25284",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K360 + 100"
     },
     {
       "stationCode": "4271",
@@ -1605,7 +1666,8 @@
       "stationAddrEn": "No. 15, Changda Rd., Guiren Dist., Tainan City",
       "stationTel": "06-2782615",
       "gps": "22.90729 120.27263",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "沙崙線 K2 + 600"
     },
     {
       "stationCode": "4272",
@@ -1617,7 +1679,8 @@
       "stationAddrEn": "No. 102, Guiren Blvd., Guiren Dist., Tainan City",
       "stationTel": "06-3032686",
       "gps": "22.92407 120.28622",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "沙崙線 K5 + 300"
     },
     {
       "stationCode": "4290",
@@ -1629,7 +1692,8 @@
       "stationAddrEn": "No. 24, Tianyou Rd., Luzhu Dist., Kaohsiung City",
       "stationTel": "07-6932127",
       "gps": "22.87821 120.25384",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K363 + 100"
     },
     {
       "stationCode": "4300",
@@ -1641,7 +1705,8 @@
       "stationAddrEn": "No. 288, Zhongzheng Rd., Luzhu Dist., Kaohsiung City",
       "stationTel": "07-6072723",
       "gps": "22.85404 120.26619",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K367 + 500"
     },
     {
       "stationCode": "4310",
@@ -1653,7 +1718,8 @@
       "stationAddrEn": "No. 111, Gangyan Rd., Gangshan Dist., Kaohsiung City",
       "stationTel": "07-6212074",
       "gps": "22.79223 120.30004",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K377 + 100"
     },
     {
       "stationCode": "4320",
@@ -1665,7 +1731,8 @@
       "stationAddrEn": "No. 14, Zhanqian St., Qiaotou Dist., Kaohsiung City",
       "stationTel": "07-6115424",
       "gps": "22.76098 120.31011",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K381 + 600"
     },
     {
       "stationCode": "4330",
@@ -1677,7 +1744,8 @@
       "stationAddrEn": "No. 229, Jiannan Rd., Nanzi Dist., Kaohsiung City",
       "stationTel": "07-3510175",
       "gps": "22.72696 120.32425",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K386 + 300"
     },
     {
       "stationCode": "4340",
@@ -1689,7 +1757,8 @@
       "stationAddrEn": "No. 1, Zhanqian N. Rd., Zuoying Dist., Kaohsiung City",
       "stationTel": "07-5887825",
       "gps": "22.68754 120.30678",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K391 + 300"
     },
     {
       "stationCode": "4350",
@@ -1701,7 +1770,8 @@
       "stationAddrEn": "B1F., No. 1050, Cuihua Rd, Zuoying Dist., Kaohsiung City",
       "stationTel": "07-5887835",
       "gps": "22.67445 120.29401",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K393 + 200"
     },
     {
       "stationCode": "4360",
@@ -1713,7 +1783,8 @@
       "stationAddrEn": "B1F., No. 500, Cuihua Rd., Gushan Dist., Kaohsiung City",
       "stationTel": "07-5886119",
       "gps": "22.66589 120.28701",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K395 + 100"
     },
     {
       "stationCode": "4370",
@@ -1725,7 +1796,8 @@
       "stationAddrEn": "No.246, Cuihua Rd., Gushan Dist., Kaohsiung City",
       "stationTel": "07-5215147",
       "gps": "22.65185 120.28148",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K396 + 300"
     },
     {
       "stationCode": "4380",
@@ -1737,7 +1809,8 @@
       "stationAddrEn": "No.6, Ln. 20, Railway St., Gushan Dist., Kaohsiung City",
       "stationTel": "07-5217014",
       "gps": "22.64181 120.28071",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "縱貫線 K397 + 800"
     },
     {
       "stationCode": "4390",
@@ -1749,7 +1822,8 @@
       "stationAddrEn": "No.1, Kangping St., Sanmin Dist., Kaohsiung City",
       "stationTel": "07-2856234",
       "gps": "22.63931 120.29414",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K400 + 400"
     },
     {
       "stationCode": "4400",
@@ -1761,7 +1835,8 @@
       "stationAddrEn": "No. 318, Jianguo 2nd Rd., Sanmin Dist., Kaohsiung City",
       "stationTel": "07-2352376",
       "gps": "22.63946 120.30292",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "縱貫線 K401 + 400"
     },
     {
       "stationCode": "4410",
@@ -1773,7 +1848,8 @@
       "stationAddrEn": "No.260, Kaisyuan 1st Rd., Sanmin Dist., Kaohsiung City",
       "stationTel": "07-2231492",
       "gps": "22.63879 120.31494",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K0 + 900"
     },
     {
       "stationCode": "4420",
@@ -1785,7 +1861,8 @@
       "stationAddrEn": "No. 307, Dashun 3rd Rd., Sanmin Dist., Kaohsiung City",
       "stationTel": "07-2234778",
       "gps": "22.63709 120.32603",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K2 + 200"
     },
     {
       "stationCode": "4430",
@@ -1797,7 +1874,8 @@
       "stationAddrEn": ", Lingya Dist., Kaohsiung City",
       "stationTel": "07-7999818",
       "gps": "22.63425 120.34245",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K3 + 800"
     },
     {
       "stationCode": "4440",
@@ -1809,7 +1887,8 @@
       "stationAddrEn": "No. 137, Caogong Rd., Fengshan Dist., Kaohsiung City",
       "stationTel": "07-7460423",
       "gps": "22.63145 120.35745",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K5 + 800"
     },
     {
       "stationCode": "4450",
@@ -1821,7 +1900,8 @@
       "stationAddrEn": "No. 9, Minqing St., Daliao Dist., Kaohsiung City",
       "stationTel": "07-7020149",
       "gps": "22.64016 120.39131",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K10 + 300"
     },
     {
       "stationCode": "4460",
@@ -1833,7 +1913,8 @@
       "stationAddrEn": "No. 15, Railway Ln., Jiutang Rd., Dashu Dist., Kaohsiung City",
       "stationTel": "07-6512020",
       "gps": "22.65641 120.42089",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K13 + 800"
     },
     {
       "stationCode": "4470",
@@ -1845,7 +1926,8 @@
       "stationAddrEn": "No. 392, Guangfu Rd., Pingdong City, Pingtung County",
       "stationTel": "08-7515140",
       "gps": "22.66597 120.46497",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K18 + 800"
     },
     {
       "stationCode": "5000",
@@ -1857,7 +1939,8 @@
       "stationAddrEn": "No. 62, Gongyong Rd., Pingdong City, Pingtung County",
       "stationTel": "08-7515140",
       "gps": "22.66905 120.48617",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K21 + 300"
     },
     {
       "stationCode": "5010",
@@ -1869,7 +1952,8 @@
       "stationAddrEn": "No. 5-4, Guiren Rd., Pingdong City, Pingtung County",
       "stationTel": "08-7515140",
       "gps": "22.65246 120.50263",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K24 + 200"
     },
     {
       "stationCode": "5020",
@@ -1881,7 +1965,8 @@
       "stationAddrEn": "No. 15, Zhanqian Ln., Zhonghua Rd., Linluo Township, Pingtung County",
       "stationTel": "08-7515140",
       "gps": "22.63481 120.51432",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K26 + 500"
     },
     {
       "stationCode": "5030",
@@ -1893,7 +1978,8 @@
       "stationAddrEn": "No. 2, Xifeng Rd., Zhutian Township, Pingtung County",
       "stationTel": "08-7784521",
       "gps": "22.61643 120.52661",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K29 + 600"
     },
     {
       "stationCode": "5040",
@@ -1905,7 +1991,8 @@
       "stationAddrEn": "No. 27-1, Fengming Rd., Zhutian Township, Pingtung County",
       "stationTel": "08-7711002",
       "gps": "22.58658 120.53978",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K34 + 300"
     },
     {
       "stationCode": "5050",
@@ -1917,7 +2004,8 @@
       "stationAddrEn": "No. 111, Xinyi Rd., Chaozhou Township, Pingtung County",
       "stationTel": "08-7882739",
       "gps": "22.55008 120.53631",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K39 + 400"
     },
     {
       "stationCode": "5060",
@@ -1929,7 +2017,8 @@
       "stationAddrEn": "No. 122, Zhongzheng Rd., Kanding Township, Pingtung County",
       "stationTel": "08-7882739",
       "gps": "22.51311 120.51481",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K44 + 200"
     },
     {
       "stationCode": "5070",
@@ -1941,7 +2030,8 @@
       "stationAddrEn": "No. 86, Renli Rd., Nanzhou Township, Pingtung County",
       "stationTel": "08-8642942",
       "gps": "22.49207 120.51174",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K46 + 900"
     },
     {
       "stationCode": "5080",
@@ -1953,7 +2043,8 @@
       "stationAddrEn": "No. 4, Yonghe Rd., Linbian Township, Pingtung County",
       "stationTel": "08-8642942",
       "gps": "22.45794 120.51129",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K50 + 400"
     },
     {
       "stationCode": "5090",
@@ -1965,7 +2056,8 @@
       "stationAddrEn": "No. 33, Ren’ai Rd., Linbian Township, Pingtung County",
       "stationTel": "08-8751475",
       "gps": "22.43144 120.51535",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K54 + 150"
     },
     {
       "stationCode": "5100",
@@ -1977,7 +2069,8 @@
       "stationAddrEn": "No. 21, Fuxing Rd., Jiadong Township, Pingtung County",
       "stationTel": "08-8662939",
       "gps": "22.41409 120.54774",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K57 + 500"
     },
     {
       "stationCode": "5110",
@@ -1989,7 +2082,8 @@
       "stationAddrEn": "No. 92, Xi’an Rd., Fangliao Township, Pingtung County",
       "stationTel": "08-8782041",
       "gps": "22.39897 120.57236",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "屏東線 K60 + 800"
     },
     {
       "stationCode": "5120",
@@ -2001,7 +2095,8 @@
       "stationAddrEn": "No. 18, Chuyun Rd., Fangliao Township, Pingtung County",
       "stationTel": "08-8782041",
       "gps": "22.36802 120.59511",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "屏東線 K63 + 300"
     },
     {
       "stationCode": "5130",
@@ -2013,7 +2108,8 @@
       "stationAddrEn": "No. 53, Huishe, Fangshan Township, Pingtung County",
       "stationTel": "08-8720791",
       "gps": "22.33085 120.62445",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K5 + 300"
     },
     {
       "stationCode": "5140",
@@ -2025,7 +2121,8 @@
       "stationAddrEn": "No. 43, Nanhe, Fangshan Township, Pingtung County",
       "stationTel": "08-8720791",
       "gps": "22.30617 120.64331",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "南迴線 K8 + 300"
     },
     {
       "stationCode": "5160",
@@ -2037,7 +2134,8 @@
       "stationAddrEn": "No. 84, Neishi Ln., Shizi Township, Pingtung County",
       "stationTel": "08-8720791",
       "gps": "22.26704 120.65947",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "南迴線 K13 + 600"
     },
     {
       "stationCode": "5170",
@@ -2049,7 +2147,8 @@
       "stationAddrEn": "No. 88, Neishi Ln., Shizi Township, Pingtung County",
       "stationTel": "08-8761953",
       "gps": "22.28091 120.71709",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "南迴線 K22 + 000"
     },
     {
       "stationCode": "5190",
@@ -2061,7 +2160,8 @@
       "stationAddrEn": "No. 33, Ku Shu Shu, Dawu Township, Taitung County",
       "stationTel": "089-792056",
       "gps": "22.36526 120.90094",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K45 + 400"
     },
     {
       "stationCode": "5200",
@@ -2073,7 +2173,8 @@
       "stationAddrEn": "No. 37, Daxi, Taimali Township, Taitung County",
       "stationTel": "089-761482",
       "gps": "22.46102 120.94176",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K57 + 100"
     },
     {
       "stationCode": "5210",
@@ -2085,7 +2186,8 @@
       "stationAddrEn": "No. 47-17, Jinlun, Taimali Township, Taitung County",
       "stationTel": "089-771068",
       "gps": "22.53161 120.96721",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K68 + 000"
     },
     {
       "stationCode": "5220",
@@ -2097,7 +2199,8 @@
       "stationAddrEn": "No. 2, Zhanqian Rd., Taimali Township, Taitung County",
       "stationTel": "089-781544",
       "gps": "22.61883 121.00492",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K81 + 400"
     },
     {
       "stationCode": "5230",
@@ -2109,7 +2212,8 @@
       "stationAddrEn": "No. 85, Ln. 900, Sec. 2, Zhiben Rd., Taidong City, Taitung County",
       "stationTel": "089-514482",
       "gps": "22.71022 121.06068",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K93 + 100"
     },
     {
       "stationCode": "5240",
@@ -2121,7 +2225,8 @@
       "stationAddrEn": "No. 131, Ln. 51, Museum Rd., Taidong City, Taitung County",
       "stationTel": "089-383107",
       "gps": "22.76426 121.09356",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K101 + 300"
     },
     {
       "stationCode": "5998",
@@ -2133,7 +2238,8 @@
       "stationAddrEn": ", Chaozhou Township, Pingtung County",
       "stationTel": "",
       "gps": "22.52755 120.53658",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "基地專用線 K1 + 200"
     },
     {
       "stationCode": "5999",
@@ -2145,7 +2251,8 @@
       "stationAddrEn": "No. 616, Guangfu Rd., Chaozhou Township, Pingtung County",
       "stationTel": "08-7889880",
       "gps": "22.52231 120.52642",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "機廠專用線 K2 + 200 ~ K3 + 800"
     },
     {
       "stationCode": "6000",
@@ -2157,7 +2264,8 @@
       "stationAddrEn": "No. 598, Ln. 101, Yanwan Rd., Taidong City, Taitung County",
       "stationTel": "089-229687",
       "gps": "22.79372 121.1231",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "南迴線 K107 + 600"
     },
     {
       "stationCode": "6010",
@@ -2169,7 +2277,8 @@
       "stationAddrEn": "No. 108, Shanli Rd., Beinan Township, Taitung County",
       "stationTel": "089-572370",
       "gps": "22.86194 121.13778",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K153 + 700"
     },
     {
       "stationCode": "6020",
@@ -2181,7 +2290,8 @@
       "stationAddrEn": "No. 38, Zhongzheng Rd., Luye Township, Taitung County",
       "stationTel": "089-550217",
       "gps": "22.91249 121.13701",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K140 + 600"
     },
     {
       "stationCode": "6030",
@@ -2193,7 +2303,8 @@
       "stationAddrEn": "No. 8-1, Ln. 336, Sec. 1, Ruijing Rd., Luye Township, Taitung County",
       "stationTel": "089-580159",
       "gps": "22.95604 121.15901",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K132 + 900"
     },
     {
       "stationCode": "6040",
@@ -2205,7 +2316,8 @@
       "stationAddrEn": "No. 1-1, Sec. 3, Ruijing Rd., Luye Township, Taitung County",
       "stationTel": "089-580159",
       "gps": "22.97997 121.15595",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K129 + 700"
     },
     {
       "stationCode": "6050",
@@ -2217,7 +2329,8 @@
       "stationAddrEn": "No. 2, Bo’ai Rd., Guanshan Township, Taitung County",
       "stationTel": "089-811033",
       "gps": "23.04566 121.1643",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K116 + 200"
     },
     {
       "stationCode": "6060",
@@ -2229,7 +2342,8 @@
       "stationAddrEn": "No. 49, Xizhuang, Guanshan Township, Taitung County",
       "stationTel": "089-811033",
       "gps": "23.10292 121.17676",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K111 + 500"
     },
     {
       "stationCode": "6070",
@@ -2241,7 +2355,8 @@
       "stationAddrEn": "No. 30, Tiehua Rd., Chishang Township, Taitung County",
       "stationTel": "089-862097",
       "gps": "23.12613 121.21949",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K102 + 800"
     },
     {
       "stationCode": "6080",
@@ -2253,7 +2368,8 @@
       "stationAddrEn": "No. 56, Chezhan St., Fuli Township, Hualien County",
       "stationTel": "03-8831771",
       "gps": "23.17924 121.24864",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K93 + 400"
     },
     {
       "stationCode": "6090",
@@ -2265,7 +2381,8 @@
       "stationAddrEn": "No. 26, Xinxing, Fuli Township, Hualien County",
       "stationTel": "03-8821504",
       "gps": "23.22605 121.27842",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K87 + 400"
     },
     {
       "stationCode": "6100",
@@ -2277,7 +2394,8 @@
       "stationAddrEn": "No. 15-6, Dazhuang Rd., Fuli Township, Hualien County",
       "stationTel": "03-8861005",
       "gps": "23.27234 121.30418",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K83 + 800"
     },
     {
       "stationCode": "6110",
@@ -2289,7 +2407,8 @@
       "stationAddrEn": "No. 39, Kangle St., Yuli Township, Hualien County",
       "stationTel": "03-8882020",
       "gps": "23.33155 121.31172",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K72 + 300"
     },
     {
       "stationCode": "6120",
@@ -2301,7 +2420,8 @@
       "stationAddrEn": "No. 10, Sanmin, Yuli Township, Hualien County",
       "stationTel": "03-8841847",
       "gps": "23.42458 121.34539",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K61 + 900"
     },
     {
       "stationCode": "6130",
@@ -2313,7 +2433,8 @@
       "stationAddrEn": "No. 13, Siwei St., Ruisui Township, Hualien County",
       "stationTel": "03-8875039",
       "gps": "23.49749 121.37683",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K52 + 700"
     },
     {
       "stationCode": "6140",
@@ -2325,7 +2446,8 @@
       "stationAddrEn": "No. 2, Fuyuan Rd., Ruisui Township, Hualien County",
       "stationTel": "03-8811824",
       "gps": "23.58031 121.38008",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K42 + 900"
     },
     {
       "stationCode": "6150",
@@ -2337,7 +2459,8 @@
       "stationAddrEn": "No. 1, Mingde Rd., Guangfu Township, Hualien County",
       "stationTel": "03-8811824",
       "gps": "23.60571 121.38963",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K38 + 600"
     },
     {
       "stationCode": "6160",
@@ -2349,7 +2472,8 @@
       "stationAddrEn": "No. 2-1, Sec. 1, Zhongzheng Rd., Guangfu Township, Hualien County",
       "stationTel": "03-8704143",
       "gps": "23.66631 121.42117",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K28 + 800"
     },
     {
       "stationCode": "6170",
@@ -2361,7 +2485,8 @@
       "stationAddrEn": "No. 17, Changde St., Fenglin Township, Hualien County",
       "stationTel": "03-8752175",
       "gps": "23.71199 121.41907",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K21 + 300"
     },
     {
       "stationCode": "6180",
@@ -2373,7 +2498,8 @@
       "stationAddrEn": "No. 43, Zhongshan Rd., Fenglin Township, Hualien County",
       "stationTel": "03-8762004",
       "gps": "23.74634 121.44701",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K14 + 900"
     },
     {
       "stationCode": "6190",
@@ -2385,7 +2511,8 @@
       "stationAddrEn": "No. 233, Ziqiang Rd., Fenglin Township, Hualien County",
       "stationTel": "03-8771597",
       "gps": "23.78231 121.45824",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K10 + 800"
     },
     {
       "stationCode": "6200",
@@ -2397,7 +2524,8 @@
       "stationAddrEn": "No. 800, Chaofeng Rd., Fenglin Township, Hualien County",
       "stationTel": "03-8772677",
       "gps": "23.80176 121.46169",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K8 + 200"
     },
     {
       "stationCode": "6210",
@@ -2409,7 +2537,8 @@
       "stationAddrEn": "No. 36, Zhanqian St., Shoufeng Township, Hualien County",
       "stationTel": "03-8654251",
       "gps": "23.84842 121.49618",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K4 + 200"
     },
     {
       "stationCode": "6220",
@@ -2421,7 +2550,8 @@
       "stationAddrEn": "No. 1, Shoushan Rd., Shoufeng Township, Hualien County",
       "stationTel": "03-8653706",
       "gps": "23.86901 121.51064",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K1 + 100"
     },
     {
       "stationCode": "6230",
@@ -2433,7 +2563,8 @@
       "stationAddrEn": "No. 1, Pinghe Rd., Shoufeng Township, Hualien County",
       "stationTel": "03-8653706",
       "gps": "23.88279 121.52045",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "台東線 K10 + 050"
     },
     {
       "stationCode": "6240",
@@ -2445,7 +2576,8 @@
       "stationAddrEn": "No. 1, Zhongzheng Rd., Shoufeng Township, Hualien County",
       "stationTel": "03-8662966",
       "gps": "23.90769 121.5295",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K8 + 500"
     },
     {
       "stationCode": "6250",
@@ -2457,7 +2589,8 @@
       "stationAddrEn": "No. 200, Nanchang Rd., Ji`an Township, Hualien County",
       "stationTel": "03-8539423",
       "gps": "23.96823 121.58266",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "台東線 K3 + 300"
     },
     {
       "stationCode": "7000",
@@ -2469,7 +2602,8 @@
       "stationAddrEn": "No. 100, Guolian 1st Rd., Hualian City, Hualien County",
       "stationTel": "03-8355941",
       "gps": "23.99264 121.60158",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "北迴線 K79 + 200"
     },
     {
       "stationCode": "7010",
@@ -2481,7 +2615,8 @@
       "stationAddrEn": "No. 113, Ziqiang St., Xincheng Township, Hualien County",
       "stationTel": "03-8263809",
       "gps": "24.03253 121.60166",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "北迴線 K74 + 400"
     },
     {
       "stationCode": "7020",
@@ -2493,7 +2628,8 @@
       "stationAddrEn": "No. 178-1, Jiawan, Xiulin Township, Hualien County",
       "stationTel": "03-8611237",
       "gps": "24.09038 121.61099",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "北迴線 K68 + 000"
     },
     {
       "stationCode": "7030",
@@ -2505,7 +2641,8 @@
       "stationAddrEn": "No. 73, Xinxing 1st Rd., Xincheng Township, Hualien County",
       "stationTel": "03-8611237",
       "gps": "24.12756 121.64086",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "北迴線 K61 + 600"
     },
     {
       "stationCode": "7040",
@@ -2517,7 +2654,8 @@
       "stationAddrEn": "No. 96, Haibin Rd., Xiulin Township, Hualien County",
       "stationTel": "03-8621365",
       "gps": "24.17199 121.65536",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "北迴線 K56 + 700"
     },
     {
       "stationCode": "7050",
@@ -2529,7 +2667,8 @@
       "stationAddrEn": "No. 71, Heren, Xiulin Township, Hualien County",
       "stationTel": "03-8681221",
       "gps": "24.24225 121.71182",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "北迴線 K45 + 100"
     },
     {
       "stationCode": "7060",
@@ -2541,7 +2680,8 @@
       "stationAddrEn": "No. 276, Heping, Xiulin Township, Hualien County",
       "stationTel": "03-8681009",
       "gps": "24.29839 121.75344",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "北迴線 K39 + 500"
     },
     {
       "stationCode": "7070",
@@ -2553,7 +2693,8 @@
       "stationAddrEn": "No. 56, Sec. 1, Suhua Rd., Nan`ao Township, Yilan County",
       "stationTel": "03-9985238",
       "gps": "24.33543 121.76838",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "北迴線 K31 + 000"
     },
     {
       "stationCode": "7080",
@@ -2565,7 +2706,8 @@
       "stationAddrEn": "No. 18, Xinxi Rd., Nan`ao Township, Yilan County",
       "stationTel": "03-9981971",
       "gps": "24.44879 121.77601",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "北迴線 K23 + 000"
     },
     {
       "stationCode": "7090",
@@ -2577,7 +2719,8 @@
       "stationAddrEn": "No. 22, Datong Rd., Su`ao Township, Yilan County",
       "stationTel": "03-9981971",
       "gps": "24.46342 121.80103",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "北迴線 K16 + 900"
     },
     {
       "stationCode": "7100",
@@ -2589,7 +2732,8 @@
       "stationAddrEn": "No. 1, Dongyue Rd., Nan`ao Township, Yilan County",
       "stationTel": "03-9986053",
       "gps": "24.51827 121.83072",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "北迴線 K5 + 800"
     },
     {
       "stationCode": "7110",
@@ -2601,7 +2745,8 @@
       "stationAddrEn": "No. 60, Zuntou Rd., Su`ao Township, Yilan County",
       "stationTel": "03-9961889",
       "gps": "24.56843 121.84458",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "北迴線 K1 + 700"
     },
     {
       "stationCode": "7120",
@@ -2613,7 +2758,8 @@
       "stationAddrEn": "No. 1, Taiping Rd., Su`ao Township, Yilan County",
       "stationTel": "03-9962028",
       "gps": "24.59516 121.85143",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K93 + 300"
     },
     {
       "stationCode": "7130",
@@ -2625,7 +2771,8 @@
       "stationAddrEn": "No. 238-1, Sec. 2, Zhongshan Rd., Su`ao Township, Yilan County",
       "stationTel": "03-9961004",
       "gps": "24.60852 121.82735",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K89 + 900"
     },
     {
       "stationCode": "7140",
@@ -2637,7 +2784,8 @@
       "stationAddrEn": "No. 322, Sec. 2, Zhongshan Rd., Su`ao Township, Yilan County",
       "stationTel": "03-9961004",
       "gps": "24.61535 121.82292",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K88 + 800"
     },
     {
       "stationCode": "7150",
@@ -2649,7 +2797,8 @@
       "stationAddrEn": "No. 1, Zhongzheng Rd., Dongshan Township, Yilan County",
       "stationTel": "03-9594221",
       "gps": "24.63633 121.79211",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K84 + 100"
     },
     {
       "stationCode": "7160",
@@ -2661,7 +2810,8 @@
       "stationAddrEn": "No. 2, Gongzheng Rd., Luodong Township, Yilan County",
       "stationTel": "03-9542117",
       "gps": "24.67795 121.77424",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K79 + 000"
     },
     {
       "stationCode": "7170",
@@ -2673,7 +2823,8 @@
       "stationAddrEn": "No. 10, Taixing Rd., Wujie Township, Yilan County",
       "stationTel": "03-9542117",
       "gps": "24.69415 121.77526",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K77 + 100"
     },
     {
       "stationCode": "7180",
@@ -2685,7 +2836,8 @@
       "stationAddrEn": "No. 8,Lane 658,WuJie Central Rd. Sec.3, Wujie Township, Yilan County",
       "stationTel": "03-9650304",
       "gps": "24.70528 121.77409",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K75 + 900"
     },
     {
       "stationCode": "7190",
@@ -2697,7 +2849,8 @@
       "stationAddrEn": "No. 1, Guangfu Rd., Yilan City, Yilan County",
       "stationTel": "03-9323801",
       "gps": "24.75462 121.75791",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K71 + 600"
     },
     {
       "stationCode": "7200",
@@ -2709,7 +2862,8 @@
       "stationAddrEn": "No. 24, Zhanqian Rd., Jiaoxi Township, Yilan County",
       "stationTel": "03-9282449",
       "gps": "24.78681 121.76271",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K67 + 900"
     },
     {
       "stationCode": "7210",
@@ -2721,7 +2875,8 @@
       "stationAddrEn": "No. 1, Wenquan Rd., Jiaoxi Township, Yilan County",
       "stationTel": "03-9886940",
       "gps": "24.82703 121.77535",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K64 + 100"
     },
     {
       "stationCode": "7220",
@@ -2733,7 +2888,8 @@
       "stationAddrEn": "No. 4-8, Xiapu Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9771429",
       "gps": "24.84391 121.80913",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K60 + 000"
     },
     {
       "stationCode": "7230",
@@ -2745,7 +2901,8 @@
       "stationAddrEn": "No. 59, Zuanxiang Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9771429",
       "gps": "24.85898 121.82258",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K56 + 300"
     },
     {
       "stationCode": "7240",
@@ -2757,7 +2914,8 @@
       "stationAddrEn": "No. 217, Sec. 2, Binhai Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9771429",
       "gps": "24.88375 121.84572",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K52 + 600"
     },
     {
       "stationCode": "7250",
@@ -2769,7 +2927,8 @@
       "stationAddrEn": "No. 261, Sec. 3, Binhai Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9770351",
       "gps": "24.90484 121.8689",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K49 + 200"
     },
     {
       "stationCode": "7260",
@@ -2781,7 +2940,8 @@
       "stationAddrEn": "No. 63, Sec. 5, Binhai Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9771429",
       "gps": "24.93836 121.88983",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K44 + 800"
     },
     {
       "stationCode": "7270",
@@ -2793,7 +2953,8 @@
       "stationAddrEn": "No. 326, Sec. 6, Binhai Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9781171",
       "gps": "24.96677 121.92253",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K40 + 000"
     },
     {
       "stationCode": "7280",
@@ -2805,7 +2966,8 @@
       "stationAddrEn": "No. 230, Sec. 7, Binhai Rd., Toucheng Township, Yilan County",
       "stationTel": "03-9771429",
       "gps": "24.97832 121.94507",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K35 + 000"
     },
     {
       "stationCode": "7290",
@@ -2817,7 +2979,8 @@
       "stationAddrEn": "No. 2, Fulong St., Gongliao Dist., New Taipei City",
       "stationTel": "02-24991800",
       "gps": "25.01595 121.94471",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K30 + 500"
     },
     {
       "stationCode": "7300",
@@ -2829,7 +2992,8 @@
       "stationAddrEn": "No. 33, Chaoyang St., Gongliao Dist., New Taipei City",
       "stationTel": "02-24941500",
       "gps": "25.02197 121.90879",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K25 + 500"
     },
     {
       "stationCode": "7310",
@@ -2841,7 +3005,8 @@
       "stationAddrEn": "No. 1, Chaoyang St., Shuangxi Dist., New Taipei City",
       "stationTel": "02-24932980",
       "gps": "25.03851 121.86654",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K22 + 300"
     },
     {
       "stationCode": "7320",
@@ -2853,7 +3018,8 @@
       "stationAddrEn": "No. 159, Mudan Rd., Shuangxi Dist., New Taipei City",
       "stationTel": "02-24932980",
       "gps": "25.05871 121.85197",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K18 + 900"
     },
     {
       "stationCode": "7330",
@@ -2865,7 +3031,8 @@
       "stationAddrEn": "No. 1, Yuliao Rd., Ruifang Dist., New Taipei City",
       "stationTel": "02-24977896",
       "gps": "25.06555 121.82257",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K15 + 900"
     },
     {
       "stationCode": "7331",
@@ -2877,7 +3044,8 @@
       "stationAddrEn": "No. 12-1, Liufen, Pingxi Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.04998 121.79732",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "平溪線 K4 + 700"
     },
     {
       "stationCode": "7332",
@@ -2889,7 +3057,8 @@
       "stationAddrEn": "No. 51, Shifen St., Pingxi Dist., New Taipei City",
       "stationTel": "02-24958307",
       "gps": "25.04111 121.77514",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "平溪線 K6 + 400"
     },
     {
       "stationCode": "7333",
@@ -2901,7 +3070,8 @@
       "stationAddrEn": "Wanggu Vil. (No Station Building), Pingxi Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.03445 121.76349",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "平溪線 K8 + 200"
     },
     {
       "stationCode": "7334",
@@ -2913,7 +3083,8 @@
       "stationAddrEn": "No. 22, Lingjiaoliao, Pingxi Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.03016 121.74795",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "平溪線 K10 + 200"
     },
     {
       "stationCode": "7335",
@@ -2925,7 +3096,8 @@
       "stationAddrEn": "No. 12, Zhonghua St., Pingxi Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.02571 121.74019",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "平溪線 K11 + 200"
     },
     {
       "stationCode": "7336",
@@ -2937,7 +3109,8 @@
       "stationAddrEn": "No. 52, Jingtong St., Pingxi Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.02391 121.72391",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "平溪線 K12 + 900"
     },
     {
       "stationCode": "7350",
@@ -2949,7 +3122,8 @@
       "stationAddrEn": "No. 70, Chailiao Rd., Ruifang Dist., New Taipei City",
       "stationTel": "02-24977747",
       "gps": "25.08702 121.82743",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K11 + 900"
     },
     {
       "stationCode": "7360",
@@ -2961,7 +3135,8 @@
       "stationAddrEn": "No. 82, Sec. 3, Mingdeng Rd., Ruifang Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.10861 121.80596",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K7 + 300"
     },
     {
       "stationCode": "7361",
@@ -2973,7 +3148,8 @@
       "stationAddrEn": "Changtan Vil., Zhongzheng Dist., Keelung City",
       "stationTel": "02-24972033",
       "gps": "25.13754 121.79997",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "深澳線 K2 + 100"
     },
     {
       "stationCode": "7362",
@@ -2985,7 +3161,8 @@
       "stationAddrEn": "Provincial Highway 2 (Junction of Ruifang Dist., New Taipei City, No Station Building), Ruifang Dist., New Taipei City",
       "stationTel": "02-24972033",
       "gps": "25.13528 121.80286",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "深澳線 K4 + 700"
     },
     {
       "stationCode": "7380",
@@ -2997,7 +3174,8 @@
       "stationAddrEn": "No. 65, Zhongyang Rd., Ruifang Dist., New Taipei City",
       "stationTel": "02-24579346",
       "gps": "25.10281 121.76195",
-      "haveBike": "Y"
+      "haveBike": "Y",
+      "UK": "宜蘭線 K3 + 800"
     },
     {
       "stationCode": "7390",
@@ -3009,7 +3187,8 @@
       "stationAddrEn": "No. 66, Nuannuan St., Nuannuan Dist., Keelung City",
       "stationTel": "02-24560841",
       "gps": "25.10231 121.74031",
-      "haveBike": "N"
+      "haveBike": "N",
+      "UK": "宜蘭線 K1 + 600"
     }
   ]
 }
