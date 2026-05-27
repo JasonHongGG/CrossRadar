@@ -68,6 +68,7 @@ class _StubTdxClient:
 def _build_settings() -> Settings:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     settings.supplemental_stations_json_path = Path("__missing_supplemental_stations__.json")
+    settings.stations_official_uk_json_path = Path("__missing_stations_official_uk__.json")
     return settings
 
 
@@ -111,6 +112,7 @@ def test_list_station_summaries_returns_only_stations_with_positions() -> None:
 def test_resolve_station_and_list_summaries_include_supplemental_stations(tmp_path) -> None:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     settings.supplemental_stations_json_path = tmp_path / "stations_supplemental.json"
+    settings.stations_official_uk_json_path = tmp_path / "stations_official(UK).json"
     settings.supplemental_stations_json_path.write_text(
         json.dumps(
             {
@@ -129,6 +131,10 @@ def test_resolve_station_and_list_summaries_include_supplemental_stations(tmp_pa
         ),
         encoding="utf-8",
     )
+    settings.stations_official_uk_json_path.write_text(
+        json.dumps({"stations": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     service = StationGraphService(_StubTdxClient(), settings=settings)
 
@@ -139,6 +145,54 @@ def test_resolve_station_and_list_summaries_include_supplemental_stations(tmp_pa
     assert station["StationID"] == "SUPP-TEST-GANG"
     assert station["StationPosition"] == {"PositionLat": 24.2918773, "PositionLon": 120.5437636}
     assert any(summary["station_id"] == "SUPP-TEST-GANG" and summary["name"] == "港站" for summary in summaries)
+
+
+def test_station_summaries_and_crossing_detail_include_station_uk_reference(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.supplemental_stations_json_path = tmp_path / "stations_supplemental.json"
+    settings.stations_official_uk_json_path = tmp_path / "stations_official(UK).json"
+    settings.stations_official_uk_json_path.write_text(
+        json.dumps(
+            {
+                "stations": [
+                    {
+                        "stationCode": "4200",
+                        "stationName": "永康",
+                        "UK": ["縱貫線 K355 + 300"],
+                        "UK_primary": "縱貫線 K355 + 300",
+                    },
+                    {
+                        "stationCode": "4210",
+                        "stationName": "大橋",
+                        "UK": ["縱貫線 K357 + 800"],
+                        "UK_primary": "縱貫線 K357 + 800",
+                    },
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    service = StationGraphService(_StubTdxClient(), settings=settings)
+
+    summaries = asyncio.run(service.list_station_summaries())
+    enriched = asyncio.run(
+        service.enrich_crossing_properties(
+            {
+                "station_a_name": "永康",
+                "station_b_name": "大橋",
+            }
+        )
+    )
+
+    summary_by_id = {station["station_id"]: station for station in summaries}
+    assert summary_by_id["4200"]["uk_primary"] == "縱貫線 K355 + 300"
+    assert summary_by_id["4210"]["uk_primary"] == "縱貫線 K357 + 800"
+    assert enriched["station_a_uk_primary"] == "縱貫線 K355 + 300"
+    assert enriched["station_b_uk_primary"] == "縱貫線 K357 + 800"
+    assert enriched["station_uk_reference_note"] == "車站 UK 為推估參考值，非精準量測。"
 
 
 def test_enrich_crossing_prefers_official_ratio_when_available() -> None:

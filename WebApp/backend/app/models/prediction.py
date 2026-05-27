@@ -48,7 +48,7 @@ class PredictionEnvelope(BaseModel):
     crossing_id: str
     generated_at: datetime
     warning_window_minutes: int
-    horizon_minutes: int
+    horizon_minutes: int | None = None
     recent_window_minutes: int
     recent_prediction: PredictionRecord | None = None
     upcoming_predictions: list[PredictionRecord] = Field(default_factory=list)

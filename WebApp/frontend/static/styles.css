@@ -113,6 +113,8 @@ svg {
 }
 
 .topbar {
+  position: relative;
+  z-index: 1200;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -173,6 +175,7 @@ svg {
 
 .search-stack {
   position: relative;
+  z-index: 1210;
   width: min(100%, 440px);
 }
 
@@ -1524,6 +1527,41 @@ body.workspace-page {
   padding: 10px 12px;
 }
 
+.station-band.is-detailed {
+  align-items: stretch;
+}
+
+.station-band-stop {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.station-band-stop small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.station-band-stop strong {
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.station-band-stop span {
+  color: var(--navy);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.station-reference-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .station-band span,
 .hero-route-line span {
   flex: 1;
@@ -1862,9 +1900,49 @@ body.workspace-page {
   border-top-color: rgba(22, 47, 73, 0.92);
 }
 
-.station-context-label {
+.leaflet-tooltip.station-overview-tooltip {
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 250, 244, 0.96);
+  color: var(--ink);
+  box-shadow: 0 12px 28px rgba(26, 48, 73, 0.16);
+  padding: 0;
+}
+
+.leaflet-tooltip-top.station-overview-tooltip::before {
+  border-top-color: rgba(255, 250, 244, 0.96);
+}
+
+.station-overview-label {
   display: grid;
   gap: 2px;
+  min-width: 98px;
+  padding: 8px 10px;
+}
+
+.station-overview-label strong {
+  color: var(--navy);
+  font-family: var(--font-head);
+  font-size: 0.78rem;
+  line-height: 1.1;
+}
+
+.station-overview-label span {
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.station-overview-label small {
+  color: var(--muted);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.station-context-label {
+  display: grid;
+  gap: 3px;
   min-width: 92px;
   padding: 10px 12px;
 }
@@ -1879,6 +1957,13 @@ body.workspace-page {
 .station-context-label strong {
   font-family: var(--font-head);
   font-size: 0.9rem;
+}
+
+.station-context-label small {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .leaflet-tooltip.station-context-tooltip.is-upstream strong {
@@ -1997,6 +2082,15 @@ body.workspace-page {
 
   .legend-strip {
     display: none;
+  }
+
+  .station-band.is-detailed {
+    flex-direction: column;
+  }
+
+  .station-band.is-detailed svg {
+    align-self: center;
+    transform: rotate(90deg);
   }
 
   .train-card {

@@ -40,6 +40,8 @@ class StationGraphService:
         self._stations: list[dict[str, Any]] | None = None
         self._station_lookup: dict[str, dict[str, Any]] | None = None
         self._station_lookup_by_id: dict[str, dict[str, Any]] | None = None
+        self._station_reference_by_id: dict[str, dict[str, Any]] | None = None
+        self._station_reference_by_name: dict[str, dict[str, Any]] | None = None
 
     async def _get_stations(self) -> list[dict[str, Any]]:
         if self._stations is not None:
@@ -47,8 +49,12 @@ class StationGraphService:
 
         stations = list(await self.tdx_client.get_stations())
         stations.extend(self._load_supplemental_stations())
-        self._stations = stations
-        return stations
+        reference_by_id, reference_by_name = self._load_station_reference_lookup()
+        self._stations = [
+            self._merge_station_reference(station, reference_by_id, reference_by_name)
+            for station in stations
+        ]
+        return self._stations
 
     async def get_station_lookup(self) -> dict[str, dict[str, Any]]:
         if self._station_lookup is not None:
@@ -103,6 +109,8 @@ class StationGraphService:
                 continue
 
             seen_station_ids.add(station_id)
+            uk_values = [str(value).strip() for value in station.get("UK") or [] if str(value).strip()]
+            uk_primary = str(station.get("UK_primary") or "").strip() or (uk_values[0] if uk_values else None)
             summaries.append(
                 {
                     "station_id": station_id,
@@ -111,6 +119,8 @@ class StationGraphService:
                         "PositionLat": float(lat),
                         "PositionLon": float(lon),
                     },
+                    "uk_values": uk_values,
+                    "uk_primary": uk_primary,
                 }
             )
 
@@ -154,6 +164,74 @@ class StationGraphService:
 
         return supplemental
 
+    def _load_station_reference_lookup(self) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+        if self._station_reference_by_id is not None and self._station_reference_by_name is not None:
+            return self._station_reference_by_id, self._station_reference_by_name
+
+        path = self.settings.stations_official_uk_json_path
+        if not path.exists():
+            self._station_reference_by_id = {}
+            self._station_reference_by_name = {}
+            return self._station_reference_by_id, self._station_reference_by_name
+
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        reference_by_id: dict[str, dict[str, Any]] = {}
+        reference_by_name: dict[str, dict[str, Any]] = {}
+
+        for raw_station in payload.get("stations", []):
+            station_code = str(raw_station.get("stationCode") or "").strip()
+            station_name = str(raw_station.get("stationName") or raw_station.get("name") or "").strip()
+            uk_values = [str(value).strip() for value in raw_station.get("UK") or [] if str(value).strip()]
+            uk_primary = str(raw_station.get("UK_primary") or "").strip() or (uk_values[0] if uk_values else None)
+            if not station_code and not station_name:
+                continue
+
+            reference = {
+                "stationCode": station_code,
+                "stationName": station_name,
+                "UK": uk_values,
+                "UK_primary": uk_primary,
+            }
+
+            if station_code:
+                reference_by_id[station_code] = reference
+
+            normalized_name = normalize_text(station_name)
+            if normalized_name and normalized_name not in reference_by_name:
+                reference_by_name[normalized_name] = reference
+
+        self._station_reference_by_id = reference_by_id
+        self._station_reference_by_name = reference_by_name
+        return reference_by_id, reference_by_name
+
+    def _merge_station_reference(
+        self,
+        station: dict[str, Any],
+        reference_by_id: dict[str, dict[str, Any]],
+        reference_by_name: dict[str, dict[str, Any]],
+    ) -> dict[str, Any]:
+        reference: dict[str, Any] | None = None
+        station_id = str(station.get("StationID") or "").strip()
+        if station_id:
+            reference = reference_by_id.get(station_id)
+
+        if reference is None:
+            station_name = station.get("StationName", {}).get("Zh_tw")
+            for candidate in self._candidate_station_keys(str(station_name or "")):
+                reference = reference_by_name.get(candidate)
+                if reference is not None:
+                    break
+
+        if reference is None:
+            return station
+
+        merged = dict(station)
+        if reference.get("UK"):
+            merged["UK"] = list(reference["UK"])
+        if reference.get("UK_primary"):
+            merged["UK_primary"] = reference["UK_primary"]
+        return merged
+
     def _candidate_station_keys(self, station_name: str) -> list[str]:
         normalized = normalize_text(station_name)
         if not normalized:
@@ -180,9 +258,15 @@ class StationGraphService:
         if station_a:
             enriched["station_a_id"] = station_a.get("StationID")
             enriched["station_a_position"] = station_a.get("StationPosition")
+            enriched["station_a_uk_values"] = [str(value).strip() for value in station_a.get("UK") or [] if str(value).strip()]
+            enriched["station_a_uk_primary"] = str(station_a.get("UK_primary") or "").strip() or None
         if station_b:
             enriched["station_b_id"] = station_b.get("StationID")
             enriched["station_b_position"] = station_b.get("StationPosition")
+            enriched["station_b_uk_values"] = [str(value).strip() for value in station_b.get("UK") or [] if str(value).strip()]
+            enriched["station_b_uk_primary"] = str(station_b.get("UK_primary") or "").strip() or None
+        if enriched.get("station_a_uk_primary") or enriched.get("station_b_uk_primary"):
+            enriched["station_uk_reference_note"] = "車站 UK 為推估參考值，非精準量測。"
 
         if station_a and station_b:
             geometry = properties.get("geometry")

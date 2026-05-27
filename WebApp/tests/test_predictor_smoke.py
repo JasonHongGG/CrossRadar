@@ -161,6 +161,21 @@ def test_partition_predictions_keeps_recent_past_and_next_two_upcoming() -> None
     assert [record.train_no for record in all_upcoming_predictions] == ["1003", "1004", "1005"]
 
 
+def test_prediction_window_without_horizon_keeps_far_future_train() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    now = parse_time_on_date(date(2026, 5, 20), "10:00")
+    eta = parse_time_on_date(date(2026, 5, 20), "18:30")
+
+    assert now is not None
+    assert eta is not None
+    assert predictor._is_prediction_in_window(
+        eta,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+    ) is True
+
+
 def test_merge_predictions_keeps_live_and_missing_timetable_trains() -> None:
     predictor = PredictorService.__new__(PredictorService)
     now = parse_time_on_date(date(2026, 5, 20), "10:00")

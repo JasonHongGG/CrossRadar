@@ -11,7 +11,7 @@ router = APIRouter(prefix="/predictions", tags=["predictions"])
 @router.get("/{crossing_id}")
 async def get_predictions(
     crossing_id: str,
-    horizon_minutes: int = Query(default=20, ge=1, le=180),
+    horizon_minutes: int | None = Query(default=None, ge=1),
     recent_minutes: int = Query(default=10, ge=1, le=60),
     warning_minutes: int = Query(default=5, ge=1, le=30),
 ) -> dict:

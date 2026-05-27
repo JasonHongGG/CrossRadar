@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     osm_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "osm_crossings.geojson"
     station_source_json_path: Path = ROOT_DIR / "車站基本資料集.json"
     stations_official_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_official.json"
+    stations_official_uk_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_official(UK).json"
     supplemental_stations_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_supplemental.json"
     tainan_stations_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_tainan.json"
     tdx_runtime_dir: Path = ROOT_DIR / ".runtime" / "tdx"
