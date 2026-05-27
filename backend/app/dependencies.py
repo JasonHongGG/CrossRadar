@@ -61,7 +61,7 @@ def get_manual_mapping_service() -> ManualOsmMappingService:
 
 @lru_cache(maxsize=1)
 def get_station_graph_service() -> StationGraphService:
-    return StationGraphService(get_tdx_client(), get_rail_path_service())
+    return StationGraphService(get_tdx_client(), get_rail_path_service(), get_settings())
 
 
 @lru_cache(maxsize=1)

@@ -94,11 +94,26 @@ class CrossingCatalogService:
             self.settings.official_crossings_json_path,
             self.settings.osm_geojson_path,
             self.settings.route_reference_json_path,
+            self.settings.supplemental_stations_json_path,
+            self.settings.runtime_excluded_crossings_json_path,
         )
         return any(self._path_is_newer(path, baseline_mtime) for path in dependencies)
 
     def _path_is_newer(self, path: Path, baseline_mtime: float) -> bool:
         return path.exists() and path.stat().st_mtime > baseline_mtime
+
+    def _load_runtime_exclusion_lookup(self) -> dict[str, dict[str, Any]]:
+        path = self.settings.runtime_excluded_crossings_json_path
+        if not path.exists():
+            return {}
+
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        exclusions = payload.get("exclusions", [])
+        return {
+            str(item.get("crossing_id")): item
+            for item in exclusions
+            if item.get("crossing_id")
+        }
 
     async def list_crossings(
         self,
@@ -133,13 +148,30 @@ class CrossingCatalogService:
 
     def _build_active_geojson(self, dataset: dict[str, Any]) -> dict[str, Any]:
         all_features = dataset.get("features", [])
-        active_features = [feature for feature in all_features if feature.get("geometry") is not None]
+        exclusion_lookup = self._load_runtime_exclusion_lookup()
+        active_features: list[dict[str, Any]] = []
+        excluded_without_geometry_count = 0
+        explicit_runtime_excluded_count = 0
+
+        for feature in all_features:
+            properties = feature.get("properties", {})
+            crossing_id = str(properties.get("crossing_id") or feature.get("id") or "")
+            if crossing_id and crossing_id in exclusion_lookup:
+                explicit_runtime_excluded_count += 1
+                continue
+            if feature.get("geometry") is None:
+                excluded_without_geometry_count += 1
+                continue
+            active_features.append(feature)
+
         metadata = {
             **dataset.get("metadata", {}),
             "source": "official+osm_active",
-            "selection_rule": "Only crossings with an adopted geometry are included; unresolved or stale location records are excluded from the runtime dataset.",
+            "selection_rule": "Only crossings with an adopted geometry are included; unresolved or stale location records and explicit runtime exclusions are omitted from the runtime dataset.",
             "feature_count": len(active_features),
-            "excluded_feature_count": max(len(all_features) - len(active_features), 0),
+            "excluded_feature_count": excluded_without_geometry_count + explicit_runtime_excluded_count,
+            "excluded_without_geometry_count": excluded_without_geometry_count,
+            "explicit_runtime_excluded_count": explicit_runtime_excluded_count,
             "full_feature_count": len(all_features),
             "full_dataset_path": str(self.settings.full_crossings_geojson_path),
         }

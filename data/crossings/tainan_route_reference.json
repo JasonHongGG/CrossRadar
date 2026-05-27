@@ -1,11 +1,12 @@
 {
   "metadata": {
-    "scope": "臺南市 / 縱貫線",
-    "version": 1,
-    "summary": "Correct stale Tainan station-pair labels using official incident and route-chainage references. Operating mileage is intentionally excluded from this reference.",
+    "scope": "Crossing station-pair overrides",
+    "version": 2,
+    "summary": "Correct stale or user-confirmed crossing station-pair labels using authoritative references and explicit crossing overrides. Operating mileage is intentionally excluded from this reference.",
     "sources": [
       "TRA crossing incident tables (四維路 K351+802 listed as 永康~大橋 in 113 年資料)",
-      "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)"
+      "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)",
+      "User-confirmed override: 八德街-中興一號特種支線-k001705 should treat 基地 as 鳳鳴火車站."
     ]
   },
   "rules": [
@@ -45,6 +46,19 @@
       },
       "pair_source": "authoritative_reference",
       "reference_note": "Crossings between K355+300 and UK357+800 are treated as the 大橋-臺南 operational segment instead of the stale 永康-台南 query label."
+    },
+    {
+      "id": "bade-yingge-fengming",
+      "match": {
+        "crossing_id": "八德街-中興一號特種支線-k001705"
+      },
+      "override": {
+        "station_pair_text": "鶯歌-鳳鳴火車站",
+        "station_a_name": "鶯歌",
+        "station_b_name": "鳳鳴火車站"
+      },
+      "pair_source": "explicit_crossing_override",
+      "reference_note": "Explicit user-confirmed override: treat the official 基地 endpoint as 鳳鳴火車站 for 八德街."
     }
   ]
 }

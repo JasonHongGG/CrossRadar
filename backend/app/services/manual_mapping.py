@@ -46,10 +46,15 @@ class ManualOsmMappingService:
         analysis = self._load_unmatched_analysis()
         mapping_lookup = self._mapping_lookup()
         osm_lookup = await self._osm_lookup()
+        raw_entries = [
+            entry
+            for entry in analysis.get("entries", [])
+            if entry.get("analysis", {}).get("reviewable", True)
+        ]
 
         entries: list[dict[str, Any]] = []
         resolved_count = 0
-        for raw_entry in analysis.get("entries", []):
+        for raw_entry in raw_entries:
             entry = await self._enrich_review_entry(raw_entry)
             crossing_id = entry.get("crossing_id")
             manual_mapping = mapping_lookup.get(str(crossing_id))
@@ -72,12 +77,13 @@ class ManualOsmMappingService:
                 }
             )
 
-        total_unmatched = len(analysis.get("entries", []))
+        total_unmatched = len(raw_entries)
         return {
             "metadata": {
                 **analysis.get("metadata", {}),
                 "pending_count": max(total_unmatched - resolved_count, 0),
                 "resolved_count": resolved_count,
+                "reviewable_count": total_unmatched,
                 "manual_mapping_file": _file_meta(self.settings.manual_mappings_json_path),
             },
             "summary": analysis.get("summary", {}),
@@ -204,6 +210,8 @@ class ManualOsmMappingService:
         analysis = self._load_unmatched_analysis()
         for entry in analysis.get("entries", []):
             if entry.get("crossing_id") == crossing_id:
+                if entry.get("analysis", {}).get("reviewable", True) is False:
+                    raise LookupError(f"Crossing {crossing_id} is excluded from manual review")
                 return entry
         raise LookupError(f"Crossing {crossing_id} not found in unmatched analysis")
 

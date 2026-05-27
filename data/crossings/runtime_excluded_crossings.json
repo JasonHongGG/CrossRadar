@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "scope": "Runtime curated exclusions",
+    "version": 1,
+    "summary": "Crossings intentionally excluded from crossings_curated.geojson and manual OSM review."
+  },
+  "exclusions": [
+    {
+      "crossing_id": "十九a-台中港線-k007655",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "中橫15路-台中港線-k007988",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "中橫14路-台中港線-k008256",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "中橫13路-台中港線-k008607",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "中橫11路-台中港線-k009232",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "中橫10路-台中港線-k009470",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "中橫4路-台中港線-k010291",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Keep out of crossings_curated.geojson and unmatched/manual-review queues."
+    },
+    {
+      "crossing_id": "北堤路-台中港線-k007043",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Remove this previously active crossing from crossings_curated.geojson and stop considering it in runtime logic."
+    },
+    {
+      "crossing_id": "北堤路-台中港線-k007073",
+      "category": "user_retired_from_runtime",
+      "reason": "User explicitly retired this crossing from runtime consideration.",
+      "note": "Remove this previously active crossing from crossings_curated.geojson and stop considering it in runtime logic."
+    }
+  ]
+}

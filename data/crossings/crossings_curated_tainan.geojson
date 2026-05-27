@@ -4,25 +4,28 @@
     "source": "official+osm_active",
     "official_count": 418,
     "mapped_count": 403,
-    "authoritative_pair_count": 3,
+    "authoritative_pair_count": 4,
     "osm_feature_count": 1900,
     "osm_raw_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\.runtime\\osm\\taiwan_crossings.overpass.json",
     "route_reference": {
-      "scope": "臺南市 / 縱貫線",
-      "version": 1,
-      "summary": "Correct stale Tainan station-pair labels using official incident and route-chainage references. Operating mileage is intentionally excluded from this reference.",
+      "scope": "Crossing station-pair overrides",
+      "version": 2,
+      "summary": "Correct stale or user-confirmed crossing station-pair labels using authoritative references and explicit crossing overrides. Operating mileage is intentionally excluded from this reference.",
       "sources": [
         "TRA crossing incident tables (四維路 K351+802 listed as 永康~大橋 in 113 年資料)",
-        "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)"
+        "Official Tainan undergrounding project chainage anchors (大橋南端 K355+300, 臺南站 UK357+800)",
+        "User-confirmed override: 八德街-中興一號特種支線-k001705 should treat 基地 as 鳳鳴火車站."
       ]
     },
-    "selection_rule": "Only crossings with an adopted geometry are included; unresolved or stale location records are excluded from the runtime dataset.",
+    "selection_rule": "Only crossings with an adopted geometry are included; unresolved or stale location records and explicit runtime exclusions are omitted from the runtime dataset.",
     "feature_count": 42,
-    "excluded_feature_count": 15,
+    "excluded_feature_count": 17,
+    "excluded_without_geometry_count": 8,
+    "explicit_runtime_excluded_count": 9,
     "full_feature_count": 418,
     "full_dataset_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\data\\crossings\\crossings_full.geojson",
     "scope_county": "臺南市",
-    "source_feature_count": 403
+    "source_feature_count": 401
   },
   "features": [
     {
@@ -166,8 +169,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.3758451,
-          23.3884947
+          120.3758176,
+          23.388506
         ]
       },
       "properties": {
@@ -192,7 +195,7 @@
         "county": "臺南市",
         "source_page": 29,
         "source_row_index": 3,
-        "matched_osm_id": 2074462901,
+        "matched_osm_id": 3277482080,
         "match_score": 97.0,
         "match_method": "node_name",
         "geolocation_confidence": "medium",
@@ -220,10 +223,9 @@
           "縱貫線"
         ],
         "osm_rail_way_ids": [
-          321033991
+          321033995
         ],
         "osm_tags": {
-          "crossing:barrier": "full",
           "name": "上茄苳平交道",
           "railway": "level_crossing"
         }
@@ -235,8 +237,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.3724513,
-          23.3839343
+          120.372417,
+          23.3839498
         ]
       },
       "properties": {
@@ -261,7 +263,7 @@
         "county": "臺南市",
         "source_page": 29,
         "source_row_index": 4,
-        "matched_osm_id": 2074462804,
+        "matched_osm_id": 3277476317,
         "match_score": 132.0,
         "match_method": "node_name",
         "geolocation_confidence": "medium",
@@ -287,7 +289,7 @@
           "縱貫線"
         ],
         "osm_rail_way_ids": [
-          321033991
+          321033995
         ],
         "osm_tags": {
           "name": "嘉民",
@@ -301,8 +303,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.3621173,
-          23.36893
+          120.3620903,
+          23.368946
         ]
       },
       "properties": {
@@ -327,7 +329,7 @@
         "county": "臺南市",
         "source_page": 29,
         "source_row_index": 5,
-        "matched_osm_id": 2027785606,
+        "matched_osm_id": 3325024087,
         "match_score": 132.0,
         "match_method": "node_name",
         "geolocation_confidence": "medium",
@@ -353,7 +355,7 @@
           "縱貫線"
         ],
         "osm_rail_way_ids": [
-          197761739
+          789641628
         ],
         "osm_tags": {
           "crossing:barrier": "yes",

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from backend.app.config import Settings, get_settings
 from backend.app.clients.tdx_tra import TdxTraClient
 from backend.app.models.crossing import GeoPoint
 from backend.app.services.rail_path import RailPathService
@@ -11,6 +13,11 @@ from backend.app.utils import haversine_meters, normalize_text, point_ratio_betw
 STATION_NAME_ALIASES = {
     "中州": "中洲",
     "蘇澳新站": "蘇澳新",
+    "侯硐": "猴硐",
+    "內彎": "內灣",
+    "車程": "車埕",
+    "安通": "東里",
+    "鳳鳴火車站": "鳳鳴",
 }
 
 OSM_PATH_MAX_DISTANCE_MULTIPLIER = 2.5
@@ -21,17 +28,33 @@ OSM_PATH_GEOMETRY_MIN_DISTANCE_METERS = 8_000.0
 
 
 class StationGraphService:
-    def __init__(self, tdx_client: TdxTraClient, rail_path_service: RailPathService | None = None) -> None:
+    def __init__(
+        self,
+        tdx_client: TdxTraClient,
+        rail_path_service: RailPathService | None = None,
+        settings: Settings | None = None,
+    ) -> None:
+        self.settings = settings or get_settings()
         self.tdx_client = tdx_client
         self.rail_path_service = rail_path_service
+        self._stations: list[dict[str, Any]] | None = None
         self._station_lookup: dict[str, dict[str, Any]] | None = None
         self._station_lookup_by_id: dict[str, dict[str, Any]] | None = None
+
+    async def _get_stations(self) -> list[dict[str, Any]]:
+        if self._stations is not None:
+            return self._stations
+
+        stations = list(await self.tdx_client.get_stations())
+        stations.extend(self._load_supplemental_stations())
+        self._stations = stations
+        return stations
 
     async def get_station_lookup(self) -> dict[str, dict[str, Any]]:
         if self._station_lookup is not None:
             return self._station_lookup
 
-        stations = await self.tdx_client.get_stations()
+        stations = await self._get_stations()
         lookup: dict[str, dict[str, Any]] = {}
         lookup_by_id: dict[str, dict[str, Any]] = {}
         for station in stations:
@@ -64,7 +87,7 @@ class StationGraphService:
         return None
 
     async def list_station_summaries(self, *, limit: int | None = None) -> list[dict[str, Any]]:
-        stations = await self.tdx_client.get_stations()
+        stations = await self._get_stations()
         summaries: list[dict[str, Any]] = []
         seen_station_ids: set[str] = set()
 
@@ -95,6 +118,41 @@ class StationGraphService:
         if limit is not None:
             return summaries[:limit]
         return summaries
+
+    def _load_supplemental_stations(self) -> list[dict[str, Any]]:
+        path = self.settings.supplemental_stations_json_path
+        if not path.exists():
+            return []
+
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        supplemental: list[dict[str, Any]] = []
+        for item in payload.get("stations", []):
+            name = str(item.get("name") or "").strip()
+            station_id = str(item.get("station_id") or "").strip()
+            position = item.get("position") or {}
+            lat = position.get("PositionLat")
+            lon = position.get("PositionLon")
+            if lat is None:
+                lat = item.get("lat")
+            if lon is None:
+                lon = item.get("lon")
+            if not name or not station_id or lat is None or lon is None:
+                continue
+
+            supplemental.append(
+                {
+                    "StationID": station_id,
+                    "StationName": {"Zh_tw": name},
+                    "StationPosition": {
+                        "PositionLat": float(lat),
+                        "PositionLon": float(lon),
+                    },
+                    "Supplemental": True,
+                    "SupplementalNote": item.get("note"),
+                }
+            )
+
+        return supplemental
 
     def _candidate_station_keys(self, station_name: str) -> list[str]:
         normalized = normalize_text(station_name)

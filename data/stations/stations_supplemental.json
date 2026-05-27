@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "updated_at": "2026-05-27T00:00:00+00:00",
+    "count": 3,
+    "note": "Supplemental historical and freight endpoints used when TDX station data does not expose the required station name or position."
+  },
+  "stations": [
+    {
+      "station_id": "SUPP-TXG-GANG",
+      "name": "港站",
+      "position": {
+        "PositionLat": 24.291877343682472,
+        "PositionLon": 120.54376358704093
+      },
+      "note": "Estimated as the along-track midpoint between 調車場入口(K006+020) and 北堤路(一)(K007+043), where the official station-pair boundary flips from 台中港-港站 to 港站-延長線."
+    },
+    {
+      "station_id": "SUPP-HUN-HUALIEN-PORT",
+      "name": "花蓮港",
+      "position": {
+        "PositionLat": 23.9942118,
+        "PositionLon": 121.6357715
+      },
+      "note": "OpenStreetMap Nominatim Taiwan railway station result for Hualien Port (OSM node 5700276131)."
+    },
+    {
+      "station_id": "SUPP-MIA-SHENGXING",
+      "name": "勝興",
+      "position": {
+        "PositionLat": 24.3880295,
+        "PositionLon": 120.7817416
+      },
+      "note": "OpenStreetMap Nominatim Taiwan railway station result for Shengxing railway station (OSM node 774940331)."
+    }
+  ]
+}

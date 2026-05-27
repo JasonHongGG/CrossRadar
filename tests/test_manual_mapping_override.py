@@ -248,15 +248,68 @@ def test_manual_review_entries_fallback_when_station_lookup_fails(tmp_path) -> N
     assert "station_b_position" not in entry
 
 
+def test_manual_review_entries_skip_explicit_runtime_exclusions(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.unmatched_analysis_json_path = tmp_path / "unmatched_crossings_analysis.json"
+    settings.manual_mappings_json_path = tmp_path / "manual_osm_mappings.json"
+    settings.unmatched_analysis_json_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"unmatched_count": 2},
+                "summary": {},
+                "entries": [
+                    {
+                        "crossing_id": "excluded-crossing",
+                        "name": "已淘汰",
+                        "line": "台中港線",
+                        "station_pair_text": "港站-延長線",
+                        "station_a_name": "港站",
+                        "station_b_name": "延長線",
+                        "analysis": {"reviewable": False},
+                    },
+                    {
+                        "crossing_id": "reviewable-crossing",
+                        "name": "待處理",
+                        "line": "集集線",
+                        "station_pair_text": "濁水-龍泉",
+                        "station_a_name": "濁水",
+                        "station_b_name": "龍泉",
+                        "analysis": {"reviewable": True},
+                    },
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    settings.manual_mappings_json_path.write_text(
+        json.dumps({"metadata": {"count": 0}, "mappings": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    service = ManualOsmMappingService(_StubCatalog(), _StubOsmEnricher(), settings, _StubStationGraph())
+    payload = asyncio.run(service.list_review_entries(include_resolved=True))
+
+    assert payload["metadata"]["reviewable_count"] == 1
+    assert payload["metadata"]["pending_count"] == 1
+    assert [entry["crossing_id"] for entry in payload["entries"]] == ["reviewable-crossing"]
+
+
 def test_catalog_load_refreshes_when_manual_mapping_file_is_newer(tmp_path) -> None:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     settings.curated_crossings_geojson_path = tmp_path / "crossings_curated.geojson"
     settings.full_crossings_geojson_path = tmp_path / "crossings_full.geojson"
     settings.curated_tainan_crossings_geojson_path = tmp_path / "crossings_curated_tainan.geojson"
     settings.official_tainan_crossings_json_path = tmp_path / "crossings_official_tainan.json"
+    settings.runtime_excluded_crossings_json_path = tmp_path / "runtime_excluded_crossings.json"
     settings.manual_mappings_json_path = tmp_path / "manual_osm_mappings.json"
     settings.official_crossings_json_path = tmp_path / "crossings_official.json"
     settings.osm_geojson_path = tmp_path / "osm_crossings.geojson"
+    settings.runtime_excluded_crossings_json_path.write_text(
+        json.dumps({"metadata": {"count": 0}, "exclusions": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
     settings.curated_crossings_geojson_path.write_text(
         json.dumps({"type": "FeatureCollection", "metadata": {"mapped_count": 0}, "features": []}, ensure_ascii=False, indent=2),
@@ -332,6 +385,84 @@ def test_catalog_load_refreshes_when_manual_mapping_file_is_newer(tmp_path) -> N
     assert settings.official_tainan_crossings_json_path.exists()
 
 
+def test_catalog_load_refreshes_when_supplemental_station_file_is_newer(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.curated_crossings_geojson_path = tmp_path / "crossings_curated.geojson"
+    settings.full_crossings_geojson_path = tmp_path / "crossings_full.geojson"
+    settings.curated_tainan_crossings_geojson_path = tmp_path / "crossings_curated_tainan.geojson"
+    settings.official_tainan_crossings_json_path = tmp_path / "crossings_official_tainan.json"
+    settings.runtime_excluded_crossings_json_path = tmp_path / "runtime_excluded_crossings.json"
+    settings.manual_mappings_json_path = tmp_path / "manual_osm_mappings.json"
+    settings.official_crossings_json_path = tmp_path / "crossings_official.json"
+    settings.osm_geojson_path = tmp_path / "osm_crossings.geojson"
+    settings.supplemental_stations_json_path = tmp_path / "stations_supplemental.json"
+    settings.runtime_excluded_crossings_json_path.write_text(
+        json.dumps({"metadata": {"count": 0}, "exclusions": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    settings.curated_crossings_geojson_path.write_text(
+        json.dumps({"type": "FeatureCollection", "metadata": {"mapped_count": 0}, "features": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    settings.supplemental_stations_json_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"updated_at": "2026-05-27T00:00:00+00:00", "count": 1},
+                "stations": [
+                    {
+                        "station_id": "SUPP-TEST-GANG",
+                        "name": "港站",
+                        "position": {"PositionLat": 24.2918773, "PositionLon": 120.5437636},
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    settings.manual_mappings_json_path.write_text(
+        json.dumps({"metadata": {"updated_at": "2026-05-27T00:00:00+00:00", "count": 0}, "mappings": []}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    now = time.time()
+    os.utime(settings.curated_crossings_geojson_path, (now - 10, now - 10))
+    os.utime(settings.supplemental_stations_json_path, (now, now))
+
+    official_record = CrossingRecord(
+        crossing_id="sample-crossing",
+        name="樣本平交道",
+        normalized_name="樣本平交道",
+        line="宜蘭線",
+        km_marker="K001+000",
+        km_prefix="",
+        km_value_meters=1000,
+        road_type="村里",
+        station_pair_text="甲站-乙站",
+        station_a_name="甲站",
+        station_b_name="乙站",
+        county="測試縣",
+        source_page=1,
+        source_row_index=1,
+    )
+    osm_geojson = {
+        "type": "FeatureCollection",
+        "features": [],
+    }
+
+    catalog = CrossingCatalogService(_StubScraper([official_record]), _StubGeojsonEnricher(osm_geojson), settings)
+
+    assert catalog._is_crossing_cache_stale() is True
+    curated = asyncio.run(catalog.load())
+
+    assert curated["metadata"]["feature_count"] == 0
+    assert settings.full_crossings_geojson_path.exists()
+    assert settings.curated_tainan_crossings_geojson_path.exists()
+    assert settings.official_tainan_crossings_json_path.exists()
+
+
 def test_active_dataset_excludes_crossings_without_geometry() -> None:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     catalog = CrossingCatalogService(None, None, settings)  # type: ignore[arg-type]
@@ -360,5 +491,55 @@ def test_active_dataset_excludes_crossings_without_geometry() -> None:
 
     assert len(active_dataset["features"]) == 1
     assert active_dataset["metadata"]["excluded_feature_count"] == 1
+    assert active_dataset["metadata"]["excluded_without_geometry_count"] == 1
+    assert active_dataset["metadata"]["explicit_runtime_excluded_count"] == 0
     assert active_dataset["features"][0]["properties"]["crossing_id"] == "mapped"
     assert len(tainan_dataset["features"]) == 1
+
+
+def test_active_dataset_excludes_explicit_runtime_exclusions(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.runtime_excluded_crossings_json_path = tmp_path / "runtime_excluded_crossings.json"
+    settings.runtime_excluded_crossings_json_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"count": 1},
+                "exclusions": [
+                    {
+                        "crossing_id": "retired",
+                        "reason": "user retired",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    catalog = CrossingCatalogService(None, None, settings)  # type: ignore[arg-type]
+
+    full_dataset = {
+        "type": "FeatureCollection",
+        "metadata": {"mapped_count": 2},
+        "features": [
+            {
+                "type": "Feature",
+                "id": "retired",
+                "geometry": {"type": "Point", "coordinates": [121.5, 25.0]},
+                "properties": {"crossing_id": "retired", "county": "臺中市"},
+            },
+            {
+                "type": "Feature",
+                "id": "kept",
+                "geometry": {"type": "Point", "coordinates": [121.6, 25.1]},
+                "properties": {"crossing_id": "kept", "county": "臺中市"},
+            },
+        ],
+    }
+
+    active_dataset = catalog._build_active_geojson(full_dataset)
+
+    assert [feature["properties"]["crossing_id"] for feature in active_dataset["features"]] == ["kept"]
+    assert active_dataset["metadata"]["excluded_feature_count"] == 1
+    assert active_dataset["metadata"]["excluded_without_geometry_count"] == 0
+    assert active_dataset["metadata"]["explicit_runtime_excluded_count"] == 1
