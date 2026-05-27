@@ -266,6 +266,102 @@ def test_resolve_stop_pair_uses_single_anchor_neighbor_toward_other_anchor() -> 
     assert direction == 0
 
 
+def test_resolve_stop_pair_rejects_single_anchor_neighbor_away_from_other_anchor() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    timetable = {
+        "StopTimes": [
+            {
+                "StopSequence": 19,
+                "StationID": "B",
+                "StationName": {"Zh_tw": "臺南"},
+                "ArrivalTime": "17:16",
+                "DepartureTime": "17:18",
+            },
+            {
+                "StopSequence": 20,
+                "StationID": "Y",
+                "StationName": {"Zh_tw": "保安"},
+                "ArrivalTime": "17:26",
+                "DepartureTime": "17:27",
+            },
+        ]
+    }
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.03825, "PositionLon": 120.25347}},
+        "B": {"StationPosition": {"PositionLat": 22.99681, "PositionLon": 120.21295}},
+        "Y": {"StationPosition": {"PositionLat": 22.93814, "PositionLon": 120.22977}},
+    }
+
+    pair = predictor._resolve_stop_pair(
+        timetable,
+        "A",
+        "B",
+        station_lookup_by_id=station_lookup_by_id,
+    )
+
+    assert pair is None
+
+
+def test_build_predictions_from_timetables_skips_non_bracketing_single_anchor_pair() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    now = parse_time_on_date(date.today(), "03:47")
+    assert now is not None
+
+    crossing = {
+        "station_a_id": "A",
+        "station_b_id": "B",
+        "segment_ratio": 0.31607606206598104,
+        "geolocation_confidence": "high",
+        "segment_confidence": "high",
+        "geometry": {"lon": 120.2371122, "lat": 23.0277097},
+    }
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.03825, "PositionLon": 120.25347}},
+        "B": {"StationPosition": {"PositionLat": 22.99681, "PositionLon": 120.21295}},
+        "Y": {"StationPosition": {"PositionLat": 22.93814, "PositionLon": 120.22977}},
+    }
+    timetables = [
+        {
+            "TrainInfo": {
+                "TrainNo": "3701",
+                "TrainTypeName": {"Zh_tw": "區間"},
+                "StartingStationID": "B",
+                "StartingStationName": {"Zh_tw": "臺南"},
+                "EndingStationID": "Y",
+                "EndingStationName": {"Zh_tw": "保安"},
+            },
+            "StopTimes": [
+                {
+                    "StopSequence": 1,
+                    "StationID": "B",
+                    "StationName": {"Zh_tw": "臺南"},
+                    "ArrivalTime": "05:29",
+                    "DepartureTime": "05:29",
+                },
+                {
+                    "StopSequence": 2,
+                    "StationID": "Y",
+                    "StationName": {"Zh_tw": "保安"},
+                    "ArrivalTime": "05:36",
+                    "DepartureTime": "05:36",
+                },
+            ],
+        }
+    ]
+
+    predictions = predictor._build_predictions_from_timetables(
+        crossing,
+        timetables,
+        station_lookup_by_id=station_lookup_by_id,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+        warning_minutes=5,
+    )
+
+    assert predictions == []
+
+
 def test_build_predictions_from_timetables_keeps_all_sorted_candidates() -> None:
     predictor = PredictorService.__new__(PredictorService)
     now = parse_time_on_date(date.today(), "10:00")

@@ -17,7 +17,7 @@ const PREDICTION_RECENT_WINDOW_MINUTES = 10;
 const PREDICTION_WARNING_WINDOW_MINUTES = 5;
 const STATION_REFERENCE_FALLBACK = 'UK 未提供';
 const STATION_REFERENCE_NOTE = '車站 UK 為推估參考值，非精準量測。';
-const STATION_LABEL_MIN_ZOOM = 11;
+const STATION_LABEL_MIN_ZOOM = 10;
 const STATION_VIEWPORT_PADDING = 0.18;
 
 const map = L.map('map', {
@@ -730,10 +730,7 @@ function getScheduleSlots() {
 function getPrimaryPrediction() {
   const predictions = getAllUpcomingPredictions();
   if (!predictions.length) return null;
-  return predictions.find((record) => isLivePrediction(record) && isWithinWarningWindow(record))
-    || predictions.find((record) => isLivePrediction(record))
-    || predictions.find((record) => isWithinWarningWindow(record))
-    || predictions[0];
+  return predictions[0];
 }
 
 function fitMapToPoints(points, { maxZoom = 14 } = {}) {
@@ -1068,11 +1065,11 @@ function renderStationOverview() {
 
     const marker = L.circleMarker(coords, {
       renderer: stationOverviewRenderer,
-      radius: showUkLabels ? 4.4 : 2.8,
-      weight: showUkLabels ? 1.4 : 0.8,
+      radius: showUkLabels ? 5.2 : 3.8,
+      weight: showUkLabels ? 1.8 : 1.2,
       color: '#355c84',
       fillColor: '#d7eefb',
-      fillOpacity: showUkLabels ? 0.96 : 0.88,
+      fillOpacity: showUkLabels ? 0.98 : 0.9,
       interactive: false,
     });
     if (showUkLabels) {
@@ -1500,6 +1497,15 @@ function attachEventListeners() {
   map.on('zoomend moveend', () => {
     renderStationOverview();
   });
+
+  L.DomEvent.disableClickPropagation(elements.searchPanel);
+  L.DomEvent.disableScrollPropagation(elements.searchPanel);
+  elements.searchPanel.addEventListener('wheel', (event) => {
+    event.stopPropagation();
+  }, { passive: true });
+  elements.searchPanel.addEventListener('touchmove', (event) => {
+    event.stopPropagation();
+  }, { passive: true });
 
   elements.regionInput.addEventListener('focus', () => {
     setSearchPanelOpen(true);

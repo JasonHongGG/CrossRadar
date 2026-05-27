@@ -174,6 +174,14 @@ class PredictorService:
                 downstream_station_id=downstream.get("StationID"),
                 station_lookup_by_id=station_lookup_by_id,
             )
+            if not self._is_prediction_segment_valid(
+                crossing,
+                upstream_station_id=upstream.get("StationID"),
+                downstream_station_id=downstream.get("StationID"),
+                ratio=ratio,
+                ratio_source=prediction_ratio_source,
+            ):
+                continue
             eta = actual_upstream + (actual_downstream - actual_upstream) * ratio
             if not self._is_prediction_in_window(
                 eta,
@@ -271,6 +279,14 @@ class PredictorService:
                 downstream_station_id=downstream.get("StationID"),
                 station_lookup_by_id=station_lookup_by_id,
             )
+            if not self._is_prediction_segment_valid(
+                crossing,
+                upstream_station_id=upstream.get("StationID"),
+                downstream_station_id=downstream.get("StationID"),
+                ratio=ratio,
+                ratio_source=prediction_ratio_source,
+            ):
+                continue
             eta = upstream_departure + (downstream_arrival - upstream_departure) * ratio
             if not self._is_prediction_in_window(
                 eta,
@@ -491,6 +507,7 @@ class PredictorService:
         target_position = self._station_position(target_station_id, station_lookup_by_id)
         anchor_position = self._station_position(anchor_station_id, station_lookup_by_id)
         scored_candidates: list[tuple[float, float, int]] = []
+        used_position_scoring = False
 
         for index in candidate_indexes:
             candidate_station_id = str(stop_times[index].get("StationID") or "")
@@ -499,17 +516,45 @@ class PredictorService:
             candidate_position = self._station_position(candidate_station_id, station_lookup_by_id)
             if anchor_position is None or target_position is None or candidate_position is None:
                 continue
+            used_position_scoring = True
             alignment = self._position_alignment(anchor_position, target_position, candidate_position)
+            if alignment <= 0:
+                continue
             distance = self._position_distance_sq(candidate_position, target_position)
             scored_candidates.append((-alignment, distance, index))
 
         if scored_candidates:
-            scored_candidates.sort(key=lambda item: item[0])
+            scored_candidates.sort(key=lambda item: (item[0], item[1]))
             return scored_candidates[0][2]
+
+        if used_position_scoring:
+            return None
 
         if len(candidate_indexes) == 1:
             return candidate_indexes[0]
         return None
+
+    def _is_prediction_segment_valid(
+        self,
+        crossing: dict[str, Any],
+        *,
+        upstream_station_id: str | None,
+        downstream_station_id: str | None,
+        ratio: float,
+        ratio_source: str | None,
+    ) -> bool:
+        station_a_id = crossing.get("station_a_id")
+        station_b_id = crossing.get("station_b_id")
+        if (
+            upstream_station_id == station_a_id and downstream_station_id == station_b_id
+        ) or (
+            upstream_station_id == station_b_id and downstream_station_id == station_a_id
+        ):
+            return True
+
+        if ratio_source != "geometry_projection":
+            return False
+        return 0.0 < ratio < 1.0
 
     def _station_position(
         self,

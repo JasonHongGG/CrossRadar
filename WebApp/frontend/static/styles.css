@@ -289,6 +289,7 @@ svg {
   max-height: 440px;
   padding: 14px;
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(255, 255, 255, 0.76);
   border-radius: 24px;
   background: rgba(255, 251, 246, 0.98);
