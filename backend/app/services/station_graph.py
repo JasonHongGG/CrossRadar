@@ -63,6 +63,39 @@ class StationGraphService:
                 return station
         return None
 
+    async def list_station_summaries(self, *, limit: int | None = None) -> list[dict[str, Any]]:
+        stations = await self.tdx_client.get_stations()
+        summaries: list[dict[str, Any]] = []
+        seen_station_ids: set[str] = set()
+
+        for station in stations:
+            station_id = str(station.get("StationID") or "").strip()
+            if not station_id or station_id in seen_station_ids:
+                continue
+
+            position = station.get("StationPosition") or {}
+            lat = position.get("PositionLat")
+            lon = position.get("PositionLon")
+            if lat is None or lon is None:
+                continue
+
+            seen_station_ids.add(station_id)
+            summaries.append(
+                {
+                    "station_id": station_id,
+                    "name": station.get("StationName", {}).get("Zh_tw"),
+                    "position": {
+                        "PositionLat": float(lat),
+                        "PositionLon": float(lon),
+                    },
+                }
+            )
+
+        summaries.sort(key=lambda station: normalize_text(station.get("name")) or station["station_id"])
+        if limit is not None:
+            return summaries[:limit]
+        return summaries
+
     def _candidate_station_keys(self, station_name: str) -> list[str]:
         normalized = normalize_text(station_name)
         if not normalized:

@@ -67,6 +67,18 @@ async def list_manual_review_entries(include_resolved: bool = Query(default=True
     return await service.list_review_entries(include_resolved=include_resolved)
 
 
+@router.get("/stations")
+async def list_stations(
+    limit: int = Query(default=5000, ge=1, le=10000),
+) -> dict:
+    station_graph = get_station_graph_service()
+    stations = await station_graph.list_station_summaries(limit=limit)
+    return {
+        "count": len(stations),
+        "features": stations,
+    }
+
+
 @router.put("/manual-mappings/{crossing_id}")
 async def save_manual_mapping(crossing_id: str, payload: ManualMappingPayload) -> dict:
     service = get_manual_mapping_service()

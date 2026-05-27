@@ -9,12 +9,20 @@ from backend.app.models.crossing import ConfidenceLevel, CrossingRecord, GeoPoin
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
 from backend.app.services.route_reference import RouteReferenceService
-from backend.app.services.station_graph import StationGraphService
-from backend.app.utils import haversine_meters, normalize_text, project_point_onto_station_line
+from backend.app.services.station_graph import (
+    OSM_PATH_GEOMETRY_DELTA_THRESHOLD,
+    OSM_PATH_GEOMETRY_DISTANCE_MULTIPLIER,
+    OSM_PATH_GEOMETRY_MIN_DISTANCE_METERS,
+    OSM_PATH_MAX_DISTANCE_METERS,
+    OSM_PATH_MAX_DISTANCE_MULTIPLIER,
+    StationGraphService,
+)
+from backend.app.utils import haversine_meters, normalize_text, point_ratio_between_stations, project_point_onto_station_line
 
 
 OSM_STATION_CORRIDOR_MAX_OFFSET_MULTIPLIER = 2.0
 OSM_STATION_CORRIDOR_MAX_OFFSET_METERS = 10_000.0
+OSM_LOCAL_SIBLING_RADIUS_METERS = 20.0
 
 
 class CrossingCatalogService:
@@ -196,21 +204,35 @@ class CrossingCatalogService:
                 authoritative_pair_count += 1
 
             manual_mapping = manual_mapping_lookup.get(official.crossing_id)
+            manual_geometry = self._manual_geometry_from_mapping(manual_mapping)
             if manual_mapping is not None:
                 matched_feature = self._find_osm_feature_by_id(osm_features, manual_mapping.get("osm_id"))
                 if matched_feature is not None:
                     score = 100.0
                     match_method = "manual_override"
                     confidence = "high"
+                elif manual_geometry is not None:
+                    matched_feature = None
+                    score = 100.0
+                    match_method = "manual_coordinate_override"
+                    confidence = "high"
                 else:
                     matched_feature, score, match_method, confidence = self._match_official_to_osm(updated, osm_features, station_context=station_context)
             else:
                 matched_feature, score, match_method, confidence = self._match_official_to_osm(updated, osm_features, station_context=station_context)
+                matched_feature, score, match_method = self._prefer_plausible_local_osm_candidate(
+                    updated,
+                    matched_feature,
+                    score,
+                    match_method,
+                    osm_features,
+                    station_context=station_context,
+                )
 
             updated.match_score = score
             updated.match_method = match_method
             updated.geolocation_confidence = confidence
-            updated.manual_mapping_applied = matched_feature is not None and manual_mapping is not None
+            updated.manual_mapping_applied = manual_mapping is not None and (matched_feature is not None or manual_geometry is not None)
 
             if matched_feature is not None and confidence in ("high", "medium"):
                 properties = matched_feature.get("properties", {})
@@ -227,6 +249,17 @@ class CrossingCatalogService:
                         mapped_count += 1
                     else:
                         self._clear_osm_match(updated)
+            elif manual_geometry is not None and confidence in ("high", "medium"):
+                updated.geometry = manual_geometry
+                updated.matched_osm_id = None
+                updated.osm_road_names = []
+                updated.osm_rail_names = []
+                updated.osm_rail_way_ids = []
+                updated.osm_tags = {}
+                if self._matched_geometry_is_plausible(updated, station_context=station_context):
+                    mapped_count += 1
+                else:
+                    self._clear_osm_match(updated)
 
             features.append(updated.to_feature())
 
@@ -331,6 +364,155 @@ class CrossingCatalogService:
         )
         return not assessment.get("reject", False)
 
+    def _prefer_plausible_local_osm_candidate(
+        self,
+        official: CrossingRecord,
+        matched_feature: dict[str, Any] | None,
+        matched_score: float,
+        matched_method: str | None,
+        osm_features: list[dict[str, Any]],
+        *,
+        station_context: dict[str, Any] | None,
+    ) -> tuple[dict[str, Any] | None, float, str | None]:
+        if (
+            matched_feature is None
+            or station_context is None
+            or self.station_graph_service is None
+            or self.station_graph_service.rail_path_service is None
+        ):
+            return (matched_feature, matched_score, matched_method)
+
+        current_path_assessment = self._evaluate_osm_path_candidate(matched_feature, station_context=station_context)
+        if current_path_assessment is not None and current_path_assessment["plausible"]:
+            return (matched_feature, matched_score, matched_method)
+
+        current_coordinates = matched_feature.get("geometry", {}).get("coordinates") or [None, None]
+        if current_coordinates[0] is None or current_coordinates[1] is None:
+            return (matched_feature, matched_score, matched_method)
+
+        plausible_candidates: list[tuple[float, float, float, dict[str, Any], str | None]] = []
+        for feature in osm_features:
+            if feature is matched_feature:
+                continue
+
+            candidate_coordinates = feature.get("geometry", {}).get("coordinates") or [None, None]
+            if candidate_coordinates[0] is None or candidate_coordinates[1] is None:
+                continue
+
+            local_distance_meters = haversine_meters(
+                float(current_coordinates[1]),
+                float(current_coordinates[0]),
+                float(candidate_coordinates[1]),
+                float(candidate_coordinates[0]),
+            )
+            if local_distance_meters > OSM_LOCAL_SIBLING_RADIUS_METERS:
+                continue
+
+            candidate_score, candidate_method = self._score_match(official, feature, station_context=station_context)
+            if candidate_score < matched_score:
+                continue
+
+            candidate_path_assessment = self._evaluate_osm_path_candidate(feature, station_context=station_context)
+            if candidate_path_assessment is None or not candidate_path_assessment["plausible"]:
+                continue
+
+            plausible_candidates.append(
+                (
+                    candidate_score,
+                    float(candidate_path_assessment["total_distance_meters"]),
+                    local_distance_meters,
+                    feature,
+                    candidate_method,
+                )
+            )
+
+        if not plausible_candidates:
+            return (matched_feature, matched_score, matched_method)
+
+        plausible_candidates.sort(key=lambda item: (-item[0], item[1], item[2]))
+        best_score, _, _, best_feature, best_method = plausible_candidates[0]
+        return (best_feature, best_score, best_method)
+
+    def _evaluate_osm_path_candidate(
+        self,
+        osm_feature: dict[str, Any],
+        *,
+        station_context: dict[str, Any] | None,
+    ) -> dict[str, float | bool] | None:
+        if (
+            station_context is None
+            or self.station_graph_service is None
+            or self.station_graph_service.rail_path_service is None
+        ):
+            return None
+
+        station_a_position = station_context.get("station_a_position", {})
+        station_b_position = station_context.get("station_b_position", {})
+        station_a_lon = station_a_position.get("PositionLon")
+        station_a_lat = station_a_position.get("PositionLat")
+        station_b_lon = station_b_position.get("PositionLon")
+        station_b_lat = station_b_position.get("PositionLat")
+        coordinates = osm_feature.get("geometry", {}).get("coordinates") or [None, None]
+        if (
+            station_a_lon is None
+            or station_a_lat is None
+            or station_b_lon is None
+            or station_b_lat is None
+            or coordinates[0] is None
+            or coordinates[1] is None
+        ):
+            return None
+
+        point = GeoPoint(lat=float(coordinates[1]), lon=float(coordinates[0]))
+        path_result = self.station_graph_service.rail_path_service.compute_segment_ratio(
+            station_a_position=station_a_position,
+            station_b_position=station_b_position,
+            crossing_point=point,
+            crossing_way_ids=osm_feature.get("properties", {}).get("rail_way_ids") or None,
+        )
+        if path_result is None:
+            return None
+
+        geometry_ratio = point_ratio_between_stations(
+            float(station_a_lon),
+            float(station_a_lat),
+            float(station_b_lon),
+            float(station_b_lat),
+            point.lon,
+            point.lat,
+        )
+        total_distance_meters = path_result.distance_from_station_a_meters + path_result.distance_to_station_b_meters
+        station_span_meters = float(station_context.get("station_span_meters") or 0.0)
+        if station_span_meters <= 0.0:
+            station_span_meters = haversine_meters(
+                float(station_a_lat),
+                float(station_a_lon),
+                float(station_b_lat),
+                float(station_b_lon),
+            )
+        distance_multiple = total_distance_meters / station_span_meters if station_span_meters > 0 else None
+        ratio_delta_from_projection = abs(path_result.ratio - geometry_ratio)
+
+        plausible = True
+        if (
+            distance_multiple is not None
+            and total_distance_meters > max(station_span_meters * OSM_PATH_MAX_DISTANCE_MULTIPLIER, OSM_PATH_MAX_DISTANCE_METERS)
+        ):
+            plausible = False
+        elif (
+            distance_multiple is not None
+            and ratio_delta_from_projection >= OSM_PATH_GEOMETRY_DELTA_THRESHOLD
+            and total_distance_meters
+            > max(station_span_meters * OSM_PATH_GEOMETRY_DISTANCE_MULTIPLIER, OSM_PATH_GEOMETRY_MIN_DISTANCE_METERS)
+        ):
+            plausible = False
+
+        return {
+            "plausible": plausible,
+            "ratio": path_result.ratio,
+            "total_distance_meters": total_distance_meters,
+        }
+
     def _clear_osm_match(self, crossing: CrossingRecord) -> None:
         crossing.geometry = None
         crossing.matched_osm_id = None
@@ -361,9 +543,40 @@ class CrossingCatalogService:
         for item in mappings:
             crossing_id = item.get("crossing_id")
             osm_id = item.get("osm_id")
-            if crossing_id and osm_id is not None:
+            if crossing_id and (osm_id is not None or self._manual_geometry_from_mapping(item) is not None):
                 lookup[str(crossing_id)] = item
         return lookup
+
+    def _manual_geometry_from_mapping(self, mapping: dict[str, Any] | None) -> GeoPoint | None:
+        if mapping is None:
+            return None
+
+        geometry = mapping.get("geometry")
+        if isinstance(geometry, dict):
+            lat = geometry.get("lat")
+            lon = geometry.get("lon")
+            if lat is not None and lon is not None:
+                return GeoPoint(lat=float(lat), lon=float(lon))
+            coordinates = geometry.get("coordinates")
+            if isinstance(coordinates, list) and len(coordinates) >= 2:
+                lon = coordinates[0]
+                lat = coordinates[1]
+                if lat is not None and lon is not None:
+                    return GeoPoint(lat=float(lat), lon=float(lon))
+
+        coordinates = mapping.get("coordinates")
+        if isinstance(coordinates, list) and len(coordinates) >= 2:
+            lon = coordinates[0]
+            lat = coordinates[1]
+            if lat is not None and lon is not None:
+                return GeoPoint(lat=float(lat), lon=float(lon))
+
+        lat = mapping.get("lat")
+        lon = mapping.get("lon")
+        if lat is not None and lon is not None:
+            return GeoPoint(lat=float(lat), lon=float(lon))
+
+        return None
 
     def _match_official_to_osm(
         self,

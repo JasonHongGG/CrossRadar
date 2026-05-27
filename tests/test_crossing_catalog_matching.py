@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import json
+
+from backend.app.config import Settings
 from backend.app.models.crossing import CrossingRecord
 from backend.app.services.crossing_catalog import CrossingCatalogService
+from backend.app.services.rail_path import RailPathRatio
 
 
 def _build_official_record() -> CrossingRecord:
@@ -21,6 +25,35 @@ def _build_official_record() -> CrossingRecord:
         source_page=1,
         source_row_index=1,
     )
+
+
+class _StubRailPathService:
+    def compute_segment_ratio(self, *, crossing_way_ids=None, **kwargs):  # type: ignore[no-untyped-def]
+        way_id = (crossing_way_ids or [None])[0]
+        if way_id == 321033991:
+            return RailPathRatio(
+                ratio=0.8732816679172966,
+                distance_from_station_a_meters=20143.0,
+                distance_to_station_b_meters=2929.061887899083,
+                crossing_snap_distance_meters=0.0,
+                station_a_snap_distance_meters=18.0,
+                station_b_snap_distance_meters=8.9,
+            )
+        if way_id == 321033995:
+            return RailPathRatio(
+                ratio=0.5161377079771224,
+                distance_from_station_a_meters=3118.0,
+                distance_to_station_b_meters=2923.4105030465425,
+                crossing_snap_distance_meters=0.0,
+                station_a_snap_distance_meters=18.0,
+                station_b_snap_distance_meters=8.9,
+            )
+        return None
+
+
+class _StubStationGraphService:
+    def __init__(self) -> None:
+        self.rail_path_service = _StubRailPathService()
 
 
 def test_road_name_match_is_rejected_when_rail_line_conflicts() -> None:
@@ -170,3 +203,86 @@ def test_station_corridor_prefers_local_candidate_over_far_exact_name() -> None:
     assert method in {"node_name", "road_name"}
     assert confidence in {"high", "medium"}
     assert score > 80.0
+
+
+def test_parallel_track_tie_break_prefers_plausible_sibling_node(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.manual_mappings_json_path = tmp_path / "manual_osm_mappings.json"
+    settings.manual_mappings_json_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"updated_at": "2026-05-27T00:00:00+00:00", "count": 0},
+                "mappings": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    catalog = CrossingCatalogService(
+        None,
+        None,
+        settings,
+        station_graph_service=_StubStationGraphService(),  # type: ignore[arg-type]
+    )
+    official = CrossingRecord(
+        crossing_id="shang-jiadong",
+        name="上茄苳",
+        normalized_name="上茄苳",
+        line="縱貫線北段",
+        km_marker="K308+845",
+        km_prefix="",
+        km_value_meters=308845,
+        road_type="村里道路",
+        station_pair_text="南靖-後壁",
+        station_a_name="南靖",
+        station_b_name="後壁",
+        county="臺南市",
+        source_page=29,
+        source_row_index=3,
+    )
+    station_context = {
+        "station_a_position": {"PositionLon": 120.401, "PositionLat": 23.436},
+        "station_b_position": {"PositionLon": 120.359, "PositionLat": 23.363},
+        "station_span_meters": 5877.0,
+    }
+    implausible_feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [120.3758451, 23.3884947]},
+        "properties": {
+            "osm_id": 2074462901,
+            "normalized_name": "上茄苳平交道",
+            "road_names": ["南91"],
+            "rail_names": ["縱貫線"],
+            "rail_way_ids": [321033991],
+            "railway_position_meters": None,
+        },
+    }
+    plausible_sibling_feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [120.3758178, 23.3884771]},
+        "properties": {
+            "osm_id": 3277482080,
+            "normalized_name": "上茄苳平交道",
+            "road_names": ["南91"],
+            "rail_names": ["縱貫線"],
+            "rail_way_ids": [321033995],
+            "railway_position_meters": None,
+        },
+    }
+
+    curated = catalog._build_curated_geojson(
+        [official],
+        {
+            "type": "FeatureCollection",
+            "features": [implausible_feature, plausible_sibling_feature],
+        },
+        station_context_lookup={official.crossing_id: station_context},
+    )
+
+    feature = curated["features"][0]
+    assert curated["metadata"]["mapped_count"] == 1
+    assert feature["properties"]["matched_osm_id"] == 3277482080
+    assert feature["properties"]["match_method"] == "node_name"
+    assert feature["geometry"]["coordinates"] == [120.3758178, 23.3884771]

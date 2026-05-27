@@ -31,6 +31,11 @@ class _StubTdxClient:
                 "StationName": {"Zh_tw": "大橋"},
                 "StationPosition": {"PositionLon": 120.01, "PositionLat": 23.0},
             },
+            {
+                "StationID": "9999",
+                "StationName": {"Zh_tw": "無座標站"},
+                "StationPosition": {},
+            },
         ]
 
 
@@ -44,6 +49,16 @@ def test_resolve_station_supports_alias_and_suffix_fallback() -> None:
     assert station_a["StationName"]["Zh_tw"] == "蘇澳新"
     assert station_b is not None
     assert station_b["StationName"]["Zh_tw"] == "中洲"
+
+
+def test_list_station_summaries_returns_only_stations_with_positions() -> None:
+    service = StationGraphService(_StubTdxClient())
+
+    stations = asyncio.run(service.list_station_summaries())
+
+    assert {station["name"] for station in stations} == {"大橋", "永康", "中洲", "蘇澳新"}
+    assert all(station["position"]["PositionLat"] is not None for station in stations)
+    assert all(station["position"]["PositionLon"] is not None for station in stations)
 
 
 def test_enrich_crossing_prefers_official_ratio_when_available() -> None:

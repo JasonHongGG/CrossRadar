@@ -79,6 +79,57 @@ def test_manual_mapping_override_applies_geometry(tmp_path) -> None:
     assert feature["properties"]["manual_mapping_applied"] is True
 
 
+def test_manual_coordinate_override_applies_geometry_without_osm_id(tmp_path) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.manual_mappings_json_path = tmp_path / "manual_osm_mappings.json"
+    settings.manual_mappings_json_path.write_text(
+        json.dumps(
+            {
+                "metadata": {"updated_at": "2026-05-27T00:00:00+00:00", "count": 1},
+                "mappings": [
+                    {
+                        "crossing_id": "manual-coordinate-crossing",
+                        "geometry": {"lat": 22.986055, "lon": 120.213282},
+                        "note": "google maps verified manual coordinate",
+                        "updated_at": "2026-05-27T00:00:00+00:00",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    catalog = CrossingCatalogService(None, None, settings)  # type: ignore[arg-type]
+    official_record = CrossingRecord(
+        crossing_id="manual-coordinate-crossing",
+        name="大同路141巷",
+        normalized_name="大同路141巷",
+        line="縱貫線",
+        km_marker="K359+197",
+        km_prefix="",
+        km_value_meters=359197,
+        road_type="巷道",
+        station_pair_text="台南-保安",
+        station_a_name="台南",
+        station_b_name="保安",
+        county="臺南市",
+        source_page=31,
+        source_row_index=3,
+    )
+
+    curated = catalog._build_curated_geojson([official_record], {"type": "FeatureCollection", "features": []})
+
+    assert curated["metadata"]["mapped_count"] == 1
+    feature = curated["features"][0]
+    assert feature["geometry"]["coordinates"] == [120.213282, 22.986055]
+    assert feature["properties"]["matched_osm_id"] is None
+    assert feature["properties"]["match_method"] == "manual_coordinate_override"
+    assert feature["properties"]["geolocation_confidence"] == "high"
+    assert feature["properties"]["manual_mapping_applied"] is True
+
+
 class _StubCatalog:
     async def load(self) -> dict:
         return {"type": "FeatureCollection", "features": []}

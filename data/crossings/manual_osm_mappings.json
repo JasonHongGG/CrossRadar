@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "updated_at": "2026-05-20T10:33:43.739535+00:00",
-    "count": 33
+    "updated_at": "2026-05-27T00:00:00+00:00",
+    "count": 35
   },
   "mappings": [
     {
@@ -201,6 +201,21 @@
       "osm_id": 3906191491,
       "note": null,
       "updated_at": "2026-05-20T10:33:43.739535+00:00"
+    },
+    {
+      "crossing_id": "大同路141巷-縱貫線-k359197",
+      "geometry": {
+        "lat": 22.986055,
+        "lon": 120.213282
+      },
+      "note": "Manual coordinate override from Google Maps for the physical crossing location; no OSM crossing node is currently mapped.",
+      "updated_at": "2026-05-27T00:00:00+00:00"
+    },
+    {
+      "crossing_id": "中興路-縱貫線北段-k303270",
+      "osm_id": 3285339175,
+      "note": "Manual override to the local 後潭 crossing node near 608嘉義縣水上鄉粗溪村中興路; the previous road-name match jumped to a distant 中興路 crossing on the wrong parallel track.",
+      "updated_at": "2026-05-27T00:00:00+00:00"
     }
   ]
 }

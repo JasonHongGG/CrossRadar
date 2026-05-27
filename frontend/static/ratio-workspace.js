@@ -9,6 +9,8 @@ const ratioMap = L.map('ratioMap', {
 
 ratioMap.createPane('workspaceOverviewPane');
 ratioMap.getPane('workspaceOverviewPane').style.zIndex = '390';
+ratioMap.createPane('workspaceStationPane');
+ratioMap.getPane('workspaceStationPane').style.zIndex = '370';
 ratioMap.createPane('workspaceFocusPane');
 ratioMap.getPane('workspaceFocusPane').style.zIndex = '430';
 
@@ -21,12 +23,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const workspaceState = {
   crossings: [],
+  stations: [],
   filteredCrossings: [],
   selectedCrossingId: null,
   selectedExplanation: null,
   showOsmDiagnostics: false,
   requestToken: 0,
   layers: {
+    stations: L.layerGroup().addTo(ratioMap),
     overview: L.layerGroup().addTo(ratioMap),
     focus: L.layerGroup().addTo(ratioMap),
   },
@@ -133,6 +137,7 @@ function workspaceRenderMapLegend(explanation = workspaceState.selectedExplanati
   const pathAssessment = workspaceOsmPathAssessment(explanation);
   const chips = [
     '<span class="workspace-legend-chip"><i class="workspace-legend-dot is-crossing"></i>平交道</span>',
+    '<span class="workspace-legend-chip"><i class="workspace-legend-dot is-station"></i>所有車站</span>',
     '<span class="workspace-legend-chip"><i class="workspace-legend-dot is-station"></i>前後站</span>',
   ];
 
@@ -549,6 +554,29 @@ function workspaceRenderOverview() {
   });
 }
 
+function workspaceRenderStationOverview() {
+  workspaceState.layers.stations.clearLayers();
+
+  workspaceState.stations.forEach((station) => {
+    const latLng = workspacePointToLatLng(station?.position);
+    if (!latLng) return;
+
+    L.circleMarker(latLng, {
+      pane: 'workspaceStationPane',
+      radius: 3.5,
+      color: '#355c84',
+      weight: 1,
+      fillColor: '#d7eefb',
+      fillOpacity: 0.72,
+    })
+      .bindTooltip(`車站 · ${workspaceLabel(station?.name, station?.station_id || '未提供')}`, {
+        direction: 'top',
+        opacity: 0.88,
+      })
+      .addTo(workspaceState.layers.stations);
+  });
+}
+
 function workspaceRenderFocusGeometry() {
   workspaceState.layers.focus.clearLayers();
 
@@ -728,8 +756,13 @@ async function workspaceSelectCrossing(crossingId) {
 
 async function workspaceLoad() {
   workspaceRenderSummary();
-  const payload = await workspaceApi('/api/crossings?mapped_only=true&limit=5000');
-  workspaceState.crossings = (payload.features || [])
+  const [crossingsPayload, stationsPayload] = await Promise.all([
+    workspaceApi('/api/crossings?mapped_only=true&limit=5000'),
+    workspaceApi('/api/crossings/stations?limit=5000').catch(() => ({ features: [] })),
+  ]);
+  workspaceState.stations = stationsPayload.features || [];
+  workspaceRenderStationOverview();
+  workspaceState.crossings = (crossingsPayload.features || [])
     .map((feature) => ({
       ...feature,
       searchText: workspaceSearchText(feature),

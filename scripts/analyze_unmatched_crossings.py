@@ -33,10 +33,12 @@ def _name_match_candidates(
     catalog: Any,
     record: CrossingRecord,
     osm_features: list[dict[str, Any]],
+    *,
+    station_context: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for feature in osm_features:
-        score, method = catalog._score_match(record, feature)
+        score, method = catalog._score_match(record, feature, station_context=station_context)
         if score <= 0:
             continue
         properties = feature.get("properties", {})
@@ -114,10 +116,12 @@ async def main() -> None:
     osm_enricher = get_osm_enricher()
 
     official_records = scraper.load_cached()
+    route_referenced_records = [catalog.route_reference_service.apply(record.model_copy(deep=True)) for record in official_records]
+    station_context_lookup = await catalog._build_station_context_lookup(route_referenced_records)
     osm_geojson = await osm_enricher.build_geojson(force_refresh=False)
     osm_features = osm_geojson.get("features", [])
 
-    normalized_name_counts = Counter((record.line.strip(), record.normalized_name) for record in official_records)
+    normalized_name_counts = Counter((record.line.strip(), record.normalized_name) for record in route_referenced_records)
 
     entries: list[dict[str, Any]] = []
     reason_counts: Counter[str] = Counter()
@@ -126,8 +130,13 @@ async def main() -> None:
 
     seen_duplicate_groups: set[tuple[str, str]] = set()
 
-    for record in official_records:
-        matched_feature, score, method, confidence = catalog._match_official_to_osm(record, osm_features)
+    for record in route_referenced_records:
+        station_context = station_context_lookup.get(record.crossing_id)
+        matched_feature, score, method, confidence = catalog._match_official_to_osm(
+            record,
+            osm_features,
+            station_context=station_context,
+        )
         if matched_feature is not None and confidence in ("high", "medium"):
             continue
 
@@ -143,7 +152,7 @@ async def main() -> None:
                 }
             )
 
-        name_candidates = _name_match_candidates(catalog, record, osm_features)
+        name_candidates = _name_match_candidates(catalog, record, osm_features, station_context=station_context)
         same_line_candidates = _same_line_candidates(record, osm_features)
         same_line_with_position = [
             feature for feature in same_line_candidates if feature.get("properties", {}).get("railway_position_meters") is not None
