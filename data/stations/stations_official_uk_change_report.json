@@ -1,0 +1,710 @@
+{
+  "changes": [
+    {
+      "stationCode": "4220",
+      "stationName": "臺南",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K358 + 110",
+      "new_value": "縱貫線 K357 + 800",
+      "reason": "station_engineering_chainage.json 為 verified，直接以官方工程 里程覆蓋",
+      "replacement_confidence": "verified",
+      "previous_crossing": {
+        "name": "東豐路",
+        "station_pair": "大橋-臺南",
+        "uk_value": "K357 + 184",
+        "km_value_meters": 357184
+      },
+      "next_crossing": {
+        "name": "青年路",
+        "station_pair": "台南-保安",
+        "uk_value": "K358 + 572",
+        "km_value_meters": 358572
+      }
+    },
+    {
+      "stationCode": "2120",
+      "stationName": "大山",
+      "line": "海線",
+      "old_value": "海線 K134 + 700",
+      "new_value": "海線 K136 + 498",
+      "reason": "目前值 134700 不在左側最近平交道 135543 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "2150",
+      "stationName": "白沙屯",
+      "line": "海線",
+      "old_value": "海線 K151 + 000",
+      "new_value": "海線 K152 + 066",
+      "reason": "目前值 151000 不在左側最近平交道 151464 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "2160",
+      "stationName": "新埔",
+      "line": "海線",
+      "old_value": "海線 K153 + 300",
+      "new_value": "海線 K155 + 134",
+      "reason": "目前值 153300 不在左側最近平交道 154077 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "2170",
+      "stationName": "通霄",
+      "line": "海線",
+      "old_value": "海線 K159 + 200",
+      "new_value": "海線 K160 + 914",
+      "reason": "目前值 159200 不在左側最近平交道 159251 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "2180",
+      "stationName": "苑裡",
+      "line": "海線",
+      "old_value": "海線 K165 + 100",
+      "new_value": "海線 K167 + 032",
+      "reason": "目前值 165100 不在左側最近平交道 166699 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "2240",
+      "stationName": "龍井",
+      "line": "海線",
+      "old_value": "海線 K197 + 500",
+      "new_value": "海線 K198 + 493",
+      "reason": "目前值 197500 不在左側最近平交道 197948 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "2260",
+      "stationName": "追分",
+      "line": "海線",
+      "old_value": "海線 K206 + 100",
+      "new_value": "海線 K208 + 592",
+      "reason": "目前值 206100 不在左側最近平交道 207317 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": null,
+      "next_crossing": null
+    },
+    {
+      "stationCode": "3350",
+      "stationName": "成功",
+      "line": "山線",
+      "old_value": "山線 K205 + 230",
+      "new_value": "山線 K203 + 897",
+      "reason": "目前值 205230 不在右側最近平交道 204124 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "永豐餘紙廠",
+        "station_pair": "烏日-成功",
+        "uk_value": "K203 + 585",
+        "km_value_meters": 203585
+      },
+      "next_crossing": {
+        "name": "貨櫃場",
+        "station_pair": "成功-彰化",
+        "uk_value": "K204 + 124",
+        "km_value_meters": 204124
+      }
+    },
+    {
+      "stationCode": "3370",
+      "stationName": "花壇",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K217 + 300",
+      "new_value": "縱貫線 K222 + 188",
+      "reason": "目前值 217300 不在左側最近平交道 221899 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "花秀路",
+        "station_pair": "彰化-花壇",
+        "uk_value": "K221 + 899",
+        "km_value_meters": 221899
+      },
+      "next_crossing": {
+        "name": "明德街",
+        "station_pair": "花壇-大村",
+        "uk_value": "K222 + 479",
+        "km_value_meters": 222479
+      }
+    },
+    {
+      "stationCode": "3400",
+      "stationName": "永靖",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K232 + 400",
+      "new_value": "縱貫線 K233 + 815",
+      "reason": "目前值 232400 不在左側最近平交道 232731 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "中央巷",
+        "station_pair": "員林-永靖",
+        "uk_value": "K232 + 731",
+        "km_value_meters": 232731
+      },
+      "next_crossing": {
+        "name": "新興巷",
+        "station_pair": "永靖-社頭",
+        "uk_value": "K234 + 046",
+        "km_value_meters": 234046
+      }
+    },
+    {
+      "stationCode": "3410",
+      "stationName": "社頭",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K238 + 700",
+      "new_value": "縱貫線 K237 + 529",
+      "reason": "目前值 238700 不在右側最近平交道 238631 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "社斗路",
+        "station_pair": "永靖-社頭",
+        "uk_value": "K237 + 306",
+        "km_value_meters": 237306
+      },
+      "next_crossing": {
+        "name": "雙義路",
+        "station_pair": "社頭-田中",
+        "uk_value": "K238 + 631",
+        "km_value_meters": 238631
+      }
+    },
+    {
+      "stationCode": "3430",
+      "stationName": "二水",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K247 + 200",
+      "new_value": "縱貫線 K247 + 718",
+      "reason": "目前值 247200 不在左側最近平交道 247295 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "海豐路",
+        "station_pair": "田中-二水",
+        "uk_value": "K247 + 295",
+        "km_value_meters": 247295
+      },
+      "next_crossing": {
+        "name": "惠民村",
+        "station_pair": "二水-林內",
+        "uk_value": "K248 + 255",
+        "km_value_meters": 248255
+      }
+    },
+    {
+      "stationCode": "3450",
+      "stationName": "林內",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K252 + 800",
+      "new_value": "縱貫線 K255 + 687",
+      "reason": "目前值 252800 不在左側最近平交道 254908 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "芎林路",
+        "station_pair": "二水-林內",
+        "uk_value": "K254 + 908",
+        "km_value_meters": 254908
+      },
+      "next_crossing": {
+        "name": "林內路",
+        "station_pair": "林內-石榴",
+        "uk_value": "K255 + 958",
+        "km_value_meters": 255958
+      }
+    },
+    {
+      "stationCode": "3470",
+      "stationName": "斗六",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K263 + 900",
+      "new_value": "縱貫線 K265 + 303",
+      "reason": "目前值 263900 不在左側最近平交道 265038 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "鎮北路",
+        "station_pair": "石榴-斗六",
+        "uk_value": "K265 + 038",
+        "km_value_meters": 265038
+      },
+      "next_crossing": {
+        "name": "保長路",
+        "station_pair": "斗六-斗南",
+        "uk_value": "K266 + 472",
+        "km_value_meters": 266472
+      }
+    },
+    {
+      "stationCode": "4070",
+      "stationName": "嘉北",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K297 + 100",
+      "new_value": "縱貫線 K293 + 937",
+      "reason": "目前值 297100 不在右側最近平交道 293972 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "宏仁女中",
+        "station_pair": "民雄-嘉北",
+        "uk_value": "K293 + 235",
+        "km_value_meters": 293235
+      },
+      "next_crossing": {
+        "name": "木材廠",
+        "station_pair": "嘉北-嘉義",
+        "uk_value": "K293 + 972",
+        "km_value_meters": 293972
+      }
+    },
+    {
+      "stationCode": "4110",
+      "stationName": "後壁",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K312 + 400",
+      "new_value": "縱貫線 K311 + 761",
+      "reason": "目前值 312400 不在右側最近平交道 312137 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "青寮路",
+        "station_pair": "南靖-後壁",
+        "uk_value": "K311 + 425",
+        "km_value_meters": 311425
+      },
+      "next_crossing": {
+        "name": "後壁南方",
+        "station_pair": "後壁-新營",
+        "uk_value": "K312 + 137",
+        "km_value_meters": 312137
+      }
+    },
+    {
+      "stationCode": "4140",
+      "stationName": "林鳳營",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K328 + 200",
+      "new_value": "縱貫線 K326 + 572",
+      "reason": "目前值 328200 不在右側最近平交道 327591 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "柳營北方",
+        "station_pair": "新營-柳營",
+        "uk_value": "K322 + 524",
+        "km_value_meters": 322524
+      },
+      "next_crossing": {
+        "name": "味全牧場",
+        "station_pair": "林鳳營-隆田",
+        "uk_value": "K327 + 591",
+        "km_value_meters": 327591
+      }
+    },
+    {
+      "stationCode": "4260",
+      "stationName": "仁德",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K366 + 600",
+      "new_value": "縱貫線 K366 + 951",
+      "reason": "目前值 366600 不在左側最近平交道 366814 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "中正路一段(舊名保安路)",
+        "station_pair": "保安-仁德",
+        "uk_value": "K366 + 814",
+        "km_value_meters": 366814
+      },
+      "next_crossing": {
+        "name": "文賢路二段",
+        "station_pair": "仁德-中州",
+        "uk_value": "K369 + 059",
+        "km_value_meters": 369059
+      }
+    },
+    {
+      "stationCode": "4270",
+      "stationName": "中洲",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K369 + 000",
+      "new_value": "縱貫線 K369 + 470",
+      "reason": "目前值 369000 不在左側最近平交道 369059 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "文賢路二段",
+        "station_pair": "仁德-中州",
+        "uk_value": "K369 + 059",
+        "km_value_meters": 369059
+      },
+      "next_crossing": {
+        "name": "田尾路",
+        "station_pair": "中州-大湖",
+        "uk_value": "K371 + 236",
+        "km_value_meters": 371236
+      }
+    },
+    {
+      "stationCode": "4320",
+      "stationName": "橋頭",
+      "line": "縱貫線",
+      "old_value": "縱貫線 K387 + 400",
+      "new_value": "縱貫線 K386 + 745",
+      "reason": "目前值 387400 不在右側最近平交道 387155 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "筆秀路",
+        "station_pair": "岡山-橋頭",
+        "uk_value": "K385 + 862",
+        "km_value_meters": 385862
+      },
+      "next_crossing": {
+        "name": "橋燕路",
+        "station_pair": "橋頭-楠梓",
+        "uk_value": "K387 + 155",
+        "km_value_meters": 387155
+      }
+    },
+    {
+      "stationCode": "3432",
+      "stationName": "濁水",
+      "line": "集集線",
+      "old_value": "集集線 K11 + 300",
+      "new_value": "集集線 K10 + 816",
+      "reason": "目前值 11300 不在右側最近平交道 10974 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "南雲路(舊名濁水北)",
+        "station_pair": "源泉-濁水",
+        "uk_value": "K010 + 586",
+        "km_value_meters": 10586
+      },
+      "next_crossing": {
+        "name": "員集路(一)(舊名濁水南)",
+        "station_pair": "濁水-龍泉",
+        "uk_value": "K010 + 974",
+        "km_value_meters": 10974
+      }
+    },
+    {
+      "stationCode": "3433",
+      "stationName": "龍泉",
+      "line": "集集線",
+      "old_value": "集集線 K16 + 100",
+      "new_value": "集集線 K15 + 710",
+      "reason": "目前值 16100 不在右側最近平交道 15814 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "大石巷",
+        "station_pair": "濁水-龍泉",
+        "uk_value": "K015 + 550",
+        "km_value_meters": 15550
+      },
+      "next_crossing": {
+        "name": "龍泉巷",
+        "station_pair": "龍泉-集集",
+        "uk_value": "K015 + 814",
+        "km_value_meters": 15814
+      }
+    },
+    {
+      "stationCode": "3435",
+      "stationName": "水里",
+      "line": "集集線",
+      "old_value": "集集線 K27 + 700",
+      "new_value": "集集線 K27 + 366",
+      "reason": "目前值 27700 不在右側最近平交道 27598 之前",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "水里路",
+        "station_pair": "集集-水里",
+        "uk_value": "K026 + 806",
+        "km_value_meters": 26806
+      },
+      "next_crossing": {
+        "name": "山頂路",
+        "station_pair": "水里-車程",
+        "uk_value": "K027 + 598",
+        "km_value_meters": 27598
+      }
+    },
+    {
+      "stationCode": "5060",
+      "stationName": "崁頂",
+      "line": "屏東線",
+      "old_value": "屏東線 K43 + 300",
+      "new_value": "屏東線 K44 + 589",
+      "reason": "目前值 43300 不在左側最近平交道 44516 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "田寮路",
+        "station_pair": "潮州-崁頂",
+        "uk_value": "K044 + 516",
+        "km_value_meters": 44516
+      },
+      "next_crossing": {
+        "name": "農田路",
+        "station_pair": "崁頂-南州",
+        "uk_value": "K045 + 060",
+        "km_value_meters": 45060
+      }
+    },
+    {
+      "stationCode": "5070",
+      "stationName": "南州",
+      "line": "屏東線",
+      "old_value": "屏東線 K46 + 600",
+      "new_value": "屏東線 K46 + 988",
+      "reason": "目前值 46600 不在左側最近平交道 46708 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "永安路(舊名南州糖廠)",
+        "station_pair": "崁頂-南州",
+        "uk_value": "K046 + 708",
+        "km_value_meters": 46708
+      },
+      "next_crossing": {
+        "name": "三民路",
+        "station_pair": "南州-鎮安",
+        "uk_value": "K047 + 240",
+        "km_value_meters": 47240
+      }
+    },
+    {
+      "stationCode": "6230",
+      "stationName": "平和",
+      "line": "台東線",
+      "old_value": "台東線 K14 + 000",
+      "new_value": "台東線 K15 + 327",
+      "reason": "目前值 14000 不在左側最近平交道 15164 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "平和村",
+        "station_pair": "志學-平和",
+        "uk_value": "K015 + 164",
+        "km_value_meters": 15164
+      },
+      "next_crossing": {
+        "name": "中正公園",
+        "station_pair": "豐田-林榮新光",
+        "uk_value": "K020 + 554",
+        "km_value_meters": 20554
+      }
+    },
+    {
+      "stationCode": "6170",
+      "stationName": "萬榮",
+      "line": "台東線",
+      "old_value": "台東線 K36 + 300",
+      "new_value": "台東線 K37 + 561",
+      "reason": "目前值 36300 不在左側最近平交道 37347 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "萬森路",
+        "station_pair": "鳳林-萬榮",
+        "uk_value": "K037 + 347",
+        "km_value_meters": 37347
+      },
+      "next_crossing": {
+        "name": "萬榮南",
+        "station_pair": "萬榮-光復",
+        "uk_value": "K037 + 966",
+        "km_value_meters": 37966
+      }
+    },
+    {
+      "stationCode": "6160",
+      "stationName": "光復",
+      "line": "台東線",
+      "old_value": "台東線 K41 + 600",
+      "new_value": "台東線 K43 + 192",
+      "reason": "目前值 41600 不在左側最近平交道 42927 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "光復北",
+        "station_pair": "萬榮-光復",
+        "uk_value": "K042 + 927",
+        "km_value_meters": 42927
+      },
+      "next_crossing": {
+        "name": "大全村(一)",
+        "station_pair": "光復-大富",
+        "uk_value": "K044 + 536",
+        "km_value_meters": 44536
+      }
+    },
+    {
+      "stationCode": "6140",
+      "stationName": "富源",
+      "line": "台東線",
+      "old_value": "台東線 K53 + 300",
+      "new_value": "台東線 K54 + 354",
+      "reason": "目前值 53300 不在左側最近平交道 53545 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "富源北(二)",
+        "station_pair": "大富-富源",
+        "uk_value": "K053 + 545",
+        "km_value_meters": 53545
+      },
+      "next_crossing": {
+        "name": "民權西路",
+        "station_pair": "瑞穗-三民",
+        "uk_value": "K063 + 640",
+        "km_value_meters": 63640
+      }
+    },
+    {
+      "stationCode": "6110",
+      "stationName": "玉里",
+      "line": "台東線",
+      "old_value": "台東線 K82 + 200",
+      "new_value": "台東線 K84 + 037",
+      "reason": "目前值 82200 不在左側最近平交道 83256 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "榮民醫院",
+        "station_pair": "三民-玉里",
+        "uk_value": "K083 + 256",
+        "km_value_meters": 83256
+      },
+      "next_crossing": {
+        "name": "更生路",
+        "station_pair": "玉里-安通",
+        "uk_value": "K084 + 350",
+        "km_value_meters": 84350
+      }
+    },
+    {
+      "stationCode": "6080",
+      "stationName": "富里",
+      "line": "台東線",
+      "old_value": "台東線 K104 + 200",
+      "new_value": "台東線 K106 + 040",
+      "reason": "目前值 104200 不在左側最近平交道 105334 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "明禮",
+        "station_pair": "東竹-富里",
+        "uk_value": "K105 + 334",
+        "km_value_meters": 105334
+      },
+      "next_crossing": {
+        "name": "和平街",
+        "station_pair": "富里-池上",
+        "uk_value": "K106 + 715",
+        "km_value_meters": 106715
+      }
+    },
+    {
+      "stationCode": "6070",
+      "stationName": "池上",
+      "line": "台東線",
+      "old_value": "台東線 K111 + 600",
+      "new_value": "台東線 K112 + 945",
+      "reason": "目前值 111600 不在左側最近平交道 111957 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "慶豐村",
+        "station_pair": "富里-池上",
+        "uk_value": "K111 + 957",
+        "km_value_meters": 111957
+      },
+      "next_crossing": {
+        "name": "中西三路",
+        "station_pair": "池上-海端",
+        "uk_value": "K113 + 292",
+        "km_value_meters": 113292
+      }
+    },
+    {
+      "stationCode": "7220",
+      "stationName": "頂埔",
+      "line": "宜蘭線",
+      "old_value": "宜蘭線 K58 + 000",
+      "new_value": "宜蘭線 K58 + 960",
+      "reason": "目前值 58000 不在左側最近平交道 58779 之後",
+      "replacement_confidence": "high",
+      "previous_crossing": {
+        "name": "頂埔路(二)",
+        "station_pair": "頭城-頂埔",
+        "uk_value": "K058 + 779",
+        "km_value_meters": 58779
+      },
+      "next_crossing": {
+        "name": "三和路",
+        "station_pair": "頂埔-礁溪",
+        "uk_value": "K059 + 060",
+        "km_value_meters": 59060
+      }
+    }
+  ],
+  "remaining_invalid": [
+    {
+      "stationCode": "4460",
+      "stationName": "九曲堂",
+      "line": "屏東線",
+      "current_value": "屏東線 K13 + 600",
+      "reason": "目前值 13600 不在左側最近平交道 14508 之後",
+      "baseline_candidate": {
+        "raw_value": "屏東線 K16 + 876",
+        "confidence": "medium",
+        "method": "interpolated_between_official_crossing_k_anchors",
+        "estimated_error_meters": 1074
+      },
+      "previous_crossing": null,
+      "next_crossing": {
+        "name": "江一路",
+        "station_pair": "後庄-九曲堂",
+        "uk_value": "K014 + 508",
+        "km_value_meters": 14508
+      }
+    },
+    {
+      "stationCode": "7070",
+      "stationName": "漢本",
+      "line": "北迴線",
+      "current_value": "北迴線 K35 + 700",
+      "reason": "目前值 35700 未維持與後站 和平 34900 的順序",
+      "baseline_candidate": {
+        "raw_value": "北迴線 K34 + 642",
+        "confidence": "low",
+        "method": "single_anchor_route_distance_extrapolation",
+        "estimated_error_meters": 4827
+      },
+      "previous_crossing": {
+        "name": "南澳",
+        "station_pair": "南澳-武塔",
+        "uk_value": "K019 + 282",
+        "km_value_meters": 19282
+      },
+      "next_crossing": null
+    },
+    {
+      "stationCode": "7060",
+      "stationName": "和平",
+      "line": "北迴線",
+      "current_value": "北迴線 K34 + 900",
+      "reason": "目前值 34900 未維持與前站 漢本 35700 的順序",
+      "baseline_candidate": {
+        "raw_value": "北迴線 K39 + 032",
+        "confidence": "low",
+        "method": "single_anchor_route_distance_extrapolation",
+        "estimated_error_meters": 6144
+      },
+      "previous_crossing": {
+        "name": "南澳",
+        "station_pair": "南澳-武塔",
+        "uk_value": "K019 + 282",
+        "km_value_meters": 19282
+      },
+      "next_crossing": null
+    }
+  ]
+}
