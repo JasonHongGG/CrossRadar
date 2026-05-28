@@ -42,6 +42,7 @@ class StationGraphService:
         self._station_lookup_by_id: dict[str, dict[str, Any]] | None = None
         self._station_reference_by_id: dict[str, dict[str, Any]] | None = None
         self._station_reference_by_name: dict[str, dict[str, Any]] | None = None
+        self._runtime_ratio_projection_cache: dict[tuple[Any, ...], tuple[float | None, str, ConfidenceLevel, str]] = {}
 
     async def _get_stations(self) -> list[dict[str, Any]]:
         if self._stations is not None:
@@ -128,6 +129,11 @@ class StationGraphService:
         if limit is not None:
             return summaries[:limit]
         return summaries
+
+    async def warm_runtime_caches(self) -> None:
+        await self.get_station_lookup_by_id()
+        if self.rail_path_service is not None:
+            _ = self.rail_path_service._graph
 
     def _load_supplemental_stations(self) -> list[dict[str, Any]]:
         path = self.settings.supplemental_stations_json_path
@@ -396,6 +402,15 @@ class StationGraphService:
         if self.rail_path_service is None:
             return (None, "unavailable", "low", "The rail-path service is not configured, so the stop-pair OSM ratio cannot be resolved.")
 
+        cache_key = self._runtime_ratio_projection_cache_key(
+            crossing,
+            upstream_station_id=upstream_station_id,
+            downstream_station_id=downstream_station_id,
+        )
+        cached = self._runtime_ratio_projection_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         upstream_station = station_lookup_by_id.get(str(upstream_station_id)) or {}
         downstream_station = station_lookup_by_id.get(str(downstream_station_id)) or {}
         upstream_position = upstream_station.get("StationPosition") or {}
@@ -424,12 +439,14 @@ class StationGraphService:
             crossing_way_ids=crossing.get("osm_rail_way_ids") or None,
         )
         if path_result is None:
-            return (
+            result = (
                 None,
                 "unavailable",
                 "low",
                 "No usable connected OSM rail path was found for the train's actual previous/next stop pair.",
             )
+            self._remember_runtime_ratio_projection(cache_key, result)
+            return result
 
         path_assessment = self._assess_path_plausibility(
             station_a_position=upstream_position,
@@ -440,19 +457,50 @@ class StationGraphService:
             distance_to_station_b_meters=path_result.distance_to_station_b_meters,
         )
         if not path_assessment["plausible"]:
-            return (
+            result = (
                 None,
                 "unavailable",
                 "low",
                 f"Rejected the stop-pair OSM ratio. {path_assessment['note']}",
             )
+            self._remember_runtime_ratio_projection(cache_key, result)
+            return result
 
-        return (
+        result = (
             path_result.ratio,
             "osm_path",
             "high",
             "Projected the crossing onto the train's actual previous/next stop pair using connected OSM rail geometry.",
         )
+        self._remember_runtime_ratio_projection(cache_key, result)
+        return result
+
+    def _runtime_ratio_projection_cache_key(
+        self,
+        crossing: dict[str, Any],
+        *,
+        upstream_station_id: str,
+        downstream_station_id: str,
+    ) -> tuple[Any, ...]:
+        geometry = crossing.get("geometry") or {}
+        way_ids = crossing.get("osm_rail_way_ids") or []
+        return (
+            str(crossing.get("crossing_id") or "").strip(),
+            float(geometry.get("lon")),
+            float(geometry.get("lat")),
+            tuple(int(way_id) for way_id in way_ids if way_id is not None),
+            str(upstream_station_id),
+            str(downstream_station_id),
+        )
+
+    def _remember_runtime_ratio_projection(
+        self,
+        cache_key: tuple[Any, ...],
+        result: tuple[float | None, str, ConfidenceLevel, str],
+    ) -> None:
+        if len(self._runtime_ratio_projection_cache) >= 4096:
+            self._runtime_ratio_projection_cache.clear()
+        self._runtime_ratio_projection_cache[cache_key] = result
 
     def _station_span_meters(self, station_a_position: dict[str, Any], station_b_position: dict[str, Any]) -> float | None:
         station_a_lon = station_a_position.get("PositionLon")

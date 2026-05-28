@@ -30,6 +30,27 @@ def _file_meta(path: Path) -> dict:
     }
 
 
+def _dir_meta(path: Path) -> dict:
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "updated_at": None,
+            "size_bytes": 0,
+            "file_count": 0,
+        }
+
+    files = [child for child in path.iterdir() if child.is_file()]
+    latest_mtime = max((file_path.stat().st_mtime for file_path in files), default=path.stat().st_mtime)
+    return {
+        "path": str(path),
+        "exists": True,
+        "updated_at": datetime.fromtimestamp(latest_mtime, tz=UTC).isoformat(),
+        "size_bytes": sum(file_path.stat().st_size for file_path in files),
+        "file_count": len(files),
+    }
+
+
 @router.get("/overview")
 async def get_overview() -> dict:
     settings = get_settings()
@@ -76,6 +97,7 @@ async def get_overview() -> dict:
             "osm_geojson": _file_meta(settings.osm_geojson_path),
             "stations": _file_meta(settings.station_cache_path),
             "liveboards": _file_meta(settings.liveboard_cache_path),
+            "liveboards_station": _dir_meta(settings.liveboard_station_cache_dir),
             "timetables": _file_meta(settings.timetable_cache_path),
             "train_info": _file_meta(settings.train_info_cache_path),
         },

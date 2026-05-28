@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 from typing import Any
@@ -39,6 +40,11 @@ class CrossingCatalogService:
         self.osm_enricher = osm_enricher
         self.route_reference_service = route_reference_service or RouteReferenceService(self.settings)
         self.station_graph_service = station_graph_service
+        self._cached_runtime_dataset: dict[str, Any] | None = None
+        self._cached_runtime_mtime: float | None = None
+        self._cached_runtime_lookup: dict[str, dict[str, Any]] | None = None
+        self._cached_full_dataset: dict[str, Any] | None = None
+        self._cached_full_mtime: float | None = None
 
     async def refresh(self, *, force_refresh: bool = False) -> dict[str, Any]:
         official_records = await self.scraper.scrape_all(force_refresh=force_refresh)
@@ -66,17 +72,29 @@ class CrossingCatalogService:
             json.dumps(curated_tainan_dataset, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        self._remember_runtime_dataset(active_dataset, self.settings.curated_crossings_geojson_path.stat().st_mtime)
+        self._remember_full_dataset(full_dataset, self.settings.full_crossings_geojson_path.stat().st_mtime)
         return active_dataset
 
     async def load(self) -> dict[str, Any]:
         if self._is_crossing_cache_stale():
             return await self.refresh(force_refresh=False)
-        return json.loads(self.settings.curated_crossings_geojson_path.read_text(encoding="utf-8"))
+        mtime = self.settings.curated_crossings_geojson_path.stat().st_mtime
+        if self._cached_runtime_dataset is not None and self._cached_runtime_mtime == mtime:
+            return self._cached_runtime_dataset
+        dataset = json.loads(self.settings.curated_crossings_geojson_path.read_text(encoding="utf-8"))
+        self._remember_runtime_dataset(dataset, mtime)
+        return dataset
 
     async def load_full(self) -> dict[str, Any]:
         if self._is_crossing_cache_stale():
             await self.refresh(force_refresh=False)
-        return json.loads(self.settings.full_crossings_geojson_path.read_text(encoding="utf-8"))
+        mtime = self.settings.full_crossings_geojson_path.stat().st_mtime
+        if self._cached_full_dataset is not None and self._cached_full_mtime == mtime:
+            return self._cached_full_dataset
+        dataset = json.loads(self.settings.full_crossings_geojson_path.read_text(encoding="utf-8"))
+        self._remember_full_dataset(dataset, mtime)
+        return dataset
 
     def _is_crossing_cache_stale(self) -> bool:
         generated_paths = (
@@ -140,11 +158,28 @@ class CrossingCatalogService:
         return results
 
     async def get_crossing(self, crossing_id: str) -> dict[str, Any] | None:
-        dataset = await self.load()
+        await self.load()
+        if self._cached_runtime_lookup is None:
+            return None
+        feature = self._cached_runtime_lookup.get(str(crossing_id))
+        if feature is None:
+            return None
+        return copy.deepcopy(feature)
+
+    def _remember_runtime_dataset(self, dataset: dict[str, Any], mtime: float) -> None:
+        self._cached_runtime_dataset = dataset
+        self._cached_runtime_mtime = mtime
+        lookup: dict[str, dict[str, Any]] = {}
         for feature in dataset.get("features", []):
-            if feature.get("id") == crossing_id or feature.get("properties", {}).get("crossing_id") == crossing_id:
-                return feature
-        return None
+            feature_id = str(feature.get("id") or feature.get("properties", {}).get("crossing_id") or "").strip()
+            if not feature_id:
+                continue
+            lookup[feature_id] = feature
+        self._cached_runtime_lookup = lookup
+
+    def _remember_full_dataset(self, dataset: dict[str, Any], mtime: float) -> None:
+        self._cached_full_dataset = dataset
+        self._cached_full_mtime = mtime
 
     def _build_active_geojson(self, dataset: dict[str, Any]) -> dict[str, Any]:
         all_features = dataset.get("features", [])

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 import json
 from pathlib import Path
+import pickle
+from time import perf_counter
 from typing import Any
 
 import httpx
@@ -30,10 +32,18 @@ class CachePayload:
 
 
 @dataclass(slots=True)
+class CacheReadResult:
+    payload: CachePayload
+    fetched_from: str
+    timing_breakdown: dict[str, int]
+
+
+@dataclass(slots=True)
 class CollectionFetchResult:
     value: list[dict[str, Any]]
     fetched_from: str
     cached_at: datetime | None = None
+    timing_breakdown: dict[str, int] | None = None
 
 
 class TdxTraClient:
@@ -67,6 +77,7 @@ class TdxTraClient:
             path="/v3/Rail/TRA/DailyTrainTimetable/Today",
             collection_key="TrainTimetables",
             ttl_seconds=60 * 30,
+            memory_ttl_seconds=60 * 60 * 2,
             force_refresh=force_refresh,
             allow_stale_on_429=True,
             cache_path=self.settings.timetable_cache_path,
@@ -91,10 +102,10 @@ class TdxTraClient:
             path="/v3/Rail/TRA/TrainLiveBoard",
             collection_key="TrainLiveBoards",
             params=params,
-            ttl_seconds=45,
+            ttl_seconds=90,
             force_refresh=force_refresh,
             allow_stale_on_429=True,
-            cache_path=self.settings.liveboard_cache_path if station_id is None else None,
+            cache_path=self._liveboard_cache_path(station_id),
             timeout_seconds=5.0,
         )
 
@@ -121,6 +132,7 @@ class TdxTraClient:
         path: str,
         collection_key: str,
         ttl_seconds: int,
+        memory_ttl_seconds: int | None = None,
         params: dict[str, Any] | None = None,
         force_refresh: bool = False,
         allow_stale_on_429: bool = False,
@@ -133,6 +145,7 @@ class TdxTraClient:
             path=path,
             collection_key=collection_key,
             ttl_seconds=ttl_seconds,
+            memory_ttl_seconds=memory_ttl_seconds,
             params=params,
             force_refresh=force_refresh,
             allow_stale_on_429=allow_stale_on_429,
@@ -149,6 +162,7 @@ class TdxTraClient:
         path: str,
         collection_key: str,
         ttl_seconds: int,
+        memory_ttl_seconds: int | None = None,
         params: dict[str, Any] | None = None,
         force_refresh: bool = False,
         allow_stale_on_429: bool = False,
@@ -156,25 +170,28 @@ class TdxTraClient:
         cache_path: Path | None = None,
         timeout_seconds: float | None = None,
     ) -> CollectionFetchResult:
+        effective_memory_ttl = memory_ttl_seconds or ttl_seconds
         cache_entry = self._cache.get(cache_key)
         if not force_refresh and cache_entry and cache_entry.is_valid():
             return CollectionFetchResult(
                 value=cache_entry.value,
                 fetched_from="memory_cache",
                 cached_at=cache_entry.cached_at,
+                timing_breakdown={"memory_cache": 0},
             )
         if not force_refresh and cache_path and cache_path.exists():
             cached_value = self._read_cache_file(cache_path)
             if cached_value is not None:
                 self._cache[cache_key] = CacheEntry(
-                    value=cached_value.value,
-                    expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds),
-                    cached_at=cached_value.cached_at,
+                    value=cached_value.payload.value,
+                    expires_at=datetime.now(UTC) + timedelta(seconds=effective_memory_ttl),
+                    cached_at=cached_value.payload.cached_at,
                 )
                 return CollectionFetchResult(
-                    value=cached_value.value,
-                    fetched_from="file_cache",
-                    cached_at=cached_value.cached_at,
+                    value=cached_value.payload.value,
+                    fetched_from=cached_value.fetched_from,
+                    cached_at=cached_value.payload.cached_at,
+                    timing_breakdown=cached_value.timing_breakdown,
                 )
 
         url = f"{self.settings.tdx_basic_base_url}{path}"
@@ -183,6 +200,7 @@ class TdxTraClient:
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
+            network_started = perf_counter()
             response = await request_response(
                 "GET",
                 url,
@@ -207,6 +225,7 @@ class TdxTraClient:
             token = await self.token_manager.get_access_token(force_refresh=True)
             headers = {"Authorization": f"Bearer {token}"}
             try:
+                network_started = perf_counter()
                 response = await request_response(
                     "GET",
                     url,
@@ -249,48 +268,79 @@ class TdxTraClient:
             if fallback is not None:
                 return fallback
             raise
+
+        payload_started = perf_counter()
         payload = response.json()
+        network_timings = {
+            "network_fetch": self._elapsed_ms(network_started),
+            "network_parse": self._elapsed_ms(payload_started),
+        }
         collection = self._extract_collection(payload, collection_key)
         cached_at = datetime.now(UTC)
         self._cache[cache_key] = CacheEntry(
             value=collection,
-            expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds),
+            expires_at=datetime.now(UTC) + timedelta(seconds=effective_memory_ttl),
             cached_at=cached_at,
         )
         if cache_path:
-            cache_path.write_text(
-                json.dumps(
-                    {
-                        "cached_at": cached_at.isoformat(),
-                        "data": collection,
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                ),
-                encoding="utf-8",
-            )
+            network_timings.update(self._write_cache_file(cache_path, cached_at, collection))
         return CollectionFetchResult(
             value=collection,
             fetched_from="network",
             cached_at=cached_at,
+            timing_breakdown=network_timings,
         )
 
-    def _read_cache_file(self, path: Path) -> CachePayload | None:
+    def _read_cache_file(self, path: Path) -> CacheReadResult | None:
+        parsed_cache_path = self._parsed_cache_path(path)
+        if parsed_cache_path.exists():
+            parsed_started = perf_counter()
+            try:
+                with parsed_cache_path.open("rb") as handle:
+                    parsed_payload = pickle.load(handle)
+            except (OSError, EOFError, pickle.PickleError, AttributeError, TypeError, ValueError):
+                parsed_payload = None
+            else:
+                try:
+                    parsed_is_current = parsed_cache_path.stat().st_mtime >= path.stat().st_mtime
+                except OSError:
+                    parsed_is_current = False
+                if parsed_is_current:
+                    payload = self._cache_payload_from_serialized(parsed_payload)
+                    if payload is not None:
+                        return CacheReadResult(
+                            payload=payload,
+                            fetched_from="parsed_file_cache",
+                            timing_breakdown={"parsed_file_cache_read": self._elapsed_ms(parsed_started)},
+                        )
+
+        read_started = perf_counter()
         try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
+            raw_text = path.read_text(encoding="utf-8")
         except (OSError, json.JSONDecodeError):
             return None
-        data = payload.get("data")
-        if isinstance(data, list):
-            cached_at_raw = payload.get("cached_at")
-            cached_at = None
-            if isinstance(cached_at_raw, str):
-                try:
-                    cached_at = datetime.fromisoformat(cached_at_raw)
-                except ValueError:
-                    cached_at = None
-            return CachePayload(value=data, cached_at=cached_at)
-        return None
+        read_ms = self._elapsed_ms(read_started)
+        parse_started = perf_counter()
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError:
+            return None
+        parse_ms = self._elapsed_ms(parse_started)
+        cache_payload = self._cache_payload_from_serialized(payload)
+        if cache_payload is None:
+            return None
+        timing_breakdown = {
+            "file_cache_read": read_ms,
+            "file_cache_parse": parse_ms,
+        }
+        parsed_cache_write_ms = self._write_parsed_cache(parsed_cache_path, payload)
+        if parsed_cache_write_ms is not None:
+            timing_breakdown["parsed_cache_write"] = parsed_cache_write_ms
+        return CacheReadResult(
+            payload=cache_payload,
+            fetched_from="file_cache",
+            timing_breakdown=timing_breakdown,
+        )
 
     def _extract_collection(self, payload: Any, collection_key: str) -> list[dict[str, Any]]:
         if isinstance(payload, list):
@@ -314,15 +364,76 @@ class TdxTraClient:
                 value=cache_entry.value,
                 fetched_from="stale_memory_cache",
                 cached_at=cache_entry.cached_at,
+                timing_breakdown={"stale_memory_cache": 0},
             )
         if allow_stale and cache_path and cache_path.exists():
             cached_value = self._read_cache_file(cache_path)
             if cached_value is not None:
                 return CollectionFetchResult(
-                    value=cached_value.value,
-                    fetched_from="stale_file_cache",
-                    cached_at=cached_value.cached_at,
+                    value=cached_value.payload.value,
+                    fetched_from=f"stale_{cached_value.fetched_from}",
+                    cached_at=cached_value.payload.cached_at,
+                    timing_breakdown=cached_value.timing_breakdown,
                 )
         if empty_on_failure:
-            return CollectionFetchResult(value=[], fetched_from="empty_fallback")
+            return CollectionFetchResult(value=[], fetched_from="empty_fallback", timing_breakdown={"empty_fallback": 0})
         return None
+
+    def _cache_payload_from_serialized(self, payload: Any) -> CachePayload | None:
+        if not isinstance(payload, dict):
+            return None
+        data = payload.get("data")
+        if not isinstance(data, list):
+            return None
+        cached_at = self._parse_cached_at(payload.get("cached_at"))
+        return CachePayload(
+            value=[item for item in data if isinstance(item, dict)],
+            cached_at=cached_at,
+        )
+
+    def _parse_cached_at(self, raw_value: Any) -> datetime | None:
+        if not isinstance(raw_value, str):
+            return None
+        try:
+            return datetime.fromisoformat(raw_value)
+        except ValueError:
+            return None
+
+    def _write_cache_file(self, cache_path: Path, cached_at: datetime, collection: list[dict[str, Any]]) -> dict[str, int]:
+        serialized_payload = {
+            "cached_at": cached_at.isoformat(),
+            "data": collection,
+        }
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        write_started = perf_counter()
+        cache_path.write_text(
+            json.dumps(serialized_payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        timing_breakdown = {"cache_write": self._elapsed_ms(write_started)}
+        parsed_cache_write_ms = self._write_parsed_cache(self._parsed_cache_path(cache_path), serialized_payload)
+        if parsed_cache_write_ms is not None:
+            timing_breakdown["parsed_cache_write"] = parsed_cache_write_ms
+        return timing_breakdown
+
+    def _write_parsed_cache(self, parsed_cache_path: Path, payload: dict[str, Any]) -> int | None:
+        parsed_cache_path.parent.mkdir(parents=True, exist_ok=True)
+        write_started = perf_counter()
+        try:
+            with parsed_cache_path.open("wb") as handle:
+                pickle.dump(payload, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        except OSError:
+            return None
+        return self._elapsed_ms(write_started)
+
+    def _parsed_cache_path(self, cache_path: Path) -> Path:
+        return cache_path.with_suffix(f"{cache_path.suffix}.pickle")
+
+    def _liveboard_cache_path(self, station_id: str | None) -> Path:
+        if station_id is None:
+            return self.settings.liveboard_cache_path
+        sanitized_station_id = "".join(char if char.isalnum() or char in {"-", "_"} else "_" for char in station_id)
+        return self.settings.liveboard_station_cache_dir / f"{sanitized_station_id}.json"
+
+    def _elapsed_ms(self, started: float) -> int:
+        return max(0, round((perf_counter() - started) * 1000))

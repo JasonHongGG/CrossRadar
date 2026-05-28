@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     station_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "stations.json"
     timetable_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_timetables.json"
     liveboard_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "train_liveboards.json"
+    liveboard_station_cache_dir: Path = ROOT_DIR / ".runtime" / "tdx" / "liveboards"
     train_info_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_train_info.json"
 
     def ensure_directories(self) -> None:
@@ -73,6 +74,7 @@ class Settings(BaseSettings):
             self.crossings_data_dir,
             self.stations_data_dir,
             self.tdx_runtime_dir,
+            self.liveboard_station_cache_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
 

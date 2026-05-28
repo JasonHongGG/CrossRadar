@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+from pathlib import Path
 
 from backend.app.config import Settings
 from backend.app.models.crossing import CrossingRecord
@@ -72,6 +74,53 @@ def test_road_name_match_is_rejected_when_rail_line_conflicts() -> None:
 
     assert score == 0.0
     assert method is None
+
+
+def test_load_reuses_in_memory_dataset_until_file_mtime_changes(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.curated_crossings_geojson_path = tmp_path / "crossings_curated.geojson"
+    settings.full_crossings_geojson_path = tmp_path / "crossings_full.geojson"
+    dataset = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "id": "datong",
+                "properties": {"crossing_id": "datong", "name": "大同路141巷"},
+                "geometry": None,
+            }
+        ],
+    }
+    settings.curated_crossings_geojson_path.write_text(json.dumps(dataset, ensure_ascii=False), encoding="utf-8")
+    settings.full_crossings_geojson_path.write_text(json.dumps(dataset, ensure_ascii=False), encoding="utf-8")
+    catalog = CrossingCatalogService(None, None, settings)  # type: ignore[arg-type]
+    monkeypatch.setattr(catalog, "_is_crossing_cache_stale", lambda: False)
+
+    original_read_text = Path.read_text
+    read_count = 0
+
+    def counting_read_text(path: Path, *args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal read_count
+        if path == settings.curated_crossings_geojson_path:
+            read_count += 1
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", counting_read_text)
+
+    first = asyncio.run(catalog.load())
+    second = asyncio.run(catalog.load())
+    crossing = asyncio.run(catalog.get_crossing("datong"))
+    assert crossing is not None
+    crossing["properties"]["name"] = "被修改的副本"
+    fresh_copy = asyncio.run(catalog.get_crossing("datong"))
+
+    assert first is second
+    assert read_count == 1
+    assert fresh_copy is not None
+    assert fresh_copy["properties"]["name"] == "大同路141巷"
 
 
 def test_exact_name_match_is_rejected_when_rail_line_conflicts() -> None:

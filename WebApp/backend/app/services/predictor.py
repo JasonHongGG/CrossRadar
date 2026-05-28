@@ -24,6 +24,20 @@ class SegmentDataSnapshot:
     unavailable_detail: str | None = None
 
 
+@dataclass(slots=True)
+class PreparedTimetableCandidate:
+    timetable: dict[str, Any]
+    upstream: dict[str, Any]
+    downstream: dict[str, Any]
+    direction: int
+
+
+@dataclass(slots=True)
+class PreparedTimetableSet:
+    all_candidates: list[PreparedTimetableCandidate]
+    by_train_no: dict[str, list[PreparedTimetableCandidate]]
+
+
 class PredictorService:
     def __init__(
         self,
@@ -34,6 +48,7 @@ class PredictorService:
         self.tdx_client = tdx_client
         self.catalog_service = catalog_service
         self.station_graph_service = station_graph_service
+        self._prepared_timetable_cache: dict[tuple[int, str, str], PreparedTimetableSet] = {}
 
     async def predict_for_crossing(
         self,
@@ -45,9 +60,11 @@ class PredictorService:
         force_refresh: bool = False,
     ) -> PredictionEnvelope:
         prediction_started = perf_counter()
+        crossing_lookup_started = perf_counter()
         feature = await self.catalog_service.get_crossing(crossing_id)
         if feature is None:
             raise KeyError(f"Unknown crossing: {crossing_id}")
+        crossing_lookup_ms = self._elapsed_ms(crossing_lookup_started)
 
         properties = dict(feature.get("properties", {}))
         if feature.get("geometry") is not None:
@@ -59,14 +76,10 @@ class PredictorService:
         enrich_ms = self._elapsed_ms(enrich_started)
         crossing = self._build_crossing_feature(crossing_id, feature, properties)
 
-        station_lookup_started = perf_counter()
-        station_lookup_by_id = await self.station_graph_service.get_station_lookup_by_id()
-        station_lookup_ms = self._elapsed_ms(station_lookup_started)
         now = now_taipei()
         predictions: list[PredictionRecord] = []
         base_timings = {
             "crossing_enrich": enrich_ms,
-            "station_lookup": station_lookup_ms,
         }
 
         station_a_id = properties.get("station_a_id")
@@ -94,12 +107,20 @@ class PredictorService:
                 crossing=crossing,
             )
 
-        segment_data = await self._load_segment_data(
-            station_a_id,
-            station_b_id,
-            force_refresh=force_refresh,
+        station_lookup_started = perf_counter()
+        station_lookup_result, segment_data = await asyncio.gather(
+            self.station_graph_service.get_station_lookup_by_id(),
+            self._load_segment_data(
+                station_a_id,
+                station_b_id,
+                force_refresh=force_refresh,
+            ),
         )
+        station_lookup_ms = self._elapsed_ms(station_lookup_started)
+        station_lookup_by_id = station_lookup_result
         segment_data.data_snapshot.timings_ms.update(base_timings)
+        segment_data.data_snapshot.timings_ms["crossing_lookup"] = crossing_lookup_ms
+        segment_data.data_snapshot.timings_ms["station_lookup"] = station_lookup_ms
         if segment_data.unavailable_reason:
             segment_data.data_snapshot.timings_ms["total"] = self._elapsed_ms(prediction_started)
             return self._build_unavailable_envelope(
@@ -115,6 +136,14 @@ class PredictorService:
             )
 
         train_info_by_train_no = self._build_train_info_index(segment_data.train_infos)
+        prepare_started = perf_counter()
+        prepared_timetables = self._prepare_timetables_for_crossing(
+            segment_data.timetables,
+            station_a_id,
+            station_b_id,
+            station_lookup_by_id=station_lookup_by_id,
+        )
+        segment_data.data_snapshot.timings_ms["timetable_prepare"] = self._elapsed_ms(prepare_started)
 
         if station_a_id and station_b_id:
             live_started = perf_counter()
@@ -122,6 +151,7 @@ class PredictorService:
                 properties,
                 segment_data.liveboards,
                 segment_data.timetables,
+                prepared_timetables=prepared_timetables,
                 train_info_by_train_no=train_info_by_train_no,
                 station_lookup_by_id=station_lookup_by_id,
                 now=now,
@@ -135,6 +165,7 @@ class PredictorService:
             timetable_predictions = self._build_predictions_from_timetables(
                 properties,
                 segment_data.timetables,
+                prepared_timetables=prepared_timetables,
                 train_info_by_train_no=train_info_by_train_no,
                 station_lookup_by_id=station_lookup_by_id,
                 now=now,
@@ -242,6 +273,7 @@ class PredictorService:
             cached_at=max((snapshot.cached_at for _, snapshot in liveboard_fetches if snapshot.cached_at is not None), default=None),
             scope=", ".join(station_scope),
             detail=" | ".join(item for item in failed_sources if item.startswith("liveboards[")) or None,
+            timing_breakdown=self._merge_timing_breakdowns(snapshot.timing_breakdown for _, snapshot in liveboard_fetches),
         )
         timetable_source = PredictionSnapshotSource(
             source="timetables",
@@ -250,6 +282,7 @@ class PredictorService:
             fetched_from=timetables_result.fetched_from if timetables_result is not None else None,
             cached_at=timetables_result.cached_at if timetables_result is not None else None,
             detail=next((item for item in failed_sources if item.startswith("today_timetables:")), None),
+            timing_breakdown=dict((timetables_result.timing_breakdown or {}) if timetables_result is not None else {}),
         )
         train_info_source = PredictionSnapshotSource(
             source="train_info",
@@ -259,6 +292,7 @@ class PredictorService:
             fetched_from=train_info_result.fetched_from if train_info_result is not None else None,
             cached_at=train_info_result.cached_at if train_info_result is not None else None,
             detail=next((item for item in failed_sources if item.startswith("today_train_info:")), None),
+            timing_breakdown=dict((train_info_result.timing_breakdown or {}) if train_info_result is not None else {}),
         )
 
         data_snapshot = PredictionDataSnapshot(
@@ -305,6 +339,7 @@ class PredictorService:
         liveboards: list[dict[str, Any]],
         timetables: list[dict[str, Any]],
         *,
+        prepared_timetables: PreparedTimetableSet | None = None,
         train_info_by_train_no: dict[str, dict[str, Any]] | None = None,
         station_lookup_by_id: dict[str, dict[str, Any]],
         now,
@@ -313,32 +348,24 @@ class PredictorService:
         warning_minutes: int,
     ) -> list[PredictionRecord]:
         predictions: list[PredictionRecord] = []
-        timetable_index = self._build_timetable_index(timetables)
+        prepared = prepared_timetables or self._prepare_timetables_for_crossing(
+            timetables,
+            crossing.get("station_a_id"),
+            crossing.get("station_b_id"),
+            station_lookup_by_id=station_lookup_by_id,
+        )
         train_date = date.today()
 
         for liveboard in self._dedupe_liveboards(liveboards):
             train_no = str(liveboard.get("TrainNo") or "")
-            if not train_no or train_no not in timetable_index:
+            candidates = prepared.by_train_no.get(train_no)
+            if not train_no or not candidates:
                 continue
-            timetable = self._select_best_timetable(
-                timetable_index[train_no],
-                crossing.get("station_a_id"),
-                crossing.get("station_b_id"),
-                station_lookup_by_id=station_lookup_by_id,
-            )
-            if timetable is None:
-                continue
-
-            stop_pair = self._resolve_stop_pair(
-                timetable,
-                crossing.get("station_a_id"),
-                crossing.get("station_b_id"),
-                station_lookup_by_id=station_lookup_by_id,
-            )
-            if stop_pair is None:
-                continue
-
-            upstream, downstream, direction = stop_pair
+            candidate = candidates[0]
+            timetable = candidate.timetable
+            upstream = candidate.upstream
+            downstream = candidate.downstream
+            direction = candidate.direction
             train_info = timetable.get("TrainInfo", {})
             origin_station_id, origin_station_name, destination_station_id, destination_station_name = self._extract_terminal_stations(timetable)
             upstream_departure = parse_time_on_date(train_date, upstream.get("DepartureTime") or upstream.get("ArrivalTime"))
@@ -434,6 +461,7 @@ class PredictorService:
         crossing: dict[str, Any],
         timetables: list[dict[str, Any]],
         *,
+        prepared_timetables: PreparedTimetableSet | None = None,
         train_info_by_train_no: dict[str, dict[str, Any]] | None = None,
         station_lookup_by_id: dict[str, dict[str, Any]],
         now,
@@ -443,16 +471,17 @@ class PredictorService:
     ) -> list[PredictionRecord]:
         predictions: list[PredictionRecord] = []
         train_date = date.today()
-        for timetable in timetables:
-            stop_pair = self._resolve_stop_pair(
-                timetable,
-                crossing.get("station_a_id"),
-                crossing.get("station_b_id"),
-                station_lookup_by_id=station_lookup_by_id,
-            )
-            if stop_pair is None:
-                continue
-            upstream, downstream, direction = stop_pair
+        prepared = prepared_timetables or self._prepare_timetables_for_crossing(
+            timetables,
+            crossing.get("station_a_id"),
+            crossing.get("station_b_id"),
+            station_lookup_by_id=station_lookup_by_id,
+        )
+        for candidate in prepared.all_candidates:
+            timetable = candidate.timetable
+            upstream = candidate.upstream
+            downstream = candidate.downstream
+            direction = candidate.direction
             train_info = timetable.get("TrainInfo", {})
             origin_station_id, origin_station_name, destination_station_id, destination_station_name = self._extract_terminal_stations(timetable)
             upstream_departure = parse_time_on_date(train_date, upstream.get("DepartureTime") or upstream.get("ArrivalTime"))
@@ -544,6 +573,64 @@ class PredictorService:
             )
         predictions.sort(key=lambda item: item.eta)
         return predictions
+
+    def _prepare_timetables_for_crossing(
+        self,
+        timetables: list[dict[str, Any]],
+        station_a_id: str | None,
+        station_b_id: str | None,
+        *,
+        station_lookup_by_id: dict[str, dict[str, Any]],
+    ) -> PreparedTimetableSet:
+        cache = getattr(self, "_prepared_timetable_cache", None)
+        if cache is None:
+            cache = {}
+            self._prepared_timetable_cache = cache
+
+        cache_key = (id(timetables), station_a_id or "", station_b_id or "")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        all_candidates: list[PreparedTimetableCandidate] = []
+        by_train_no: dict[str, list[PreparedTimetableCandidate]] = {}
+
+        for timetable in timetables:
+            stop_pair = self._resolve_stop_pair(
+                timetable,
+                station_a_id,
+                station_b_id,
+                station_lookup_by_id=station_lookup_by_id,
+            )
+            if stop_pair is None:
+                continue
+            upstream, downstream, direction = stop_pair
+            candidate = PreparedTimetableCandidate(
+                timetable=timetable,
+                upstream=upstream,
+                downstream=downstream,
+                direction=direction,
+            )
+            all_candidates.append(candidate)
+            train_no = str((timetable.get("TrainInfo") or {}).get("TrainNo") or "")
+            if train_no:
+                by_train_no.setdefault(train_no, []).append(candidate)
+
+        for candidates in by_train_no.values():
+            candidates.sort(
+                key=lambda candidate: self._timetable_candidate_score(
+                    (candidate.upstream, candidate.downstream, candidate.direction),
+                    station_a_id,
+                    station_b_id,
+                ),
+                reverse=True,
+            )
+
+        prepared = PreparedTimetableSet(all_candidates=all_candidates, by_train_no=by_train_no)
+        if len(cache) >= 256:
+            cache.clear()
+        cache[cache_key] = prepared
+        return prepared
 
     def _is_prediction_in_window(
         self,
@@ -1073,6 +1160,15 @@ class PredictorService:
 
     def _elapsed_ms(self, started_at: float) -> int:
         return int((perf_counter() - started_at) * 1000)
+
+    def _merge_timing_breakdowns(self, timing_breakdowns) -> dict[str, int]:
+        merged: dict[str, int] = {}
+        for breakdown in timing_breakdowns:
+            if not breakdown:
+                continue
+            for name, value in breakdown.items():
+                merged[name] = merged.get(name, 0) + value
+        return merged
 
     def _extract_train_type(self, value: Any) -> str | None:
         return self._extract_station_name(value)

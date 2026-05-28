@@ -57,6 +57,12 @@ const state = {
   predictionEnvelope: null,
   selectionLoading: false,
   selectionRequestToken: 0,
+  selectionTiming: {
+    clickStartedMs: null,
+    firstRenderMs: null,
+    envelopeReceivedMs: null,
+    finalRenderMs: null,
+  },
   clock: {
     nowMs: Date.now(),
     envelopeGeneratedAtMs: null,
@@ -217,6 +223,41 @@ function average(values) {
 function setStatus(message, tone = 'neutral') {
   elements.statusBar.textContent = message;
   elements.statusBar.dataset.tone = tone;
+}
+
+function beginSelectionTiming() {
+  state.selectionTiming = {
+    clickStartedMs: performance.now(),
+    firstRenderMs: null,
+    envelopeReceivedMs: null,
+    finalRenderMs: null,
+  };
+}
+
+function markSelectionFirstRender() {
+  if (state.selectionTiming.clickStartedMs == null || state.selectionTiming.firstRenderMs != null) return;
+  state.selectionTiming.firstRenderMs = performance.now();
+}
+
+function markSelectionEnvelopeReceived() {
+  if (state.selectionTiming.clickStartedMs == null) return;
+  state.selectionTiming.envelopeReceivedMs = performance.now();
+}
+
+function finishSelectionTiming(envelope) {
+  if (state.selectionTiming.clickStartedMs == null) return;
+  state.selectionTiming.finalRenderMs = performance.now();
+  const clickStartedMs = state.selectionTiming.clickStartedMs;
+  const report = {
+    firstRenderMs: state.selectionTiming.firstRenderMs == null ? null : Math.round(state.selectionTiming.firstRenderMs - clickStartedMs),
+    responseWaitMs: state.selectionTiming.envelopeReceivedMs == null ? null : Math.round(state.selectionTiming.envelopeReceivedMs - clickStartedMs),
+    fullRenderMs: Math.round(state.selectionTiming.finalRenderMs - clickStartedMs),
+    backendTimingsMs: envelope?.data_snapshot?.timings_ms || {},
+  };
+  window.__crossRadarLastSelectionLatency = report;
+  if (typeof console !== 'undefined' && typeof console.debug === 'function') {
+    console.debug('[CrossRadar] selection latency', report);
+  }
 }
 
 function icon(name) {
@@ -1503,12 +1544,14 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
 
   state.selectedCrossingId = crossingId;
   state.selectionLoading = true;
+  beginSelectionTiming();
   if (!refreshOnly) {
-    state.selectedCrossingDetail = null;
+    state.selectedCrossingDetail = state.selectedCrossingDetail?.id === crossingId ? state.selectedCrossingDetail : baseFeature;
     state.predictionEnvelope = null;
   }
 
   renderStaticUi();
+  markSelectionFirstRender();
   if (!silent) {
     setStatus(`正在更新 ${getFeatureMeta(baseFeature).name} 的列車預測…`);
   }
@@ -1526,6 +1569,7 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
       params: predictionParams,
     });
     const receivedAtMs = Date.now();
+    markSelectionEnvelopeReceived();
 
     if (token !== state.selectionRequestToken) return;
     syncNow(receivedAtMs);
@@ -1536,6 +1580,7 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
     primePredictionRuntime(crossingId, envelope);
     state.selectionLoading = false;
     renderStaticUi();
+    finishSelectionTiming(envelope);
     if (focusMap) {
       focusSelectedCrossing();
     }
@@ -1559,7 +1604,7 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
   } catch (error) {
     if (token !== state.selectionRequestToken) return;
     state.selectionLoading = false;
-    state.selectedCrossingDetail = refreshOnly ? state.selectedCrossingDetail : null;
+    state.selectedCrossingDetail = refreshOnly ? state.selectedCrossingDetail : state.selectedCrossingDetail || baseFeature;
     state.predictionEnvelope = refreshOnly ? state.predictionEnvelope : null;
     renderStaticUi();
     if (!silent) {

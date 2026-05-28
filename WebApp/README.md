@@ -37,6 +37,7 @@ python -m pytest
 
 ## Snapshot and cache behavior
 
-- TDX station、timetable、liveboard、train-info 會落地到 `.runtime/tdx/`。
-- prediction envelope 內的 `data_snapshot.sources` 會標示每個來源是來自 network、memory cache、file cache 或 stale cache。
+- TDX station、timetable、train-info 會落地到 `.runtime/tdx/`；station-scoped liveboards 會落地到 `.runtime/tdx/liveboards/`。
+- prediction envelope 內的 `data_snapshot.sources` 會標示每個來源是來自 network、memory cache、parsed file cache、file cache 或 stale cache，並帶每個來源自己的 `timing_breakdown`。
+- 主頁選取 crossing 時會先即時渲染 crossing card，再等待 prediction envelope；最新一次前端 `firstRenderMs` / `fullRenderMs` 會寫到 `window.__crossRadarLastSelectionLatency` 供本機觀察。
 - 這台機器若遇到 HTTPS 憑證鏈問題，HTTP layer 仍保留 SSL fallback；若 TDX 出現 429，系統會優先重用本地 cache，但 freshness 與 source status 會明確暴露在 snapshot metadata 中。

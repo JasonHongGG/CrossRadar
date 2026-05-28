@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from backend.app.config import Settings
-from backend.app.services.rail_path import RailPathService
+from backend.app.services.rail_path import RailPathRatio, RailPathService
 from backend.app.services.station_graph import StationGraphService
 
 
@@ -63,6 +63,41 @@ class _StubTdxClient:
                 "StationPosition": {"PositionLon": 121.34972, "PositionLat": 24.97014},
             },
         ]
+
+
+class _CountingTdxClient(_StubTdxClient):
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def get_stations(self) -> list[dict]:
+        self.calls += 1
+        return await super().get_stations()
+
+
+class _CountingRailPathService:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def compute_segment_ratio(self, **kwargs):  # type: ignore[no-untyped-def]
+        self.calls += 1
+        return RailPathRatio(
+            ratio=0.4,
+            distance_from_station_a_meters=400.0,
+            distance_to_station_b_meters=600.0,
+            crossing_snap_distance_meters=0.0,
+            station_a_snap_distance_meters=10.0,
+            station_b_snap_distance_meters=10.0,
+        )
+
+
+class _WarmableRailPathService:
+    def __init__(self) -> None:
+        self.graph_access_count = 0
+
+    @property
+    def _graph(self):  # noqa: N802
+        self.graph_access_count += 1
+        return object()
 
 
 def _build_settings() -> Settings:
@@ -260,6 +295,45 @@ def test_enrich_crossing_uses_osm_path_before_geometry(tmp_path) -> None:
     assert 0.23 < enriched["segment_ratio"] < 0.27
     assert enriched["path_segment_ratio"] == enriched["segment_ratio"]
     assert "geometry_segment_ratio" in enriched
+
+
+def test_resolve_runtime_ratio_for_station_pair_memoizes_by_crossing_and_stop_pair() -> None:
+    rail_path_service = _CountingRailPathService()
+    service = StationGraphService(_StubTdxClient(), rail_path_service=rail_path_service, settings=_build_settings())
+    station_lookup_by_id = asyncio.run(service.get_station_lookup_by_id())
+    crossing = {
+        "crossing_id": "memo-demo",
+        "geometry": {"lon": 120.005, "lat": 23.0},
+        "osm_rail_way_ids": [1001],
+    }
+
+    first = service.resolve_runtime_ratio_for_station_pair(
+        crossing,
+        upstream_station_id="4200",
+        downstream_station_id="4210",
+        station_lookup_by_id=station_lookup_by_id,
+    )
+    second = service.resolve_runtime_ratio_for_station_pair(
+        crossing,
+        upstream_station_id="4200",
+        downstream_station_id="4210",
+        station_lookup_by_id=station_lookup_by_id,
+    )
+
+    assert first == second
+    assert rail_path_service.calls == 1
+
+
+def test_warm_runtime_caches_primes_station_lookup_and_graph() -> None:
+    tdx_client = _CountingTdxClient()
+    rail_path_service = _WarmableRailPathService()
+    service = StationGraphService(tdx_client, rail_path_service=rail_path_service, settings=_build_settings())
+
+    asyncio.run(service.warm_runtime_caches())
+
+    assert tdx_client.calls == 1
+    assert service._station_lookup_by_id is not None
+    assert rail_path_service.graph_access_count == 1
 
 
 def test_explain_crossing_properties_returns_osm_path_payloads(tmp_path) -> None:

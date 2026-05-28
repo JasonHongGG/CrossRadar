@@ -17,6 +17,7 @@ class PredictionSnapshotSource(BaseModel):
     cached_at: datetime | None = None
     scope: str | None = None
     detail: str | None = None
+    timing_breakdown: dict[str, int] = Field(default_factory=dict)
 
 
 class PredictionRecord(BaseModel):
