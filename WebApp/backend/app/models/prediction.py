@@ -50,6 +50,11 @@ class PredictionRecord(BaseModel):
     delay_source: Literal["train_info", "liveboard", "none"] | None = None
     data_basis: Literal["liveboard", "timetable"]
     prediction_method: str | None = None
+    timing_model: str | None = None
+    anchor_time_source: str | None = None
+    calibration_offset_seconds: int = 0
+    eta_uncertainty_seconds: int | None = None
+    accuracy_tier: Literal["high", "medium", "low"] | None = None
     reason: str
     station_pair_source: str | None = None
     ratio_source: str | None = None

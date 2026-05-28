@@ -204,6 +204,22 @@ function getPredictionTone(record) {
   return isLivePrediction(record) ? 'is-live' : 'is-scheduled';
 }
 
+function getAccuracyTierLabel(record) {
+  if (record?.accuracy_tier === 'high') return '高信度';
+  if (record?.accuracy_tier === 'medium') return '中信度';
+  if (record?.accuracy_tier === 'low') return '低信度';
+  return '';
+}
+
+function getPredictionPrecisionLabel(record) {
+  const tier = getAccuracyTierLabel(record);
+  const uncertainty = Number(record?.eta_uncertainty_seconds);
+  const parts = [];
+  if (tier) parts.push(tier);
+  if (Number.isFinite(uncertainty)) parts.push(`±${Math.round(uncertainty)} 秒`);
+  return parts.join(' · ');
+}
+
 function getConfidenceHint(meta) {
   if (meta.manualMappingApplied && meta.ratioSource === 'osm_path') return { label: '人工校正', tone: 'is-reviewed' };
   if (meta.ratioSource === 'osm_path') return { label: '軌道路徑', tone: 'is-soft' };
@@ -1341,6 +1357,7 @@ function renderWarningCard() {
   const directionLabel = getDirectionLabel(primary);
   const isLive = isLivePrediction(primary);
   const warning = isLive && isWithinWarningWindow(primary);
+  const precisionLabel = getPredictionPrecisionLabel(primary);
 
   elements.warningCard.innerHTML = `
     <div class="hero-shell ${warning ? 'is-alert' : isLive ? 'is-watch' : 'is-scheduled'}">
@@ -1361,6 +1378,7 @@ function renderWarningCard() {
       <div class="hero-route-meta">
         <span>${escapeHtml(primary.train_type || '列車')}</span>
         <span>${escapeHtml(isLive ? `即時倒數 · ${route.approachFrom} → ${route.approachTo}` : `班表預估 · ${route.approachFrom} → ${route.approachTo}`)}</span>
+        ${precisionLabel ? `<span>${escapeHtml(`精度 ${precisionLabel}`)}</span>` : ''}
       </div>
       <div class="hero-stop-grid">
         <div class="stop-timing-card">
@@ -1435,6 +1453,7 @@ function renderPredictionList() {
       const isLive = isLivePrediction(record);
       const warning = isLive && isWithinWarningWindow(record);
       const isPast = countdown.isPast;
+      const precisionLabel = getPredictionPrecisionLabel(record);
       return `
         <article class="train-card ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''} ${escapeHtml(getPredictionTone(record))}">
           <div class="train-main">
@@ -1447,7 +1466,7 @@ function renderPredictionList() {
               <span>${escapeHtml(record.train_type || '列車')}</span>
             </div>
             <div class="train-route">${escapeHtml(route.origin)} → ${escapeHtml(route.destination)}</div>
-            <div class="train-subroute">${escapeHtml(getDirectionLabel(record))}</div>
+            <div class="train-subroute">${escapeHtml(precisionLabel ? `${getDirectionLabel(record)} · ${precisionLabel}` : getDirectionLabel(record))}</div>
             <div class="train-stop-grid">
               <div class="train-stop-item">
                 <span class="stop-timing-label">上一停靠</span>

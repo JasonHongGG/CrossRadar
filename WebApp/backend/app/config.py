@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     osm_runtime_dir: Path = ROOT_DIR / ".runtime" / "osm"
     crossings_data_dir: Path = ROOT_DIR / "data" / "crossings"
     stations_data_dir: Path = ROOT_DIR / "data" / "stations"
+    observations_data_dir: Path = ROOT_DIR / "data" / "observations"
     official_crossings_json_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_official.json"
     official_tainan_crossings_json_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_official_tainan.json"
     curated_crossings_geojson_path: Path = ROOT_DIR / "data" / "crossings" / "crossings_curated.geojson"
@@ -57,11 +58,14 @@ class Settings(BaseSettings):
     supplemental_stations_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_supplemental.json"
     tainan_stations_json_path: Path = ROOT_DIR / "data" / "stations" / "stations_tainan.json"
     tdx_runtime_dir: Path = ROOT_DIR / ".runtime" / "tdx"
+    prediction_runtime_dir: Path = ROOT_DIR / ".runtime" / "prediction"
     station_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "stations.json"
     timetable_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_timetables.json"
     liveboard_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "train_liveboards.json"
     liveboard_station_cache_dir: Path = ROOT_DIR / ".runtime" / "tdx" / "liveboards"
     train_info_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_train_info.json"
+    manual_passage_observations_path: Path = ROOT_DIR / "data" / "observations" / "crossing_passages_manual.json"
+    prediction_calibration_path: Path = ROOT_DIR / ".runtime" / "prediction" / "prediction_calibration.json"
 
     def ensure_directories(self) -> None:
         for path in (
@@ -73,8 +77,10 @@ class Settings(BaseSettings):
             self.osm_runtime_dir,
             self.crossings_data_dir,
             self.stations_data_dir,
+            self.observations_data_dir,
             self.tdx_runtime_dir,
             self.liveboard_station_cache_dir,
+            self.prediction_runtime_dir,
         ):
             path.mkdir(parents=True, exist_ok=True)
 

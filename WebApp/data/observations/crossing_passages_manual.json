@@ -1,0 +1,121 @@
+{
+  "metadata": {
+    "source": "manual_user_observation",
+    "description": "User-provided same-day crossing passage truth samples used to bootstrap prediction calibration.",
+    "version": 1
+  },
+  "observations": [
+    {
+      "id": "2026-05-28-sichaxiang-124",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "124",
+      "train_type": "普悠瑪",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:03",
+      "observed_passage_time": "13:05:22",
+      "calibration_eligible": true,
+      "note": "Northbound observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-3191",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "3191",
+      "train_type": "區間車",
+      "scheduled_station_name": "永康",
+      "scheduled_station_time": "13:12",
+      "observed_passage_time": "13:13:11",
+      "calibration_eligible": true,
+      "note": "Southbound observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-3734",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "3734",
+      "train_type": "區間車",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:15",
+      "observed_passage_time": "13:16:54",
+      "calibration_eligible": true,
+      "note": "Northbound observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-372",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "372",
+      "train_type": "自強3000",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:21",
+      "observed_passage_time": "13:23:33",
+      "calibration_eligible": true,
+      "note": "Northbound observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-131-primary",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "131",
+      "train_type": "自強3000",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:27",
+      "observed_passage_time": "13:30:53",
+      "calibration_eligible": true,
+      "note": "Corrected southbound EMU3000 observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-115-duplicate",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "115",
+      "train_type": "自強",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:33",
+      "observed_passage_time": "13:33:52",
+      "calibration_eligible": true,
+      "note": "Corrected southbound Tze-Chiang observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-176",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "176",
+      "train_type": "自強",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:30",
+      "observed_passage_time": "13:32:44",
+      "calibration_eligible": true,
+      "note": "Northbound observation provided by the user."
+    },
+    {
+      "id": "2026-05-28-sichaxiang-3192",
+      "service_date": "2026-05-28",
+      "crossing_id": "四叉巷-縱貫線北段-k353375",
+      "crossing_name": "四叉巷 K353+375",
+      "station_pair_text": "永康-台南",
+      "train_no": "3192",
+      "train_type": "區間車",
+      "scheduled_station_name": "台南",
+      "scheduled_station_time": "13:40",
+      "observed_passage_time": "13:41:01",
+      "calibration_eligible": true,
+      "note": "Northbound observation provided by the user."
+    }
+  ]
+}

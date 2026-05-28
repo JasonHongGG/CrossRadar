@@ -9,9 +9,11 @@ from backend.app.services.crossing_catalog import CrossingCatalogService
 from backend.app.services.manual_mapping import ManualOsmMappingService
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
+from backend.app.services.prediction_calibration import PredictionCalibrationService
 from backend.app.services.predictor import PredictorService
 from backend.app.services.rail_path import RailPathService
 from backend.app.services.station_graph import StationGraphService
+from backend.app.services.travel_profile import TravelProfileService
 
 
 @lru_cache(maxsize=1)
@@ -65,5 +67,21 @@ def get_station_graph_service() -> StationGraphService:
 
 
 @lru_cache(maxsize=1)
+def get_travel_profile_service() -> TravelProfileService:
+    return TravelProfileService()
+
+
+@lru_cache(maxsize=1)
+def get_prediction_calibration_service() -> PredictionCalibrationService:
+    return PredictionCalibrationService(get_travel_profile_service(), get_settings())
+
+
+@lru_cache(maxsize=1)
 def get_predictor_service() -> PredictorService:
-    return PredictorService(get_tdx_client(), get_crossing_catalog_service(), get_station_graph_service())
+    return PredictorService(
+        get_tdx_client(),
+        get_crossing_catalog_service(),
+        get_station_graph_service(),
+        get_travel_profile_service(),
+        get_prediction_calibration_service(),
+    )

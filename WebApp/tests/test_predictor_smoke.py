@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 
+from backend.app.config import get_settings
 from backend.app.models.prediction import PredictionRecord
+from backend.app.services.prediction_calibration import PredictionCalibrationService
 from backend.app.services.predictor import PredictorService
+from backend.app.services.travel_profile import TravelProfileService
 from backend.app.utils import parse_time_on_date
 
 
@@ -560,3 +564,89 @@ def test_build_predictions_from_timetables_keeps_all_sorted_candidates() -> None
 
     assert len(predictions) == 11
     assert [record.train_no for record in predictions[:3]] == ["1000", "1001", "1002"]
+
+
+def test_travel_profile_biases_stop_to_stop_time_fraction() -> None:
+    service = TravelProfileService()
+
+    early = service.estimate(
+        ratio=0.2,
+        train_type_name="區間",
+        upstream_dwell_seconds=30,
+        downstream_dwell_seconds=30,
+    )
+    late = service.estimate(
+        ratio=0.8,
+        train_type_name="區間",
+        upstream_dwell_seconds=30,
+        downstream_dwell_seconds=30,
+    )
+
+    assert early.time_fraction > 0.2
+    assert late.time_fraction < 0.8
+
+
+def test_estimate_prediction_timing_applies_liveboard_anchor_and_calibration(tmp_path) -> None:
+    calibration_path = tmp_path / "prediction_calibration.json"
+    calibration_path.write_text(
+        json.dumps(
+            {
+                "rules": [
+                    {
+                        "id": "demo-rule",
+                        "match": {
+                            "crossing_id": "demo-crossing",
+                            "direction": 1,
+                            "upstream_station_id": "A",
+                            "train_type_family": "local",
+                        },
+                        "offset_seconds": 45,
+                    }
+                ]
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    settings = get_settings().model_copy(update={"prediction_calibration_path": calibration_path})
+
+    predictor = PredictorService.__new__(PredictorService)
+    predictor.travel_profile_service = TravelProfileService()
+    predictor.prediction_calibration_service = PredictionCalibrationService(predictor.travel_profile_service, settings)
+
+    upstream_departure = parse_time_on_date(date(2026, 5, 28), "10:00")
+    downstream_arrival = parse_time_on_date(date(2026, 5, 28), "10:10")
+    expected_eta = parse_time_on_date(date(2026, 5, 28), "10:07:45")
+    assert upstream_departure is not None
+    assert downstream_arrival is not None
+    assert expected_eta is not None
+
+    timing = predictor._estimate_prediction_timing(
+        {
+            "id": "demo-crossing",
+            "station_a_id": "A",
+            "station_b_id": "B",
+            "segment_ratio": 0.5,
+            "ratio_source": "osm_path",
+            "segment_confidence": "high",
+        },
+        train_no="3001",
+        train_type_name="區間",
+        upstream_station_id="A",
+        downstream_station_id="B",
+        upstream={"StationID": "A", "ArrivalTime": "10:00", "DepartureTime": "10:00"},
+        downstream={"StationID": "B", "ArrivalTime": "10:10", "DepartureTime": "10:10"},
+        upstream_departure=upstream_departure,
+        downstream_arrival=downstream_arrival,
+        delay_minutes=0,
+        delay_source="none",
+        direction=1,
+        liveboard={"StationID": "A", "UpdateTime": "2026-05-28T10:02:00+08:00"},
+        data_basis="liveboard",
+    )
+
+    assert timing is not None
+    assert timing.anchor_time_source == "liveboard_update"
+    assert timing.calibration_offset_seconds == 45
+    assert timing.accuracy_tier == "high"
+    assert timing.eta == expected_eta

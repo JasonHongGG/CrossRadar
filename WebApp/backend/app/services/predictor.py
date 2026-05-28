@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from time import perf_counter
 from typing import Any, Awaitable
 
@@ -10,7 +10,9 @@ from backend.app.clients.tdx_tra import CollectionFetchResult, TdxTraClient
 from backend.app.models.crossing import ConfidenceLevel
 from backend.app.models.prediction import PredictionDataSnapshot, PredictionEnvelope, PredictionRecord, PredictionSnapshotSource
 from backend.app.services.crossing_catalog import CrossingCatalogService
+from backend.app.services.prediction_calibration import PredictionCalibrationService
 from backend.app.services.station_graph import StationGraphService
+from backend.app.services.travel_profile import TravelProfileEstimate, TravelProfileService
 from backend.app.utils import now_taipei, parse_time_on_date, safe_int
 
 
@@ -38,16 +40,39 @@ class PreparedTimetableSet:
     by_train_no: dict[str, list[PreparedTimetableCandidate]]
 
 
+@dataclass(slots=True)
+class PredictionTimingEstimate:
+    eta: datetime
+    ratio: float
+    ratio_source: str
+    segment_confidence: ConfidenceLevel
+    segment_note: str
+    actual_upstream: datetime
+    actual_downstream: datetime
+    timing_model: str
+    anchor_time_source: str | None
+    calibration_offset_seconds: int
+    calibration_rule_id: str | None
+    eta_uncertainty_seconds: int
+    accuracy_tier: ConfidenceLevel
+    train_type_family: str
+    profile: TravelProfileEstimate
+
+
 class PredictorService:
     def __init__(
         self,
         tdx_client: TdxTraClient,
         catalog_service: CrossingCatalogService,
         station_graph_service: StationGraphService,
+        travel_profile_service: TravelProfileService,
+        prediction_calibration_service: PredictionCalibrationService,
     ) -> None:
         self.tdx_client = tdx_client
         self.catalog_service = catalog_service
         self.station_graph_service = station_graph_service
+        self.travel_profile_service = travel_profile_service
+        self.prediction_calibration_service = prediction_calibration_service
         self._prepared_timetable_cache: dict[tuple[int, str, str], PreparedTimetableSet] = {}
 
     async def predict_for_crossing(
@@ -378,25 +403,27 @@ class PredictorService:
                 liveboard=liveboard,
                 train_info_by_train_no=train_info_by_train_no,
             )
-            actual_upstream = upstream_departure + timedelta(minutes=delay_minutes)
-            actual_downstream = downstream_arrival + timedelta(minutes=delay_minutes)
-            ratio, prediction_ratio_source, prediction_segment_confidence, prediction_segment_note = self._prediction_segment_context(
+            timing = self._estimate_prediction_timing(
                 crossing,
+                train_no=train_no,
+                train_type_name=self._extract_train_type(train_info.get("TrainTypeName") or liveboard.get("TrainTypeName")),
                 upstream_station_id=upstream.get("StationID"),
                 downstream_station_id=downstream.get("StationID"),
+                upstream=upstream,
+                downstream=downstream,
+                upstream_departure=upstream_departure,
+                downstream_arrival=downstream_arrival,
+                delay_minutes=delay_minutes,
+                delay_source=delay_source,
+                direction=direction,
+                liveboard=liveboard,
                 station_lookup_by_id=station_lookup_by_id,
+                data_basis="liveboard",
             )
-            if not self._is_prediction_segment_valid(
-                crossing,
-                upstream_station_id=upstream.get("StationID"),
-                downstream_station_id=downstream.get("StationID"),
-                ratio=ratio,
-                ratio_source=prediction_ratio_source,
-            ):
+            if timing is None:
                 continue
-            eta = actual_upstream + (actual_downstream - actual_upstream) * ratio
             if not self._is_prediction_in_window(
-                eta,
+                timing.eta,
                 now=now,
                 horizon_minutes=horizon_minutes,
                 recent_minutes=recent_minutes,
@@ -416,41 +443,54 @@ class PredictorService:
                 source_station_name=(liveboard.get("StationName") or {}).get("Zh_tw"),
                 previous_stop_station_id=upstream.get("StationID"),
                 previous_stop_station_name=(upstream.get("StationName") or {}).get("Zh_tw", ""),
-                previous_stop_departure=actual_upstream,
+                previous_stop_departure=timing.actual_upstream,
                 next_stop_station_id=downstream.get("StationID"),
                 next_stop_station_name=(downstream.get("StationName") or {}).get("Zh_tw", ""),
-                next_stop_arrival=actual_downstream,
+                next_stop_arrival=timing.actual_downstream,
                 upstream_station_id=upstream.get("StationID"),
                 upstream_station_name=(upstream.get("StationName") or {}).get("Zh_tw", ""),
                 downstream_station_id=downstream.get("StationID"),
                 downstream_station_name=(downstream.get("StationName") or {}).get("Zh_tw", ""),
-                eta=eta,
-                warning=eta <= now + timedelta(minutes=warning_minutes),
+                eta=timing.eta,
+                warning=timing.eta <= now + timedelta(minutes=warning_minutes),
                 warning_window_minutes=warning_minutes,
                 confidence=self._prediction_confidence_with_segment(
                     crossing.get("geolocation_confidence"),
-                    prediction_segment_confidence,
+                    timing.segment_confidence,
                     has_liveboard=True,
                 ),
                 confidence_reason=self._prediction_confidence_reason(
                     crossing,
                     has_liveboard=True,
-                    ratio_source=prediction_ratio_source,
-                    segment_note=prediction_segment_note,
+                    ratio_source=timing.ratio_source,
+                    segment_note=timing.segment_note,
                 ),
                 delay_minutes=delay_minutes,
                 delay_source=delay_source,
                 data_basis="liveboard",
-                prediction_method="liveboard+delay+timetable_segment" if delay_source == "train_info" else "liveboard+timetable_segment",
+                prediction_method=(
+                    "liveboard-anchor+travel-profile+calibrated"
+                    if timing.calibration_offset_seconds and timing.anchor_time_source
+                    else "liveboard-anchor+travel-profile"
+                    if timing.anchor_time_source
+                    else "travel-profile+calibrated"
+                    if timing.calibration_offset_seconds
+                    else "travel-profile"
+                ),
+                timing_model=timing.timing_model,
+                anchor_time_source=timing.anchor_time_source,
+                calibration_offset_seconds=timing.calibration_offset_seconds,
+                eta_uncertainty_seconds=timing.eta_uncertainty_seconds,
+                accuracy_tier=timing.accuracy_tier,
                 reason=(
                     f"Used TrainLiveBoard from {((liveboard.get('StationName') or {}).get('Zh_tw') or liveboard.get('StationID') or 'unknown station')} "
-                    f"with timetable segment {((upstream.get('StationName') or {}).get('Zh_tw') or upstream.get('StationID'))} -> "
-                    f"{((downstream.get('StationName') or {}).get('Zh_tw') or downstream.get('StationID'))} and {delay_source} delay data."
+                    f"with {timing.timing_model} on {((upstream.get('StationName') or {}).get('Zh_tw') or upstream.get('StationID'))} -> "
+                    f"{((downstream.get('StationName') or {}).get('Zh_tw') or downstream.get('StationID'))}."
                 ),
                 station_pair_source=crossing.get("station_pair_source"),
-                ratio_source=prediction_ratio_source,
-                segment_confidence=prediction_segment_confidence,
-                segment_ratio=ratio,
+                ratio_source=timing.ratio_source,
+                segment_confidence=timing.segment_confidence,
+                segment_ratio=timing.ratio,
             )
             predictions.append(prediction)
 
@@ -494,26 +534,26 @@ class PredictorService:
                 train_no,
                 train_info_by_train_no=train_info_by_train_no,
             )
-            actual_upstream = upstream_departure + timedelta(minutes=delay_minutes)
-            actual_downstream = downstream_arrival + timedelta(minutes=delay_minutes)
-
-            ratio, prediction_ratio_source, prediction_segment_confidence, prediction_segment_note = self._prediction_segment_context(
+            timing = self._estimate_prediction_timing(
                 crossing,
+                train_no=train_no,
+                train_type_name=self._extract_train_type(train_info.get("TrainTypeName")),
                 upstream_station_id=upstream.get("StationID"),
                 downstream_station_id=downstream.get("StationID"),
+                upstream=upstream,
+                downstream=downstream,
+                upstream_departure=upstream_departure,
+                downstream_arrival=downstream_arrival,
+                delay_minutes=delay_minutes,
+                delay_source=delay_source,
+                direction=direction,
                 station_lookup_by_id=station_lookup_by_id,
+                data_basis="timetable",
             )
-            if not self._is_prediction_segment_valid(
-                crossing,
-                upstream_station_id=upstream.get("StationID"),
-                downstream_station_id=downstream.get("StationID"),
-                ratio=ratio,
-                ratio_source=prediction_ratio_source,
-            ):
+            if timing is None:
                 continue
-            eta = actual_upstream + (actual_downstream - actual_upstream) * ratio
             if not self._is_prediction_in_window(
-                eta,
+                timing.eta,
                 now=now,
                 horizon_minutes=horizon_minutes,
                 recent_minutes=recent_minutes,
@@ -534,41 +574,54 @@ class PredictorService:
                     source_station_name=(upstream.get("StationName") or {}).get("Zh_tw"),
                     previous_stop_station_id=upstream.get("StationID"),
                     previous_stop_station_name=(upstream.get("StationName") or {}).get("Zh_tw", ""),
-                    previous_stop_departure=actual_upstream,
+                    previous_stop_departure=timing.actual_upstream,
                     next_stop_station_id=downstream.get("StationID"),
                     next_stop_station_name=(downstream.get("StationName") or {}).get("Zh_tw", ""),
-                    next_stop_arrival=actual_downstream,
+                    next_stop_arrival=timing.actual_downstream,
                     upstream_station_id=upstream.get("StationID"),
                     upstream_station_name=(upstream.get("StationName") or {}).get("Zh_tw", ""),
                     downstream_station_id=downstream.get("StationID"),
                     downstream_station_name=(downstream.get("StationName") or {}).get("Zh_tw", ""),
-                    eta=eta,
-                    warning=eta <= now + timedelta(minutes=warning_minutes),
+                    eta=timing.eta,
+                    warning=timing.eta <= now + timedelta(minutes=warning_minutes),
                     warning_window_minutes=warning_minutes,
                     confidence=self._prediction_confidence_with_segment(
                         crossing.get("geolocation_confidence"),
-                        prediction_segment_confidence,
+                        timing.segment_confidence,
                         has_liveboard=False,
                     ),
                     confidence_reason=self._prediction_confidence_reason(
                         crossing,
                         has_liveboard=False,
-                        ratio_source=prediction_ratio_source,
-                        segment_note=prediction_segment_note,
+                        ratio_source=timing.ratio_source,
+                        segment_note=timing.segment_note,
                     ),
                     delay_minutes=delay_minutes,
                     delay_source=delay_source,
                     data_basis="timetable",
-                    prediction_method="timetable+delay_segment" if delay_source == "train_info" else "timetable_only",
-                    reason=(
-                        "Used timetable interpolation with train-info delay data."
+                    prediction_method=(
+                        "travel-profile+calibrated"
+                        if timing.calibration_offset_seconds
+                        else "travel-profile+delay-segment"
                         if delay_source == "train_info"
-                        else "Fallback timetable-only estimation because no nearby liveboard evidence was available."
+                        else "travel-profile"
+                    ),
+                    timing_model=timing.timing_model,
+                    anchor_time_source=timing.anchor_time_source,
+                    calibration_offset_seconds=timing.calibration_offset_seconds,
+                    eta_uncertainty_seconds=timing.eta_uncertainty_seconds,
+                    accuracy_tier=timing.accuracy_tier,
+                    reason=(
+                        "Used travel-profile interpolation with offline calibration."
+                        if timing.calibration_offset_seconds
+                        else "Used travel-profile interpolation with train-info delay data."
+                        if delay_source == "train_info"
+                        else "Fallback travel-profile estimation because no nearby liveboard anchor was available."
                     ),
                     station_pair_source=crossing.get("station_pair_source"),
-                    ratio_source=prediction_ratio_source,
-                    segment_confidence=prediction_segment_confidence,
-                    segment_ratio=ratio,
+                    ratio_source=timing.ratio_source,
+                    segment_confidence=timing.segment_confidence,
+                    segment_ratio=timing.ratio,
                 )
             )
         predictions.sort(key=lambda item: item.eta)
@@ -1055,6 +1108,186 @@ class PredictorService:
             return (projected_ratio, projected_source, projected_confidence, projected_note)
 
         return (None, projected_source, projected_confidence, projected_note if projected_note else segment_note)
+
+    def _estimate_prediction_timing(
+        self,
+        crossing: dict[str, Any],
+        *,
+        train_no: str,
+        train_type_name: str | None,
+        upstream_station_id: str | None,
+        downstream_station_id: str | None,
+        upstream: dict[str, Any],
+        downstream: dict[str, Any],
+        upstream_departure: datetime,
+        downstream_arrival: datetime,
+        delay_minutes: int,
+        delay_source: str,
+        direction: int | None,
+        station_lookup_by_id: dict[str, dict[str, Any]] | None = None,
+        liveboard: dict[str, Any] | None = None,
+        data_basis: str,
+        apply_calibration: bool = True,
+    ) -> PredictionTimingEstimate | None:
+        ratio, prediction_ratio_source, prediction_segment_confidence, prediction_segment_note = self._prediction_segment_context(
+            crossing,
+            upstream_station_id=upstream_station_id,
+            downstream_station_id=downstream_station_id,
+            station_lookup_by_id=station_lookup_by_id,
+        )
+        if not self._is_prediction_segment_valid(
+            crossing,
+            upstream_station_id=upstream_station_id,
+            downstream_station_id=downstream_station_id,
+            ratio=ratio,
+            ratio_source=prediction_ratio_source,
+        ):
+            return None
+
+        scheduled_duration = downstream_arrival - upstream_departure
+        actual_upstream = upstream_departure + timedelta(minutes=delay_minutes)
+        actual_downstream = downstream_arrival + timedelta(minutes=delay_minutes)
+        travel_profile_service = getattr(self, "travel_profile_service", None) or TravelProfileService()
+        calibration_service = getattr(self, "prediction_calibration_service", None) or PredictionCalibrationService(travel_profile_service)
+        profile = travel_profile_service.estimate(
+            ratio=ratio,
+            train_type_name=train_type_name,
+            upstream_dwell_seconds=self._stop_dwell_seconds(upstream),
+            downstream_dwell_seconds=self._stop_dwell_seconds(downstream),
+        )
+
+        eta = actual_upstream + scheduled_duration * profile.time_fraction
+        timing_model = "travel_profile"
+        anchor_time_source = None
+
+        anchor_time = self._resolve_liveboard_anchor_time(
+            liveboard,
+            upstream_station_id=upstream_station_id,
+            scheduled_upstream=actual_upstream,
+            scheduled_downstream=actual_downstream,
+        )
+        if anchor_time is not None:
+            anchored_downstream = anchor_time + scheduled_duration
+            anchored_eta = anchor_time + scheduled_duration * profile.time_fraction
+            if anchored_eta > eta:
+                actual_upstream = anchor_time
+                actual_downstream = anchored_downstream
+                eta = anchored_eta
+                timing_model = "liveboard_anchor_profile"
+                anchor_time_source = "liveboard_update"
+
+        calibration_offset_seconds = 0
+        calibration_rule_id = None
+        if apply_calibration:
+            calibration_offset_seconds, calibration_rule_id = calibration_service.lookup_offset_seconds(
+                crossing_id=str(crossing.get("id") or crossing.get("crossing_id") or ""),
+                direction=direction,
+                train_type_name=train_type_name,
+                upstream_station_id=upstream_station_id,
+            )
+            if calibration_offset_seconds:
+                eta = eta + timedelta(seconds=calibration_offset_seconds)
+                timing_model = f"{timing_model}+calibrated"
+
+        eta_uncertainty_seconds = self._estimate_uncertainty_seconds(
+            base_uncertainty_seconds=profile.base_uncertainty_seconds,
+            segment_confidence=prediction_segment_confidence,
+            data_basis=data_basis,
+            delay_source=delay_source,
+            anchor_time_source=anchor_time_source,
+            calibration_rule_id=calibration_rule_id,
+        )
+        accuracy_tier = self._accuracy_tier_from_uncertainty(eta_uncertainty_seconds)
+        return PredictionTimingEstimate(
+            eta=eta,
+            ratio=ratio,
+            ratio_source=prediction_ratio_source,
+            segment_confidence=prediction_segment_confidence,
+            segment_note=prediction_segment_note,
+            actual_upstream=actual_upstream,
+            actual_downstream=actual_downstream,
+            timing_model=timing_model,
+            anchor_time_source=anchor_time_source,
+            calibration_offset_seconds=calibration_offset_seconds,
+            calibration_rule_id=calibration_rule_id,
+            eta_uncertainty_seconds=eta_uncertainty_seconds,
+            accuracy_tier=accuracy_tier,
+            train_type_family=profile.train_type_family,
+            profile=profile,
+        )
+
+    def _stop_dwell_seconds(self, stop_time: dict[str, Any]) -> int:
+        arrival = stop_time.get("ArrivalTime")
+        departure = stop_time.get("DepartureTime")
+        if not arrival or not departure:
+            return 0
+        parsed_arrival = parse_time_on_date(date.today(), arrival)
+        parsed_departure = parse_time_on_date(date.today(), departure)
+        if parsed_arrival is None or parsed_departure is None:
+            return 0
+        return max(int((parsed_departure - parsed_arrival).total_seconds()), 0)
+
+    def _resolve_liveboard_anchor_time(
+        self,
+        liveboard: dict[str, Any] | None,
+        *,
+        upstream_station_id: str | None,
+        scheduled_upstream: datetime,
+        scheduled_downstream: datetime,
+    ) -> datetime | None:
+        if liveboard is None or str(liveboard.get("StationID") or "") != str(upstream_station_id or ""):
+            return None
+        raw_value = liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime")
+        if not raw_value or not isinstance(raw_value, str):
+            return None
+        try:
+            parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=scheduled_upstream.tzinfo)
+        parsed = parsed.astimezone(scheduled_upstream.tzinfo)
+        earliest = scheduled_upstream - timedelta(minutes=5)
+        latest = scheduled_downstream + timedelta(minutes=10)
+        if parsed < earliest or parsed > latest:
+            return None
+        return max(parsed, scheduled_upstream)
+
+    def _estimate_uncertainty_seconds(
+        self,
+        *,
+        base_uncertainty_seconds: int,
+        segment_confidence: str | None,
+        data_basis: str,
+        delay_source: str | None,
+        anchor_time_source: str | None,
+        calibration_rule_id: str | None,
+    ) -> int:
+        uncertainty = max(base_uncertainty_seconds, 15)
+        if data_basis == "timetable":
+            uncertainty += 25
+        elif delay_source == "train_info":
+            uncertainty += 12
+        elif delay_source == "none":
+            uncertainty += 18
+
+        if anchor_time_source is not None:
+            uncertainty = max(20, uncertainty - 12)
+        if calibration_rule_id is not None:
+            uncertainty = max(18, uncertainty - 8)
+
+        if segment_confidence == "medium":
+            uncertainty += 20
+        elif segment_confidence != "high":
+            uncertainty += 40
+        return uncertainty
+
+    def _accuracy_tier_from_uncertainty(self, uncertainty_seconds: int) -> ConfidenceLevel:
+        if uncertainty_seconds <= 35:
+            return "high"
+        if uncertainty_seconds <= 80:
+            return "medium"
+        return "low"
 
     def _extract_terminal_stations(self, timetable: dict[str, Any]) -> tuple[str | None, str | None, str | None, str | None]:
         train_info = timetable.get("TrainInfo", {}) or {}
