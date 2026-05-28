@@ -1601,6 +1601,30 @@ body.workspace-page {
   color: var(--navy);
 }
 
+.hero-chip.is-delay-alert,
+.tiny-pill.is-delay-alert {
+  background: rgba(255, 123, 91, 0.16);
+  color: var(--danger);
+}
+
+.hero-chip.is-delay-ok,
+.tiny-pill.is-delay-ok {
+  background: rgba(14, 127, 114, 0.14);
+  color: var(--success);
+}
+
+.hero-chip.is-delay-early,
+.tiny-pill.is-delay-early {
+  background: rgba(144, 215, 255, 0.22);
+  color: var(--navy);
+}
+
+.hero-chip.is-delay-unknown,
+.tiny-pill.is-delay-unknown {
+  background: rgba(26, 48, 73, 0.08);
+  color: var(--muted);
+}
+
 .hero-chip.is-scheduled,
 .train-slot-status.is-scheduled {
   background: rgba(242, 185, 77, 0.18);
@@ -1750,6 +1774,13 @@ body.workspace-page {
   display: grid;
   gap: 4px;
   min-width: 0;
+}
+
+.train-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .train-slot-label,

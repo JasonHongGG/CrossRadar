@@ -220,6 +220,70 @@ function getPredictionPrecisionLabel(record) {
   return parts.join(' · ');
 }
 
+function formatDelayDuration(totalSeconds) {
+  const absoluteSeconds = Math.abs(Math.round(totalSeconds));
+  const minutes = Math.floor(absoluteSeconds / 60);
+  const seconds = absoluteSeconds % 60;
+  if (!minutes) return `${seconds} 秒`;
+  if (!seconds) return `${minutes} 分`;
+  return `${minutes} 分 ${seconds} 秒`;
+}
+
+function getPredictionDelaySourceLabel(source) {
+  if (source === 'liveboard') return '來源：即時 liveboard';
+  if (source === 'train_info') return '來源：TDX train-info';
+  return '來源：未提供';
+}
+
+function getPredictionDelayMeta(record) {
+  const source = displayLabel(record?.delay_source, 'none');
+  const rawDelaySeconds = record?.delay_seconds;
+  const rawDelayMinutes = record?.delay_minutes;
+  const delaySeconds = rawDelaySeconds == null ? null : Number(rawDelaySeconds);
+  const delayMinutes = rawDelayMinutes == null ? null : Number(rawDelayMinutes);
+  const resolvedSeconds = Number.isFinite(delaySeconds)
+    ? Math.round(delaySeconds)
+    : Number.isFinite(delayMinutes)
+      ? Math.round(delayMinutes * 60)
+      : null;
+  const sourceLabel = getPredictionDelaySourceLabel(source);
+
+  if (source === 'none' || resolvedSeconds == null) {
+    return {
+      label: '未見延誤訊號',
+      detail: '目前沒有可採信的延誤資料',
+      sourceLabel,
+      tone: 'is-delay-unknown',
+    };
+  }
+
+  if (Math.abs(resolvedSeconds) < 30) {
+    return {
+      label: '準點',
+      detail: `${sourceLabel} 顯示目前準點`,
+      sourceLabel,
+      tone: 'is-delay-ok',
+    };
+  }
+
+  const durationLabel = formatDelayDuration(resolvedSeconds);
+  if (resolvedSeconds > 0) {
+    return {
+      label: `延誤 ${durationLabel}`,
+      detail: `${sourceLabel} 顯示目前晚 ${durationLabel}`,
+      sourceLabel,
+      tone: 'is-delay-alert',
+    };
+  }
+
+  return {
+    label: `提早 ${durationLabel}`,
+    detail: `${sourceLabel} 顯示目前早 ${durationLabel}`,
+    sourceLabel,
+    tone: 'is-delay-early',
+  };
+}
+
 function getConfidenceHint(meta) {
   if (meta.manualMappingApplied && meta.ratioSource === 'osm_path') return { label: '人工校正', tone: 'is-reviewed' };
   if (meta.ratioSource === 'osm_path') return { label: '軌道路徑', tone: 'is-soft' };
@@ -1358,6 +1422,7 @@ function renderWarningCard() {
   const isLive = isLivePrediction(primary);
   const warning = isLive && isWithinWarningWindow(primary);
   const precisionLabel = getPredictionPrecisionLabel(primary);
+  const delayMeta = getPredictionDelayMeta(primary);
 
   elements.warningCard.innerHTML = `
     <div class="hero-shell ${warning ? 'is-alert' : isLive ? 'is-watch' : 'is-scheduled'}">
@@ -1365,6 +1430,7 @@ function renderWarningCard() {
         <span class="hero-chip ${escapeHtml(getPredictionTone(primary))}">${escapeHtml(getPredictionBasisLabel(primary))}</span>
         <span class="hero-chip is-strong">${escapeHtml(formatTrainNo(primary))}</span>
         <span class="hero-chip">${escapeHtml(directionLabel)}</span>
+        <span class="hero-chip ${escapeHtml(delayMeta.tone)}">${escapeHtml(delayMeta.label)}</span>
       </div>
       <div class="hero-countdown">
         <strong>${escapeHtml(countdown.short)}</strong>
@@ -1379,6 +1445,7 @@ function renderWarningCard() {
         <span>${escapeHtml(primary.train_type || '列車')}</span>
         <span>${escapeHtml(isLive ? `即時倒數 · ${route.approachFrom} → ${route.approachTo}` : `班表預估 · ${route.approachFrom} → ${route.approachTo}`)}</span>
         ${precisionLabel ? `<span>${escapeHtml(`精度 ${precisionLabel}`)}</span>` : ''}
+        <span>${escapeHtml(delayMeta.detail)}</span>
       </div>
       <div class="hero-stop-grid">
         <div class="stop-timing-card">
@@ -1454,6 +1521,7 @@ function renderPredictionList() {
       const warning = isLive && isWithinWarningWindow(record);
       const isPast = countdown.isPast;
       const precisionLabel = getPredictionPrecisionLabel(record);
+      const delayMeta = getPredictionDelayMeta(record);
       return `
         <article class="train-card ${warning ? 'is-warning' : ''} ${isPast ? 'is-passed' : ''} ${escapeHtml(getPredictionTone(record))}">
           <div class="train-main">
@@ -1467,6 +1535,10 @@ function renderPredictionList() {
             </div>
             <div class="train-route">${escapeHtml(route.origin)} → ${escapeHtml(route.destination)}</div>
             <div class="train-subroute">${escapeHtml(precisionLabel ? `${getDirectionLabel(record)} · ${precisionLabel}` : getDirectionLabel(record))}</div>
+            <div class="train-meta-row">
+              <span class="tiny-pill ${escapeHtml(delayMeta.tone)}">${escapeHtml(delayMeta.label)}</span>
+              <span class="tiny-pill is-soft">${escapeHtml(delayMeta.sourceLabel)}</span>
+            </div>
             <div class="train-stop-grid">
               <div class="train-stop-item">
                 <span class="stop-timing-label">上一停靠</span>
