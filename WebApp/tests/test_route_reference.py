@@ -36,9 +36,6 @@ def test_catalog_applies_tainan_pair_override_by_range(tmp_path) -> None:
                             "station_pair_text": "大橋-臺南",
                             "station_a_name": "大橋",
                             "station_b_name": "臺南",
-                            "station_a_route_km_meters": 355300,
-                            "station_b_route_km_meters": 357800,
-                            "station_route_reference_note": "official anchor",
                         },
                         "pair_source": "authoritative_reference",
                         "reference_note": "range override",
@@ -82,8 +79,8 @@ def test_catalog_applies_tainan_pair_override_by_range(tmp_path) -> None:
     assert properties["station_b_name"] == "臺南"
     assert properties["station_pair_source"] == "authoritative_reference"
     assert properties["authoritative_reference_applied"] is True
-    assert properties["station_a_route_km_meters"] == 355300
-    assert properties["station_b_route_km_meters"] == 357800
+    assert properties["station_a_route_km_meters"] is None
+    assert properties["station_b_route_km_meters"] is None
     assert curated["metadata"]["authoritative_pair_count"] == 1
 
 

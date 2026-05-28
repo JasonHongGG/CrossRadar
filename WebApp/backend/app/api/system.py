@@ -75,6 +75,8 @@ async def get_overview() -> dict:
             "osm_raw": _file_meta(settings.osm_raw_json_path),
             "osm_geojson": _file_meta(settings.osm_geojson_path),
             "stations": _file_meta(settings.station_cache_path),
+            "liveboards": _file_meta(settings.liveboard_cache_path),
             "timetables": _file_meta(settings.timetable_cache_path),
+            "train_info": _file_meta(settings.train_info_cache_path),
         },
     }

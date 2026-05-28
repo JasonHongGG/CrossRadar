@@ -14,6 +14,7 @@ async def get_predictions(
     horizon_minutes: int | None = Query(default=None, ge=1),
     recent_minutes: int = Query(default=10, ge=1, le=60),
     warning_minutes: int = Query(default=5, ge=1, le=30),
+    force_refresh: bool = Query(default=False),
 ) -> dict:
     predictor = get_predictor_service()
     try:
@@ -22,6 +23,7 @@ async def get_predictions(
             horizon_minutes=horizon_minutes,
             recent_minutes=recent_minutes,
             warning_minutes=warning_minutes,
+            force_refresh=force_refresh,
         )
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

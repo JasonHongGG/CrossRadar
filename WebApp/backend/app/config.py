@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     tdx_runtime_dir: Path = ROOT_DIR / ".runtime" / "tdx"
     station_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "stations.json"
     timetable_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_timetables.json"
+    liveboard_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "train_liveboards.json"
+    train_info_cache_path: Path = ROOT_DIR / ".runtime" / "tdx" / "today_train_info.json"
 
     def ensure_directories(self) -> None:
         for path in (

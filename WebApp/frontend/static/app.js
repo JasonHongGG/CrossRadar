@@ -125,11 +125,16 @@ function getPairSourceLabel(value) {
 }
 
 function getRatioSourceLabel(value) {
-  if (value === 'official_route_mileage') return '比例：官方鏈公里';
   if (value === 'osm_path') return '比例：OSM 軌道路徑';
-  if (value === 'geometry_projection') return '比例：座標投影';
-  if (value === 'midpoint') return '比例：中點 fallback';
+  if (value === 'unavailable') return '比例：OSM 不可用';
   return '比例：未標示';
+}
+
+function getSnapshotSourceLabel(value) {
+  if (value === 'liveboards') return 'liveboard';
+  if (value === 'timetables') return 'timetable';
+  if (value === 'train_info') return 'train-info';
+  return displayLabel(value, 'unknown');
 }
 
 function buildPredictionSourceLine(record) {
@@ -137,6 +142,48 @@ function buildPredictionSourceLine(record) {
   if (record?.ratio_source) parts.push(getRatioSourceLabel(record.ratio_source));
   if (record?.station_pair_source) parts.push(getPairSourceLabel(record.station_pair_source));
   return parts.join(' · ');
+}
+
+function isPredictionEnvelopeUnavailable(envelope = state.predictionEnvelope) {
+  return Boolean(envelope) && envelope.available === false;
+}
+
+function getPredictionUnavailableTitle(envelope = state.predictionEnvelope) {
+  const reason = envelope?.unavailable_reason;
+  if (reason === 'runtime_segment_unavailable') return 'OSM 路徑尚未就緒';
+  if (reason === 'snapshot_incomplete') return '本次更新不完整';
+  if (reason === 'station_pair_unresolved') return '站間資料未解析';
+  return '目前無法估算';
+}
+
+function getPredictionUnavailableDetail(envelope = state.predictionEnvelope) {
+  return displayLabel(
+    envelope?.unavailable_detail,
+    '目前這處平交道還沒有可用的 OSM runtime 比例。',
+  );
+}
+
+function getPredictionSnapshotSummary(envelope = state.predictionEnvelope) {
+  const snapshot = envelope?.data_snapshot;
+  if (!snapshot) return '';
+  const liveboards = Number(snapshot.liveboard_count ?? 0);
+  const delayedLiveboards = Number(snapshot.delayed_liveboard_count ?? 0);
+  const timetables = Number(snapshot.timetable_count ?? 0);
+  const trainInfo = Number(snapshot.train_info_count ?? 0);
+  const delayedTrainInfo = Number(snapshot.delayed_train_info_count ?? 0);
+  if (![liveboards, delayedLiveboards, timetables, trainInfo, delayedTrainInfo].every(Number.isFinite)) return '';
+  const prefix = snapshot.comprehensive === false ? '快照未完整' : '快照';
+  const incomplete = safeArray(snapshot.sources)
+    .filter((source) => source?.complete === false)
+    .map((source) => getSnapshotSourceLabel(source.source));
+  const freshness = safeArray(snapshot.sources)
+    .map((source) => {
+      if (!source?.source || !source?.fetched_from) return null;
+      return `${getSnapshotSourceLabel(source.source)}:${displayLabel(source.fetched_from, 'unknown')}`;
+    })
+    .filter(Boolean)
+    .join(' · ');
+  return `${prefix} · liveboard ${liveboards} 筆(${delayedLiveboards} 延誤) · train-info ${trainInfo} 筆(${delayedTrainInfo} 延誤) · timetable ${timetables} 筆${incomplete.length ? ` · 缺源 ${incomplete.join('/')}` : ''}${freshness ? ` · ${freshness}` : ''}`;
 }
 
 function isLivePrediction(record) {
@@ -152,11 +199,9 @@ function getPredictionTone(record) {
 }
 
 function getConfidenceHint(meta) {
-  if (meta.manualMappingApplied) return { label: '人工校正', tone: 'is-reviewed' };
-  if (meta.ratioSource === 'official_route_mileage') return { label: '官方鏈公里', tone: 'is-strong' };
+  if (meta.manualMappingApplied && meta.ratioSource === 'osm_path') return { label: '人工校正', tone: 'is-reviewed' };
   if (meta.ratioSource === 'osm_path') return { label: '軌道路徑', tone: 'is-soft' };
-  if (meta.ratioSource === 'geometry_projection') return { label: '座標估算', tone: 'is-caution' };
-  if (meta.ratioSource === 'midpoint') return { label: '資料不足', tone: 'is-caution' };
+  if (meta.ratioSource === 'unavailable') return { label: 'OSM 未完成', tone: 'is-caution' };
   return null;
 }
 
@@ -1160,6 +1205,9 @@ function renderSelectedCrossingCard() {
   const stationAUk = getStationUkDisplay(properties.station_a_uk_primary);
   const stationBUk = getStationUkDisplay(properties.station_b_uk_primary);
   const stationUkNote = getStationReferenceNote(properties.station_uk_reference_note);
+  const ratioNote = meta.ratioSource === 'unavailable'
+    ? displayLabel(properties.segment_confidence_reason, '目前還沒有可用的 OSM path，runtime ETA 會直接標示 unavailable。')
+    : '';
   elements.selectedCrossingCard.innerHTML = `
     <div class="crossing-top-row compact">
       <span class="tiny-pill">${escapeHtml(meta.county)}</span>
@@ -1192,6 +1240,7 @@ function renderSelectedCrossingCard() {
       <span class="source-pill">${escapeHtml(getPairSourceLabel(meta.stationPairSource).replace('站間：', ''))}</span>
       <span class="source-pill is-soft">${escapeHtml(getRatioSourceLabel(meta.ratioSource).replace('比例：', ''))}</span>
     </div>
+    ${ratioNote ? `<div class="station-reference-note">${escapeHtml(ratioNote)}</div>` : ''}
   `;
 }
 
@@ -1209,6 +1258,23 @@ function renderWarningCard() {
 
   if (state.selectionLoading && !state.predictionEnvelope) {
     elements.warningCard.innerHTML = '<div class="loading-block"></div>';
+    return;
+  }
+
+  if (isPredictionEnvelopeUnavailable()) {
+    const snapshotSummary = getPredictionSnapshotSummary();
+    elements.warningCard.innerHTML = `
+      <div class="hero-shell is-idle">
+        <div class="hero-chip-row">
+          <span class="hero-chip">暫無可用預測</span>
+        </div>
+        <div class="hero-countdown">
+          <strong>${escapeHtml(getPredictionUnavailableTitle())}</strong>
+          <span>${escapeHtml(getPredictionUnavailableDetail())}</span>
+        </div>
+        ${snapshotSummary ? `<div class="hero-route-meta"><span>${escapeHtml(snapshotSummary)}</span></div>` : ''}
+      </div>
+    `;
     return;
   }
 
@@ -1285,6 +1351,23 @@ function renderPredictionList() {
 
   if (state.selectionLoading && !state.predictionEnvelope) {
     elements.predictionList.innerHTML = Array.from({ length: 3 }, () => '<div class="loading-block compact"></div>').join('');
+    return;
+  }
+
+  if (isPredictionEnvelopeUnavailable()) {
+    const snapshotSummary = getPredictionSnapshotSummary();
+    elements.predictionList.innerHTML = `
+      <article class="train-card is-empty">
+        <div class="train-main">
+          <div class="train-slot-row">
+            <span class="train-slot-label">目前狀態</span>
+          </div>
+          <div class="train-route">${escapeHtml(getPredictionUnavailableTitle())}</div>
+          <div class="train-subroute">${escapeHtml(getPredictionUnavailableDetail())}</div>
+          ${snapshotSummary ? `<div class="train-subroute">${escapeHtml(snapshotSummary)}</div>` : ''}
+        </div>
+      </article>
+    `;
     return;
   }
 
@@ -1432,22 +1515,22 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
 
   const token = ++state.selectionRequestToken;
   try {
-    const predictionRequest = apiRequest(`/api/predictions/${encodeURIComponent(crossingId)}`, {
-        params: new URLSearchParams({
-          recent_minutes: String(PREDICTION_RECENT_WINDOW_MINUTES),
-          warning_minutes: String(PREDICTION_WARNING_WINDOW_MINUTES),
-        }),
-      });
-    const detailRequest = refreshOnly && state.selectedCrossingDetail
-      ? Promise.resolve(state.selectedCrossingDetail)
-      : apiRequest(`/api/crossings/${encodeURIComponent(crossingId)}`);
-    const [detail, envelope] = await Promise.all([detailRequest, predictionRequest]);
+    const predictionParams = new URLSearchParams({
+      recent_minutes: String(PREDICTION_RECENT_WINDOW_MINUTES),
+      warning_minutes: String(PREDICTION_WARNING_WINDOW_MINUTES),
+    });
+    if (refreshOnly) {
+      predictionParams.set('force_refresh', 'true');
+    }
+    const envelope = await apiRequest(`/api/predictions/${encodeURIComponent(crossingId)}`, {
+      params: predictionParams,
+    });
     const receivedAtMs = Date.now();
 
     if (token !== state.selectionRequestToken) return;
     syncNow(receivedAtMs);
     updateLastPassedPrediction(crossingId);
-    state.selectedCrossingDetail = detail;
+    state.selectedCrossingDetail = envelope.crossing || state.selectedCrossingDetail || baseFeature;
     state.predictionEnvelope = envelope;
     syncEnvelopeClock(envelope, receivedAtMs);
     primePredictionRuntime(crossingId, envelope);
@@ -1459,12 +1542,19 @@ async function selectCrossing(crossingId, { focusMap = true, refreshOnly = false
 
     const warningCount = getAllUpcomingPredictions().filter((record) => isLivePrediction(record) && isWithinWarningWindow(record)).length;
     if (!silent) {
-      setStatus(
-        warningCount
-          ? `${getFeatureMeta(baseFeature).name} 已更新，現在有 ${warningCount} 筆提醒。`
-          : `${getFeatureMeta(baseFeature).name} 已更新。`,
-        warningCount ? 'warning' : 'success'
-      );
+      if (isPredictionEnvelopeUnavailable(envelope)) {
+        setStatus(
+          `${getFeatureMeta(baseFeature).name} 已更新，但目前無法估算：${getPredictionUnavailableTitle(envelope)}。`,
+          'warning',
+        );
+      } else {
+        setStatus(
+          warningCount
+            ? `${getFeatureMeta(baseFeature).name} 已更新，現在有 ${warningCount} 筆提醒。`
+            : `${getFeatureMeta(baseFeature).name} 已更新。`,
+          warningCount ? 'warning' : 'success'
+        );
+      }
     }
   } catch (error) {
     if (token !== state.selectionRequestToken) return;

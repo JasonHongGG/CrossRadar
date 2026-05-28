@@ -42,24 +42,6 @@ class RouteReferenceService:
             updated.station_pair_reference_note = rule.get("reference_note") or updated.station_pair_reference_note
             updated.authoritative_reference_applied = True
 
-            station_a_route_km = override.get("station_a_route_km_meters")
-            if station_a_route_km is not None:
-                updated.station_a_route_km_meters = int(station_a_route_km)
-            station_b_route_km = override.get("station_b_route_km_meters")
-            if station_b_route_km is not None:
-                updated.station_b_route_km_meters = int(station_b_route_km)
-            if override.get("station_route_reference_note"):
-                updated.station_route_reference_note = override["station_route_reference_note"]
-            segment_ratio_override = override.get("segment_ratio_override")
-            if segment_ratio_override is not None:
-                updated.segment_ratio_override = float(segment_ratio_override)
-            if override.get("segment_ratio_override_source"):
-                updated.segment_ratio_override_source = str(override["segment_ratio_override_source"])
-            if override.get("segment_ratio_override_confidence"):
-                updated.segment_ratio_override_confidence = str(override["segment_ratio_override_confidence"])
-            if override.get("segment_ratio_override_note"):
-                updated.segment_ratio_override_note = override["segment_ratio_override_note"]
-
         return updated
 
     def _matches(self, match: dict[str, Any], record: CrossingRecord) -> bool:

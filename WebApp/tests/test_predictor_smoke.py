@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from backend.app.models.prediction import PredictionRecord
 from backend.app.services.predictor import PredictorService
-from backend.app.utils import parse_time_on_date, point_ratio_between_stations
+from backend.app.utils import parse_time_on_date
 
 
 def test_parse_time_on_date_smoke() -> None:
@@ -55,11 +55,13 @@ def test_reverse_direction_eta_preserves_crossing_order() -> None:
         "station_a_id": "YONGKANG",
         "station_b_id": "TAINAN",
         "segment_ratio": 0.3,
+        "ratio_source": "osm_path",
     }
     south_crossing = {
         "station_a_id": "YONGKANG",
         "station_b_id": "TAINAN",
         "segment_ratio": 0.7,
+        "ratio_source": "osm_path",
     }
 
     north_eta, north_ratio = predictor._estimate_crossing_eta(
@@ -81,13 +83,20 @@ def test_reverse_direction_eta_preserves_crossing_order() -> None:
     assert south_eta < north_eta
 
 
-def test_skip_stop_eta_uses_actual_stop_pair_projection() -> None:
+def test_skip_stop_eta_uses_actual_stop_pair_osm_projection() -> None:
     predictor = PredictorService.__new__(PredictorService)
+    expected_ratio = 0.19
+
+    class _StubStationGraphService:
+        def resolve_runtime_ratio_for_station_pair(self, crossing, **kwargs):  # noqa: ANN001
+            return (expected_ratio, "osm_path", "high", "stubbed stop-pair path")
+
+    predictor.station_graph_service = _StubStationGraphService()
     crossing = {
         "station_a_id": "YONGKANG",
         "station_b_id": "TAINAN",
         "segment_ratio": 0.3273477076302729,
-        "ratio_source": "geometry_projection",
+        "ratio_source": "osm_path",
         "segment_confidence": "medium",
         "segment_confidence_reason": "test",
         "geometry": {"lon": 120.2371122, "lat": 23.0277097},
@@ -104,19 +113,146 @@ def test_skip_stop_eta_uses_actual_stop_pair_projection() -> None:
         station_lookup_by_id=station_lookup_by_id,
     )
 
-    expected_ratio = point_ratio_between_stations(
-        120.21295,
-        22.99681,
-        120.31755,
-        23.30531,
-        120.2371122,
-        23.0277097,
-    )
-
     assert ratio == expected_ratio
     assert ratio != crossing["segment_ratio"]
-    assert ratio_source == "geometry_projection"
-    assert segment_confidence == "medium"
+    assert ratio_source == "osm_path"
+    assert segment_confidence == "high"
+
+
+def test_non_anchor_osm_projection_is_accepted_for_prediction_segment() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+
+    assert predictor._is_prediction_segment_valid(
+        {
+            "station_a_id": "YONGKANG",
+            "station_b_id": "TAINAN",
+        },
+        upstream_station_id="TAINAN",
+        downstream_station_id="XINYING",
+        ratio=0.19,
+        ratio_source="osm_path",
+    ) is True
+
+
+def test_resolve_delay_minutes_prefers_train_info_over_liveboard() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+
+    delay_minutes, delay_source = predictor._resolve_delay_minutes(
+        "3001",
+        liveboard={"DelayTime": 2},
+        train_info_by_train_no={"3001": {"DelayTime": 7}},
+    )
+
+    assert delay_minutes == 7
+    assert delay_source == "train_info"
+
+
+def test_dedupe_liveboards_keeps_station_context() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    liveboards = [
+        {"TrainNo": "3001", "StationID": "A", "UpdateTime": "2026-05-28T10:00:00+08:00", "DelayTime": 1},
+        {"TrainNo": "3001", "StationID": "A", "UpdateTime": "2026-05-28T10:00:00+08:00", "DelayTime": 1},
+        {"TrainNo": "3001", "StationID": "B", "UpdateTime": "2026-05-28T10:00:00+08:00", "DelayTime": 1},
+    ]
+
+    deduped = predictor._dedupe_liveboards(liveboards)
+
+    assert len(deduped) == 2
+    assert {record["StationID"] for record in deduped} == {"A", "B"}
+
+
+def test_select_best_timetable_prefers_exact_anchor_pair() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.03825, "PositionLon": 120.25347}},
+        "B": {"StationPosition": {"PositionLat": 22.99681, "PositionLon": 120.21295}},
+        "X": {"StationPosition": {"PositionLat": 23.30531, "PositionLon": 120.31755}},
+    }
+    single_anchor = {
+        "StopTimes": [
+            {"StopSequence": 1, "StationID": "X", "StationName": {"Zh_tw": "新營"}},
+            {"StopSequence": 2, "StationID": "B", "StationName": {"Zh_tw": "臺南"}},
+        ]
+    }
+    exact = {
+        "StopTimes": [
+            {"StopSequence": 5, "StationID": "A", "StationName": {"Zh_tw": "永康"}},
+            {"StopSequence": 6, "StationID": "B", "StationName": {"Zh_tw": "臺南"}},
+        ]
+    }
+
+    selected = predictor._select_best_timetable(
+        [single_anchor, exact],
+        "A",
+        "B",
+        station_lookup_by_id=station_lookup_by_id,
+    )
+
+    assert selected is exact
+
+
+def test_build_predictions_from_timetables_applies_train_info_delay() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    now = parse_time_on_date(date.today(), "09:30")
+    assert now is not None
+
+    crossing = {
+        "station_a_id": "A",
+        "station_b_id": "B",
+        "segment_ratio": 0.5,
+        "ratio_source": "osm_path",
+        "geolocation_confidence": "high",
+        "segment_confidence": "high",
+    }
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.0, "PositionLon": 120.0}},
+        "B": {"StationPosition": {"PositionLat": 22.9, "PositionLon": 120.1}},
+    }
+    timetables = [
+        {
+            "TrainInfo": {
+                "TrainNo": "3001",
+                "TrainTypeName": {"Zh_tw": "區間"},
+                "StartingStationID": "A",
+                "StartingStationName": {"Zh_tw": "甲站"},
+                "EndingStationID": "B",
+                "EndingStationName": {"Zh_tw": "乙站"},
+            },
+            "StopTimes": [
+                {
+                    "StopSequence": 1,
+                    "StationID": "A",
+                    "StationName": {"Zh_tw": "甲站"},
+                    "ArrivalTime": "10:00",
+                    "DepartureTime": "10:00",
+                },
+                {
+                    "StopSequence": 2,
+                    "StationID": "B",
+                    "StationName": {"Zh_tw": "乙站"},
+                    "ArrivalTime": "10:10",
+                    "DepartureTime": "10:10",
+                },
+            ],
+        }
+    ]
+
+    predictions = predictor._build_predictions_from_timetables(
+        crossing,
+        timetables,
+        train_info_by_train_no={"3001": {"DelayTime": 4}},
+        station_lookup_by_id=station_lookup_by_id,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+        warning_minutes=5,
+    )
+
+    assert len(predictions) == 1
+    assert predictions[0].delay_minutes == 4
+    assert predictions[0].delay_source == "train_info"
+    assert predictions[0].previous_stop_departure == parse_time_on_date(date.today(), "10:04")
+    assert predictions[0].next_stop_arrival == parse_time_on_date(date.today(), "10:14")
 
 
 def test_partition_predictions_keeps_recent_past_and_next_two_upcoming() -> None:
@@ -371,6 +507,7 @@ def test_build_predictions_from_timetables_keeps_all_sorted_candidates() -> None
         "station_a_id": "A",
         "station_b_id": "B",
         "segment_ratio": 0.5,
+        "ratio_source": "osm_path",
         "geolocation_confidence": "high",
         "segment_confidence": "high",
     }

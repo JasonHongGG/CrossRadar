@@ -54,7 +54,7 @@ function workspaceShouldDrawOsmDiagnostics(explanation = workspaceState.selected
 }
 
 function workspaceShouldDrawProjection(explanation = workspaceState.selectedExplanation) {
-  return workspaceSelectedSource(explanation) === 'geometry_projection';
+  return false;
 }
 
 function workspaceStationPair(explanation = workspaceState.selectedExplanation) {
@@ -64,10 +64,8 @@ function workspaceStationPair(explanation = workspaceState.selectedExplanation) 
 }
 
 function workspaceMethodMeaning(source) {
-  if (source === 'official_route_mileage') return '官方鏈公里';
   if (source === 'osm_path') return '沿 OSM 鐵道量測';
-  if (source === 'geometry_projection') return '站點直線投影';
-  if (source === 'midpoint') return '中點 fallback';
+  if (source === 'unavailable') return 'OSM 尚未可用';
   return '未標示';
 }
 
@@ -140,10 +138,6 @@ function workspaceRenderMapLegend(explanation = workspaceState.selectedExplanati
     '<span class="workspace-legend-chip"><i class="workspace-legend-dot is-station"></i>所有車站</span>',
     '<span class="workspace-legend-chip"><i class="workspace-legend-dot is-station"></i>前後站</span>',
   ];
-
-  if (workspaceShouldDrawProjection(explanation)) {
-    chips.push('<span class="workspace-legend-chip"><i class="workspace-legend-dot is-projection"></i>目前採用的投影線</span>');
-  }
 
   if (workspaceCanDrawSelectedOsmPath(explanation)) {
     chips.push('<span class="workspace-legend-chip"><i class="workspace-legend-dot is-path"></i>目前採用的 OSM 路徑</span>');
@@ -245,10 +239,8 @@ function workspaceFormatRatio(value) {
 }
 
 function workspaceRatioSourceLabel(value) {
-  if (value === 'official_route_mileage') return '官方鏈公里';
   if (value === 'osm_path') return 'OSM 軌道路徑';
-  if (value === 'geometry_projection') return '站點直線投影';
-  if (value === 'midpoint') return '中點 fallback';
+  if (value === 'unavailable') return 'OSM 尚未可用';
   return '尚未選用';
 }
 
@@ -331,30 +323,23 @@ function workspaceRenderSummary() {
   const selected = explanation.ratios?.selected || {};
   const pair = workspaceStationPair(explanation);
   const pathAssessment = workspaceOsmPathAssessment(explanation);
-  const ratioValue = Number(selected.value);
-  const ratioPercent = Number.isFinite(ratioValue) ? Math.max(0, Math.min(100, ratioValue * 100)) : 50;
+  const hasSelectedRatio = selected.value != null && Number.isFinite(Number(selected.value));
+  const ratioValue = hasSelectedRatio ? Number(selected.value) : null;
+  const ratioPercent = ratioValue != null ? Math.max(0, Math.min(100, ratioValue * 100)) : null;
 
-  const mainMeaning = selected.source === 'osm_path'
-    ? `表示沿著 OSM 鐵道量時，${workspaceLabel(crossing.name, '這筆平交道')} 大約位在 ${pair.text} 區間的 ${workspaceFormatRatio(selected.value)} 位置。`
-    : selected.source === 'geometry_projection'
-      ? `表示把 ${workspaceLabel(crossing.name, '這筆平交道')} 投影到 ${pair.text} 的直線後，大約落在這段區間的 ${workspaceFormatRatio(selected.value)} 位置。`
-      : selected.source === 'official_route_mileage'
-        ? `表示依官方鏈公里，${workspaceLabel(crossing.name, '這筆平交道')} 大約位在 ${pair.text} 區間的 ${workspaceFormatRatio(selected.value)} 位置。`
-        : `表示目前只能粗略估計 ${workspaceLabel(crossing.name, '這筆平交道')} 在 ${pair.text} 區間的位置。`;
+  const mainMeaning = selected.source === 'osm_path' && ratioValue != null
+    ? `表示沿著 OSM 鐵道量時，${workspaceLabel(crossing.name, '這筆平交道')} 大約位在 ${pair.text} 區間的 ${workspaceFormatRatio(ratioValue)} 位置。`
+    : `表示 ${workspaceLabel(crossing.name, '這筆平交道')} 目前還沒有可用的 OSM runtime 比例，app 不會退回官方公里或直線投影來硬算 ETA。`;
 
-  const statusNote = selected.source === 'geometry_projection'
-    ? '目前沒有採用 OSM，因為 OSM 候選結果不可信。'
-    : selected.source === 'osm_path' && pathAssessment.suspicious
-      ? '目前後端仍回傳 OSM，但這筆 OSM 路徑跨度異常，地圖預設只保留前後站位置。'
-      : selected.source === 'osm_path'
-        ? '目前直接採用 OSM 鐵道路徑。'
-        : '目前使用的不是 OSM 幾何。';
+  const statusNote = selected.source === 'osm_path' && pathAssessment.suspicious
+    ? '目前後端仍回傳 OSM，但這筆 OSM 路徑跨度異常，地圖預設只保留前後站位置。'
+    : selected.source === 'osm_path'
+      ? '目前直接採用 OSM 鐵道路徑。'
+      : '目前 runtime ETA 直接標記 unavailable，等待補資料或修正 OSM 方法。';
 
-  const detailNote = selected.source === 'geometry_projection'
-    ? workspaceLabel(selected.note, '')
-    : selected.source === 'osm_path' && pathAssessment.suspicious
-      ? pathAssessment.note
-      : '';
+  const detailNote = selected.source === 'osm_path' && pathAssessment.suspicious
+    ? pathAssessment.note
+    : workspaceLabel(selected.note, '');
 
   workspaceElements.summaryCard.innerHTML = `
     <div class="workspace-card-head">
@@ -362,7 +347,7 @@ function workspaceRenderSummary() {
         <small class="workspace-method-tag"><i class="workspace-inline-dot is-crossing"></i>目前 app 採用值</small>
         <h3>${workspaceEscape(workspaceLabel(crossing.name, '未命名平交道'))}</h3>
       </div>
-      <div class="workspace-ratio-value">${workspaceEscape(workspaceFormatRatio(selected.value))}</div>
+      <div class="workspace-ratio-value">${workspaceEscape(ratioValue != null ? workspaceFormatRatio(ratioValue) : '未提供')}</div>
     </div>
     <div class="workspace-pair-meta">
       <div>
@@ -371,22 +356,24 @@ function workspaceRenderSummary() {
       </div>
       <div class="workspace-ratio-caption">${workspaceEscape(workspaceLabel(crossing.km_marker, '未標公里'))}</div>
     </div>
-    <div class="workspace-ratio-track">
-      <div class="workspace-ratio-fill" style="width:${ratioPercent}%;"></div>
-      <div class="workspace-ratio-pin" style="left:${ratioPercent}%;"></div>
-    </div>
-    <div class="workspace-ratio-labels">
-      <div>
-        <strong>${workspaceEscape(pair.stationA)}</strong>
-        <span class="workspace-ratio-caption">0%</span>
+    ${ratioPercent != null ? `
+      <div class="workspace-ratio-track">
+        <div class="workspace-ratio-fill" style="width:${ratioPercent}%;"></div>
+        <div class="workspace-ratio-pin" style="left:${ratioPercent}%;"></div>
       </div>
-      <div style="text-align:right;">
-        <strong>${workspaceEscape(pair.stationB)}</strong>
-        <span class="workspace-ratio-caption">100%</span>
+      <div class="workspace-ratio-labels">
+        <div>
+          <strong>${workspaceEscape(pair.stationA)}</strong>
+          <span class="workspace-ratio-caption">0%</span>
+        </div>
+        <div style="text-align:right;">
+          <strong>${workspaceEscape(pair.stationB)}</strong>
+          <span class="workspace-ratio-caption">100%</span>
+        </div>
       </div>
-    </div>
+    ` : ''}
     <p class="workspace-note">${workspaceEscape(mainMeaning)}</p>
-    <div class="workspace-badge${selected.source === 'geometry_projection' || pathAssessment.suspicious ? ' is-alert' : ' is-ok'}">
+    <div class="workspace-badge${pathAssessment.suspicious ? ' is-alert' : ' is-ok'}">
       <div>
         <strong>${workspaceEscape(statusNote)}</strong>
         <small>${workspaceEscape(detailNote)}</small>
@@ -405,20 +392,22 @@ function workspaceRenderDiagnosticCard(explanation) {
   const toggleLabel = workspaceState.showOsmDiagnostics ? '隱藏診斷地圖' : '顯示診斷地圖';
   const pair = workspaceStationPair(explanation);
 
-  const heading = selectedSource === 'osm_path' && !pathAssessment.suspicious
+  const heading = path?.available
     ? 'OSM 診斷'
-    : '需要時再看 OSM 診斷';
+    : 'OSM 尚未就緒';
 
   const intro = selectedSource === 'osm_path'
     ? pathAssessment.suspicious
       ? pathAssessment.note
       : `如果沿著 OSM 鐵道量，${workspaceLabel(explanation?.crossing?.name, '這筆平交道')} 會落在 ${pair.text} 區間的 ${workspaceFormatRatio(path?.ratio)} 位置。`
-    : `OSM 候選值是 ${workspaceFormatRatio(path?.ratio)}，但目前沒有採用，因為 ${workspaceLabel(explanation?.ratios?.selected?.note, '它不夠可信')}。`;
+    : path?.available
+      ? `OSM 候選值是 ${workspaceFormatRatio(path?.ratio)}，但 runtime 目前沒有採用，因為 ${workspaceLabel(explanation?.ratios?.selected?.note, '它仍不夠可信')}。`
+      : workspaceLabel(explanation?.ratios?.selected?.note, '目前沒有可用的 OSM 路徑量測。');
 
   return `
     <div class="workspace-card-head">
       <div>
-        <small class="workspace-method-tag${selectedSource === 'osm_path' && !pathAssessment.suspicious ? '' : ' is-muted'}"><i class="workspace-inline-dot is-path"></i>${workspaceEscape(selectedSource === 'osm_path' && !pathAssessment.suspicious ? '目前採用的 OSM' : 'OSM 候選診斷')}</small>
+        <small class="workspace-method-tag${selectedSource === 'osm_path' && !pathAssessment.suspicious ? '' : ' is-muted'}"><i class="workspace-inline-dot is-path"></i>${workspaceEscape(selectedSource === 'osm_path' && !pathAssessment.suspicious ? '目前採用的 OSM' : 'OSM 診斷')}</small>
         <h3>${workspaceEscape(heading)}</h3>
       </div>
       <div class="workspace-ratio-caption">${workspaceEscape(path?.available ? workspaceFormatRatio(path?.ratio) : workspacePathStatusLabel(path?.reason))}</div>
@@ -450,10 +439,10 @@ function workspaceRenderOfficialCard(official) {
     <section class="workspace-card is-official">
       <div class="workspace-card-head">
         <div>
-          <small class="workspace-method-tag"><i class="workspace-inline-dot is-station"></i>官方鏈公里</small>
+          <small class="workspace-method-tag"><i class="workspace-inline-dot is-station"></i>官方公里診斷</small>
           <h3>${available ? workspaceFormatRatio(official?.value) : '目前不可用'}</h3>
         </div>
-        <div class="workspace-ratio-caption">${available ? 'authoritative' : 'missing anchors'}</div>
+        <div class="workspace-ratio-caption">${available ? 'diagnostics only' : 'missing anchors'}</div>
       </div>
       <div class="workspace-km-grid">
         <article>
@@ -480,9 +469,9 @@ function workspaceRenderPathCard(path, selectedSource, selectedNote) {
   const canToggleDiagnostics = available && !isSelected;
   const toggleLabel = workspaceState.showOsmDiagnostics ? '隱藏 OSM 候選診斷' : '顯示 OSM 候選診斷';
   const headingLabel = isSelected ? 'OSM 沿軌路徑' : 'OSM 候選路徑';
-  const statusLabel = isSelected ? '目前採用' : '候選但未採用';
-  const note = !isSelected && selectedSource === 'geometry_projection'
-    ? `${selectedNote || ''} 這張卡片保留的是被拒絕的 OSM 候選值，只用來診斷為什麼它不可信。`
+  const statusLabel = isSelected ? '目前採用' : '診斷用候選';
+  const note = !isSelected
+    ? `${selectedNote || ''} 這張卡片只保留 OSM 診斷，不會回退成其他 runtime 方法。`
     : path?.note;
 
   return `
@@ -502,33 +491,6 @@ function workspaceRenderPathCard(path, selectedSource, selectedNote) {
       </div>
       <p class="workspace-note">${workspaceEscape(workspaceLabel(note, '未提供說明'))}</p>
       ${canToggleDiagnostics ? `<div class="workspace-card-actions"><button class="ghost-button inline-button compact" type="button" data-action="toggle-osm-diagnostics">${workspaceEscape(toggleLabel)}</button></div>` : ''}
-    </section>
-  `;
-}
-
-function workspaceRenderProjectionCard(projection, selectedSource) {
-  const available = Boolean(projection?.available);
-  const isSelected = selectedSource === 'geometry_projection';
-  const headingLabel = isSelected ? '站點直線投影' : '直線投影候選';
-  const note = isSelected
-    ? projection?.note
-    : `${projection?.note || ''} 這條藍色幾何只是把平交道投影到兩站座標連線上的結果，不代表真實沿軌路徑。`;
-  return `
-    <section class="workspace-card is-projection">
-      <div class="workspace-card-head">
-        <div>
-          <small class="workspace-method-tag${isSelected ? '' : ' is-muted'}"><i class="workspace-inline-dot is-projection"></i>${headingLabel}</small>
-          <h3>${available ? workspaceFormatRatio(projection?.value) : workspacePathStatusLabel(projection?.reason)}</h3>
-        </div>
-        <div class="workspace-ratio-caption">${available ? `${isSelected ? '目前採用' : '幾何 fallback'} · ${workspaceFormatMeters(projection?.offset_meters)}` : '無投影點'}</div>
-      </div>
-      <div class="workspace-badge${available ? '' : ' is-alert'}">
-        <div>
-          <strong>${available ? (isSelected ? '目前採用的地圖幾何' : '只是候選 fallback') : '只能當 fallback'}</strong>
-          <small>${workspaceEscape(workspaceLabel(note, '未提供說明'))}</small>
-        </div>
-        <div class="workspace-ratio-caption">crossing 到投影點偏移</div>
-      </div>
     </section>
   `;
 }
@@ -582,9 +544,7 @@ function workspaceRenderFocusGeometry() {
 
   const explanation = workspaceState.selectedExplanation;
   if (!explanation) return;
-  const selectedSource = workspaceSelectedSource(explanation);
   const pathAssessment = workspaceOsmPathAssessment(explanation);
-  const drawProjection = workspaceShouldDrawProjection(explanation);
   const drawOsmDiagnostics = workspaceShouldDrawOsmDiagnostics(explanation);
   const drawSelectedOsmPath = workspaceCanDrawSelectedOsmPath(explanation);
   const hideSuspiciousCrossing = workspaceShouldHideSuspiciousCrossing(explanation);
@@ -621,48 +581,6 @@ function workspaceRenderFocusGeometry() {
       .bindTooltip(`${index === 0 ? '前站' : '後站'} · ${workspaceLabel(station?.label, '未提供')}`, { direction: 'top', opacity: 0.92 })
       .addTo(workspaceState.layers.focus);
   });
-
-  const projection = explanation.ratios?.geometry_projection;
-  if (drawProjection) {
-    const stationLine = workspacePathToLatLngs(projection?.station_line);
-    if (stationLine.length >= 2) {
-      stationLine.forEach((point) => focusBounds.push(point));
-      L.polyline(stationLine, {
-        pane: 'workspaceFocusPane',
-        color: '#1f446a',
-        weight: 4,
-        opacity: 0.6,
-        dashArray: '10 10',
-      }).addTo(workspaceState.layers.focus);
-    }
-
-    const projectionLine = workspacePathToLatLngs(projection?.crossing_to_projection_line);
-    if (projectionLine.length >= 2) {
-      projectionLine.forEach((point) => focusBounds.push(point));
-      L.polyline(projectionLine, {
-        pane: 'workspaceFocusPane',
-        color: '#1f446a',
-        weight: 3,
-        opacity: 0.78,
-        dashArray: '4 10',
-      }).addTo(workspaceState.layers.focus);
-    }
-
-    const projectedPoint = workspacePointToLatLng(projection?.projected_point);
-    if (projectedPoint) {
-      focusBounds.push(projectedPoint);
-      L.circleMarker(projectedPoint, {
-        pane: 'workspaceFocusPane',
-        radius: 6,
-        color: '#1f446a',
-        weight: 2,
-        fillColor: '#ffffff',
-        fillOpacity: 0.95,
-      })
-        .bindTooltip('直線投影點', { direction: 'top', opacity: 0.92 })
-        .addTo(workspaceState.layers.focus);
-    }
-  }
 
   const path = explanation.ratios?.osm_path;
   if (drawSelectedOsmPath || drawOsmDiagnostics) {
@@ -744,9 +662,7 @@ async function workspaceSelectCrossing(crossingId) {
       stations: {},
       ratios: {
         selected: { note: error instanceof Error ? error.message : '載入失敗' },
-        official_route_mileage: {},
         osm_path: { reason: 'load_failed', note: error instanceof Error ? error.message : '載入失敗' },
-        geometry_projection: { reason: 'load_failed', note: error instanceof Error ? error.message : '載入失敗' },
       },
     };
     workspaceRenderSummary();

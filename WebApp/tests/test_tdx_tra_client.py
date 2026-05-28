@@ -17,8 +17,20 @@ class _StubTokenManager:
         return None
 
 
+class _StubResponse:
+    def __init__(self, payload, status_code: int = 200) -> None:
+        self._payload = payload
+        self.status_code = status_code
+
+    def json(self):
+        return self._payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+
 @pytest.mark.asyncio
-async def test_get_liveboards_returns_empty_on_transport_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_liveboards_raises_on_transport_failure_without_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     client = TdxTraClient(_StubTokenManager(), settings=settings)
 
@@ -27,9 +39,8 @@ async def test_get_liveboards_returns_empty_on_transport_failure(monkeypatch: py
 
     monkeypatch.setattr("backend.app.clients.tdx_tra.request_response", raise_transport_error)
 
-    liveboards = await client.get_liveboards("1230")
-
-    assert liveboards == []
+    with pytest.raises(HttpRequestError, match="boom"):
+        await client.get_liveboards("1230")
 
 
 @pytest.mark.asyncio
@@ -60,3 +71,50 @@ async def test_get_today_timetables_uses_cache_file_on_transport_failure(
     timetables = await client.get_today_timetables(force_refresh=True)
 
     assert timetables == [{"TrainInfo": {"TrainNo": "3001"}}]
+
+
+@pytest.mark.asyncio
+async def test_get_today_train_infos_supports_v2_list_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    client = TdxTraClient(_StubTokenManager(), settings=settings)
+
+    async def return_v2_list(*args, **kwargs):
+        return _StubResponse([
+            {"TrainNo": "3001", "DelayTime": 6},
+        ])
+
+    monkeypatch.setattr("backend.app.clients.tdx_tra.request_response", return_v2_list)
+
+    train_infos = await client.get_today_train_infos(force_refresh=True)
+
+    assert train_infos == [{"TrainNo": "3001", "DelayTime": 6}]
+
+
+@pytest.mark.asyncio
+async def test_get_today_train_infos_uses_cache_file_on_transport_failure(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
+    settings.train_info_cache_path = tmp_path / "today_train_info.json"
+    settings.train_info_cache_path.write_text(
+        json.dumps(
+            {
+                "cached_at": "2026-05-28T00:00:00+00:00",
+                "data": [{"TrainNo": "3001", "DelayTime": 9}],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    client = TdxTraClient(_StubTokenManager(), settings=settings)
+
+    async def raise_transport_error(*args, **kwargs):
+        raise HttpRequestError("boom")
+
+    monkeypatch.setattr("backend.app.clients.tdx_tra.request_response", raise_transport_error)
+
+    train_infos = await client.get_today_train_infos(force_refresh=True)
+
+    assert train_infos == [{"TrainNo": "3001", "DelayTime": 9}]

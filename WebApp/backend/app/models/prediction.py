@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from backend.app.models.crossing import ConfidenceLevel
+
+
+class PredictionSnapshotSource(BaseModel):
+    source: Literal["liveboards", "timetables", "train_info"]
+    complete: bool = True
+    record_count: int = 0
+    delayed_record_count: int = 0
+    fetched_from: str | None = None
+    cached_at: datetime | None = None
+    scope: str | None = None
+    detail: str | None = None
 
 
 class PredictionRecord(BaseModel):
@@ -35,6 +46,7 @@ class PredictionRecord(BaseModel):
     confidence: ConfidenceLevel
     confidence_reason: str | None = None
     delay_minutes: int = 0
+    delay_source: Literal["train_info", "liveboard", "none"] | None = None
     data_basis: Literal["liveboard", "timetable"]
     prediction_method: str | None = None
     reason: str
@@ -44,12 +56,29 @@ class PredictionRecord(BaseModel):
     segment_ratio: float = Field(ge=0.0, le=1.0)
 
 
+class PredictionDataSnapshot(BaseModel):
+    comprehensive: bool = True
+    liveboard_count: int = 0
+    delayed_liveboard_count: int = 0
+    timetable_count: int = 0
+    train_info_count: int = 0
+    delayed_train_info_count: int = 0
+    liveboard_scope: list[str] = Field(default_factory=list)
+    sources: list[PredictionSnapshotSource] = Field(default_factory=list)
+    timings_ms: dict[str, int] = Field(default_factory=dict)
+
+
 class PredictionEnvelope(BaseModel):
     crossing_id: str
     generated_at: datetime
     warning_window_minutes: int
     horizon_minutes: int | None = None
     recent_window_minutes: int
+    crossing: dict[str, Any] | None = None
+    available: bool = True
+    unavailable_reason: str | None = None
+    unavailable_detail: str | None = None
+    data_snapshot: PredictionDataSnapshot | None = None
     recent_prediction: PredictionRecord | None = None
     upcoming_predictions: list[PredictionRecord] = Field(default_factory=list)
-    predictions: list[PredictionRecord]
+    predictions: list[PredictionRecord] = Field(default_factory=list)

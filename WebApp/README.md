@@ -1,18 +1,42 @@
 # CrossRadar
 
-Python prototype for estimating whether a TRA train is about to pass a selected level crossing.
+CrossRadar 是一個以 FastAPI 後端加靜態前端組成的 TRA 平交道預測原型。現在的 runtime 架構只接受 curated crossing dataset 與 OSM 沿軌道路徑，不再退回官方公里、直線投影或中點去硬算 ETA。
 
-cd c:/Users/JasonHong/Desktop/CODE/_Project/CrossRadar/WebApp && python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+## Runtime contract
 
-cd c:/Users/JasonHong/Desktop/CODE/_Project/CrossRadar/WebApp && python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8001
+- runtime 只處理 `data/crossings/crossings_curated.geojson` 內的 active crossings。
+- crossing ratio 只接受 OSM along-track path；沒有可接受的 OSM path 時，prediction API 直接回 `available=false`。
+- 更新採使用者觸發，不做背景 polling。
+- 每次 prediction 會一起整理 crossing detail、station-scoped liveboards、當日 timetable、當日 train-info delay snapshot。
+- 若其中任一必要來源無法取得完整 snapshot，API 會回 `snapshot_incomplete`，而不是靜默降級成不完整預測。
+- `ratio-workspace.html` 現在是 debug-only 的 OSM path 診斷頁，不再混入官方公里或直線投影比較。
 
+## Run
 
+```bash
+cd c:/Users/JasonHong/Desktop/CODE/_Project/CrossRadar/WebApp
+python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+```
 
-官方平交道清冊成功抓取並正規化，共 418 筆。
-OSM Overpass 成功抓出台灣 level crossing 與關聯鐵道、道路資料，共 1900 個 OSM crossing features。
-官方清冊與 OSM 成功匹配出 380 個可定位的 curated crossings。
-自動測試已通過，結果是 5 passed。
-API 已實測可用，crossings detail 能回 station ids 與 segment ratio。
-prediction endpoint 已實測回出非空 ETA。驗證 crossing 為暖暖街-宜蘭線-k001396，在 180 分鐘 horizon 下回出 10 筆 prediction。
-TDX 的 station 與 timetable 已落地快取到 stations.json 與 today_timetables.json。
-這台機器對外部 HTTPS 有憑證鏈問題，程式已補 SSL fallback；另外 TDX 在本次驗證過程中確實出現過 429，所以 client 已補成本地快取優先、liveboard 限流時退回 timetable-only 預測，不會整條鏈直接失敗。
+啟動後開啟 `http://127.0.0.1:8000/`。
+
+## Test
+
+```bash
+cd c:/Users/JasonHong/Desktop/CODE/_Project/CrossRadar/WebApp
+python -m pytest
+```
+
+## Key endpoints
+
+- `GET /api/crossings`: 回傳 runtime crossings 清單。
+- `GET /api/crossings/stations`: 回傳車站概覽圖層。
+- `GET /api/predictions/{crossing_id}`: 回傳選定 crossing 的 detail、prediction envelope、snapshot 狀態與列車預測。
+- `GET /api/crossings/{crossing_id}/ratio-explanation`: 回傳 OSM path 診斷資料。
+- `GET /api/system/overview`: 回傳 dataset 與本地 cache 概況。
+
+## Snapshot and cache behavior
+
+- TDX station、timetable、liveboard、train-info 會落地到 `.runtime/tdx/`。
+- prediction envelope 內的 `data_snapshot.sources` 會標示每個來源是來自 network、memory cache、file cache 或 stale cache。
+- 這台機器若遇到 HTTPS 憑證鏈問題，HTTP layer 仍保留 SSL fallback；若 TDX 出現 429，系統會優先重用本地 cache，但 freshness 與 source status 會明確暴露在 snapshot metadata 中。

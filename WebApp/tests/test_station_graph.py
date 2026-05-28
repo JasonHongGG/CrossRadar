@@ -195,7 +195,7 @@ def test_station_summaries_and_crossing_detail_include_station_uk_reference(tmp_
     assert enriched["station_uk_reference_note"] == "車站 UK 為推估參考值，非精準量測。"
 
 
-def test_enrich_crossing_prefers_official_ratio_when_available() -> None:
+def test_enrich_crossing_keeps_official_ratio_diagnostics_only_without_osm_path() -> None:
     service = StationGraphService(_StubTdxClient(), settings=_build_settings())
 
     enriched = asyncio.run(
@@ -212,10 +212,11 @@ def test_enrich_crossing_prefers_official_ratio_when_available() -> None:
         )
     )
 
-    assert enriched["ratio_source"] == "official_route_mileage"
-    assert enriched["segment_confidence"] == "high"
-    assert round(enriched["segment_ratio"], 2) == 0.12
-    assert enriched["official_segment_ratio"] == enriched["segment_ratio"]
+    assert enriched["ratio_source"] == "unavailable"
+    assert enriched["segment_confidence"] == "low"
+    assert enriched["segment_ratio"] is None
+    assert round(enriched["official_segment_ratio"], 2) == 0.12
+    assert "accepted connected OSM rail path" in enriched["segment_confidence_reason"]
 
 
 def test_enrich_crossing_uses_osm_path_before_geometry(tmp_path) -> None:
@@ -261,7 +262,7 @@ def test_enrich_crossing_uses_osm_path_before_geometry(tmp_path) -> None:
     assert "geometry_segment_ratio" in enriched
 
 
-def test_explain_crossing_properties_returns_geometry_and_path_payloads(tmp_path) -> None:
+def test_explain_crossing_properties_returns_osm_path_payloads(tmp_path) -> None:
     settings = Settings(TDX_CLIENT_ID="id", TDX_CLIENT_SECRET="secret")
     settings.osm_raw_json_path = tmp_path / "raw_osm.json"
     settings.osm_raw_json_path.write_text(
@@ -307,8 +308,7 @@ def test_explain_crossing_properties_returns_geometry_and_path_payloads(tmp_path
     assert explanation["ratios"]["osm_path"]["selected_eligible"] is True
     assert explanation["ratios"]["osm_path"]["station_a_path"]["coordinates"][0] == [120.0, 23.0]
     assert explanation["ratios"]["osm_path"]["station_b_path"]["coordinates"][-1] == [120.01, 23.0]
-    assert explanation["ratios"]["geometry_projection"]["available"] is True
-    assert explanation["ratios"]["geometry_projection"]["projected_point"] == {"lon": 120.0025, "lat": 23.0}
+    assert set(explanation["ratios"].keys()) == {"selected", "osm_path"}
 
 
 def test_enrich_crossing_rejects_implausible_osm_path(tmp_path) -> None:
@@ -362,10 +362,12 @@ def test_enrich_crossing_rejects_implausible_osm_path(tmp_path) -> None:
         )
     )
 
-    assert enriched["ratio_source"] == "geometry_projection"
-    assert explanation["ratios"]["selected"]["source"] == "geometry_projection"
+    assert enriched["ratio_source"] == "unavailable"
+    assert enriched["segment_ratio"] is None
+    assert explanation["ratios"]["selected"]["source"] == "unavailable"
     assert explanation["ratios"]["osm_path"]["available"] is True
     assert explanation["ratios"]["osm_path"]["plausible"] is False
     assert explanation["ratios"]["osm_path"]["selected_eligible"] is False
     assert explanation["ratios"]["osm_path"]["reason"] == "path_exceeds_station_span"
-    assert "rejecting the osm path" in explanation["ratios"]["selected"]["note"].lower()
+    assert "rejected the osm path" in explanation["ratios"]["selected"]["note"].lower()
+    assert "accepted connected osm rail path" not in explanation["ratios"]["selected"]["note"].lower()
