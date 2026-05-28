@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from time import perf_counter
 from typing import Any, Awaitable
 
@@ -32,12 +32,31 @@ class PreparedTimetableCandidate:
     upstream: dict[str, Any]
     downstream: dict[str, Any]
     direction: int
+    upstream_index: int
+    downstream_index: int
 
 
 @dataclass(slots=True)
 class PreparedTimetableSet:
     all_candidates: list[PreparedTimetableCandidate]
     by_train_no: dict[str, list[PreparedTimetableCandidate]]
+
+
+@dataclass(slots=True)
+class DelayEstimate:
+    seconds: int
+    minutes: int
+    source: str
+
+
+@dataclass(slots=True)
+class LiveboardCandidateContext:
+    candidate: PreparedTimetableCandidate
+    liveboard: dict[str, Any]
+    observed_stop: dict[str, Any] | None
+    observed_index: int | None
+    observed_ratio: float | None
+    delay_estimate: DelayEstimate
 
 
 @dataclass(slots=True)
@@ -242,10 +261,10 @@ class PredictorService:
     ) -> SegmentDataSnapshot:
         station_scope = list(dict.fromkeys([station_a_id, station_b_id]))
         timed_results = await asyncio.gather(
-            *(self._await_with_timing(
-                f"liveboards:{station_id}",
-                self.tdx_client.get_liveboards_snapshot(station_id, force_refresh=force_refresh),
-            ) for station_id in station_scope),
+            self._await_with_timing(
+                "liveboards",
+                self.tdx_client.get_liveboards_snapshot(force_refresh=force_refresh),
+            ),
             self._await_with_timing(
                 "timetables",
                 self.tdx_client.get_today_timetables_snapshot(force_refresh=force_refresh),
@@ -257,20 +276,19 @@ class PredictorService:
         )
 
         timings_ms: dict[str, int] = {}
-        liveboard_fetches: list[tuple[str, CollectionFetchResult]] = []
         failed_sources: list[str] = []
+        liveboards_result: CollectionFetchResult | None = None
         timetables_result: CollectionFetchResult | None = None
         train_info_result: CollectionFetchResult | None = None
         liveboards: list[dict[str, Any]] = []
 
         for name, elapsed_ms, result, exc in timed_results:
             timings_ms[name] = elapsed_ms
-            if name.startswith("liveboards:"):
-                station_id = name.split(":", 1)[1]
+            if name == "liveboards":
                 if exc is not None or not isinstance(result, CollectionFetchResult):
-                    failed_sources.append(f"liveboards[{station_id}]: {exc}")
+                    failed_sources.append(f"liveboards: {exc}")
                     continue
-                liveboard_fetches.append((station_id, result))
+                liveboards_result = result
                 liveboards.extend(result.value)
                 continue
             if name == "timetables":
@@ -291,14 +309,18 @@ class PredictorService:
 
         liveboard_source = PredictionSnapshotSource(
             source="liveboards",
-            complete=len(liveboard_fetches) == len(station_scope),
+            complete=liveboards_result is not None,
             record_count=len(liveboards),
             delayed_record_count=sum(1 for record in liveboards if safe_int(record.get("DelayTime"), default=0) != 0),
-            fetched_from=", ".join(f"{station_id}:{snapshot.fetched_from}" for station_id, snapshot in liveboard_fetches) or None,
-            cached_at=max((snapshot.cached_at for _, snapshot in liveboard_fetches if snapshot.cached_at is not None), default=None),
-            scope=", ".join(station_scope),
-            detail=" | ".join(item for item in failed_sources if item.startswith("liveboards[")) or None,
-            timing_breakdown=self._merge_timing_breakdowns(snapshot.timing_breakdown for _, snapshot in liveboard_fetches),
+            fetched_from=liveboards_result.fetched_from if liveboards_result is not None else None,
+            cached_at=liveboards_result.cached_at if liveboards_result is not None else None,
+            scope="network",
+            detail=(
+                f"Using the full-network liveboard snapshot for crossing stations {', '.join(station_scope)}."
+                if liveboards_result is not None
+                else next((item for item in failed_sources if item.startswith("liveboards:")), None)
+            ),
+            timing_breakdown=dict((liveboards_result.timing_breakdown or {}) if liveboards_result is not None else {}),
         )
         timetable_source = PredictionSnapshotSource(
             source="timetables",
@@ -327,7 +349,7 @@ class PredictorService:
             timetable_count=len(timetables),
             train_info_count=len(train_infos),
             delayed_train_info_count=train_info_source.delayed_record_count,
-            liveboard_scope=station_scope,
+            liveboard_scope=["network"],
             sources=[liveboard_source, timetable_source, train_info_source],
             timings_ms=timings_ms,
         )
@@ -379,14 +401,21 @@ class PredictorService:
             crossing.get("station_b_id"),
             station_lookup_by_id=station_lookup_by_id,
         )
+        liveboard_index = self._build_liveboard_index(liveboards)
         train_date = date.today()
 
-        for liveboard in self._dedupe_liveboards(liveboards):
-            train_no = str(liveboard.get("TrainNo") or "")
-            candidates = prepared.by_train_no.get(train_no)
-            if not train_no or not candidates:
+        for train_no, candidates in prepared.by_train_no.items():
+            context = self._select_liveboard_candidate_context(
+                crossing,
+                liveboard_index.get(train_no, []),
+                candidates,
+                train_info_by_train_no=train_info_by_train_no,
+                station_lookup_by_id=station_lookup_by_id,
+            )
+            if context is None:
                 continue
-            candidate = candidates[0]
+            liveboard = context.liveboard
+            candidate = context.candidate
             timetable = candidate.timetable
             upstream = candidate.upstream
             downstream = candidate.downstream
@@ -398,11 +427,8 @@ class PredictorService:
             if upstream_departure is None or downstream_arrival is None or downstream_arrival <= upstream_departure:
                 continue
 
-            delay_minutes, delay_source = self._resolve_delay_minutes(
-                train_no,
-                liveboard=liveboard,
-                train_info_by_train_no=train_info_by_train_no,
-            )
+            delay_minutes = context.delay_estimate.minutes
+            delay_source = context.delay_estimate.source
             timing = self._estimate_prediction_timing(
                 crossing,
                 train_no=train_no,
@@ -414,6 +440,7 @@ class PredictorService:
                 upstream_departure=upstream_departure,
                 downstream_arrival=downstream_arrival,
                 delay_minutes=delay_minutes,
+                delay_seconds=context.delay_estimate.seconds,
                 delay_source=delay_source,
                 direction=direction,
                 liveboard=liveboard,
@@ -466,6 +493,7 @@ class PredictorService:
                     segment_note=timing.segment_note,
                 ),
                 delay_minutes=delay_minutes,
+                delay_seconds=context.delay_estimate.seconds,
                 delay_source=delay_source,
                 data_basis="liveboard",
                 prediction_method=(
@@ -473,6 +501,10 @@ class PredictorService:
                     if timing.calibration_offset_seconds and timing.anchor_time_source
                     else "liveboard-anchor+travel-profile"
                     if timing.anchor_time_source
+                    else "liveboard-delay+travel-profile+calibrated"
+                    if timing.calibration_offset_seconds and delay_source == "liveboard"
+                    else "liveboard-delay+travel-profile"
+                    if delay_source == "liveboard"
                     else "travel-profile+calibrated"
                     if timing.calibration_offset_seconds
                     else "travel-profile"
@@ -484,8 +516,8 @@ class PredictorService:
                 accuracy_tier=timing.accuracy_tier,
                 reason=(
                     f"Used TrainLiveBoard from {((liveboard.get('StationName') or {}).get('Zh_tw') or liveboard.get('StationID') or 'unknown station')} "
-                    f"with {timing.timing_model} on {((upstream.get('StationName') or {}).get('Zh_tw') or upstream.get('StationID'))} -> "
-                    f"{((downstream.get('StationName') or {}).get('Zh_tw') or downstream.get('StationID'))}."
+                    f"to propagate live delay toward {((upstream.get('StationName') or {}).get('Zh_tw') or upstream.get('StationID'))} -> "
+                    f"{((downstream.get('StationName') or {}).get('Zh_tw') or downstream.get('StationID'))} with {timing.timing_model}."
                 ),
                 station_pair_source=crossing.get("station_pair_source"),
                 ratio_source=timing.ratio_source,
@@ -597,6 +629,7 @@ class PredictorService:
                         segment_note=timing.segment_note,
                     ),
                     delay_minutes=delay_minutes,
+                    delay_seconds=delay_minutes * 60,
                     delay_source=delay_source,
                     data_basis="timetable",
                     prediction_method=(
@@ -658,11 +691,19 @@ class PredictorService:
             if stop_pair is None:
                 continue
             upstream, downstream, direction = stop_pair
+            stop_times = timetable.get("StopTimes", [])
+            try:
+                upstream_index = stop_times.index(upstream)
+                downstream_index = stop_times.index(downstream)
+            except ValueError:
+                continue
             candidate = PreparedTimetableCandidate(
                 timetable=timetable,
                 upstream=upstream,
                 downstream=downstream,
                 direction=direction,
+                upstream_index=upstream_index,
+                downstream_index=downstream_index,
             )
             all_candidates.append(candidate)
             train_no = str((timetable.get("TrainInfo") or {}).get("TrainNo") or "")
@@ -768,6 +809,227 @@ class PredictorService:
         anchor_matches = int(upstream.get("StationID") in anchor_ids) + int(downstream.get("StationID") in anchor_ids)
         seq_gap = abs(safe_int(downstream.get("StopSequence"), default=0) - safe_int(upstream.get("StopSequence"), default=0))
         return (exact_match, anchor_matches, -seq_gap)
+
+    def _build_liveboard_index(self, liveboards: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+        index: dict[str, list[dict[str, Any]]] = {}
+        for liveboard in self._dedupe_liveboards(liveboards):
+            train_no = str(liveboard.get("TrainNo") or "").strip()
+            if not train_no:
+                continue
+            index.setdefault(train_no, []).append(liveboard)
+        for records in index.values():
+            records.sort(key=self._liveboard_sort_value, reverse=True)
+        return index
+
+    def _select_liveboard_candidate_context(
+        self,
+        crossing: dict[str, Any],
+        liveboards: list[dict[str, Any]],
+        candidates: list[PreparedTimetableCandidate],
+        *,
+        train_info_by_train_no: dict[str, dict[str, Any]] | None = None,
+        station_lookup_by_id: dict[str, dict[str, Any]] | None = None,
+    ) -> LiveboardCandidateContext | None:
+        best_context: LiveboardCandidateContext | None = None
+        best_key: tuple[int, int, int, float] | None = None
+
+        for liveboard in liveboards:
+            observed_station_id = str(liveboard.get("StationID") or "").strip()
+            if not observed_station_id:
+                continue
+
+            for candidate in candidates:
+                stop_times = candidate.timetable.get("StopTimes", [])
+                observed_index = self._find_timetable_stop_index(
+                    stop_times,
+                    observed_station_id,
+                    candidate=candidate,
+                )
+                if observed_index is None or observed_index >= candidate.downstream_index:
+                    projected_ratio = self._project_liveboard_station_ratio(
+                        crossing,
+                        liveboard=liveboard,
+                        candidate=candidate,
+                        station_lookup_by_id=station_lookup_by_id,
+                    )
+                    crossing_ratio, _, _, _ = self._prediction_segment_context(
+                        crossing,
+                        upstream_station_id=candidate.upstream.get("StationID"),
+                        downstream_station_id=candidate.downstream.get("StationID"),
+                        station_lookup_by_id=station_lookup_by_id,
+                    )
+                    if projected_ratio is None or crossing_ratio is None or projected_ratio >= crossing_ratio:
+                        continue
+                    observed_stop = None
+                    delay_estimate = self._resolve_projected_liveboard_delay_estimate(
+                        candidate=candidate,
+                        liveboard=liveboard,
+                        observed_ratio=projected_ratio,
+                        train_info_by_train_no=train_info_by_train_no,
+                    )
+                    phase_rank = 1
+                    stop_gap = 0
+                else:
+                    observed_stop = stop_times[observed_index]
+                    projected_ratio = None
+                    delay_estimate = self._resolve_liveboard_delay_estimate(
+                        train_no=str((candidate.timetable.get("TrainInfo") or {}).get("TrainNo") or liveboard.get("TrainNo") or ""),
+                        liveboard=liveboard,
+                        observed_stop=observed_stop,
+                        train_info_by_train_no=train_info_by_train_no,
+                    )
+                    phase_rank = 0 if observed_index == candidate.upstream_index else 2
+                    stop_gap = max(candidate.upstream_index - observed_index, 0)
+                pair_span = max(candidate.downstream_index - candidate.upstream_index, 0)
+                score = (phase_rank, stop_gap, pair_span, -self._liveboard_sort_value(liveboard))
+                if best_key is None or score < best_key:
+                    best_key = score
+                    best_context = LiveboardCandidateContext(
+                        candidate=candidate,
+                        liveboard=liveboard,
+                        observed_stop=observed_stop,
+                        observed_index=observed_index,
+                        observed_ratio=projected_ratio,
+                        delay_estimate=delay_estimate,
+                    )
+
+        return best_context
+
+    def _project_liveboard_station_ratio(
+        self,
+        crossing: dict[str, Any],
+        *,
+        liveboard: dict[str, Any],
+        candidate: PreparedTimetableCandidate,
+        station_lookup_by_id: dict[str, dict[str, Any]] | None,
+    ) -> float | None:
+        if not station_lookup_by_id:
+            return None
+        station = station_lookup_by_id.get(str(liveboard.get("StationID") or "")) or {}
+        position = station.get("StationPosition") or {}
+        if position.get("PositionLon") is None or position.get("PositionLat") is None:
+            return None
+        ratio, ratio_source, _, _ = self._project_ratio_for_stop_pair(
+            {
+                "geometry": {
+                    "lon": float(position["PositionLon"]),
+                    "lat": float(position["PositionLat"]),
+                },
+            },
+            upstream_station_id=candidate.upstream.get("StationID"),
+            downstream_station_id=candidate.downstream.get("StationID"),
+            station_lookup_by_id=station_lookup_by_id,
+        )
+        if ratio_source != "osm_path" or ratio is None or not (0.0 < ratio < 1.0):
+            return None
+        return ratio
+
+    def _find_timetable_stop_index(
+        self,
+        stop_times: list[dict[str, Any]],
+        station_id: str,
+        *,
+        candidate: PreparedTimetableCandidate,
+    ) -> int | None:
+        matching_indexes = [
+            index
+            for index, stop_time in enumerate(stop_times)
+            if str(stop_time.get("StationID") or "").strip() == station_id
+        ]
+        if not matching_indexes:
+            return None
+
+        pending_indexes = [index for index in matching_indexes if index < candidate.downstream_index]
+        if not pending_indexes:
+            return None
+
+        return min(
+            pending_indexes,
+            key=lambda index: (0 if index <= candidate.upstream_index else 1, abs(candidate.upstream_index - index)),
+        )
+
+    def _resolve_liveboard_delay_estimate(
+        self,
+        *,
+        train_no: str,
+        liveboard: dict[str, Any],
+        observed_stop: dict[str, Any],
+        train_info_by_train_no: dict[str, dict[str, Any]] | None = None,
+    ) -> DelayEstimate:
+        scheduled_reference = parse_time_on_date(
+            date.today(),
+            observed_stop.get("DepartureTime") or observed_stop.get("ArrivalTime"),
+        )
+        observed_at = self._parse_liveboard_update_time(
+            liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime"),
+            default_tz=scheduled_reference.tzinfo if scheduled_reference is not None else None,
+        )
+        if scheduled_reference is not None and observed_at is not None:
+            delta_seconds = int(round((observed_at - scheduled_reference).total_seconds()))
+            if -300 <= delta_seconds <= 7200:
+                return DelayEstimate(
+                    seconds=delta_seconds,
+                    minutes=int(round(delta_seconds / 60.0)),
+                    source="liveboard",
+                )
+
+        if liveboard.get("DelayTime") is not None:
+            delay_minutes = safe_int(liveboard.get("DelayTime"), default=0)
+            return DelayEstimate(
+                seconds=delay_minutes * 60,
+                minutes=delay_minutes,
+                source="liveboard",
+            )
+
+        if train_no and train_info_by_train_no:
+            train_info = train_info_by_train_no.get(train_no)
+            if train_info is not None and train_info.get("DelayTime") is not None:
+                delay_minutes = safe_int(train_info.get("DelayTime"), default=0)
+                return DelayEstimate(
+                    seconds=delay_minutes * 60,
+                    minutes=delay_minutes,
+                    source="train_info",
+                )
+
+        return DelayEstimate(seconds=0, minutes=0, source="none")
+
+    def _resolve_projected_liveboard_delay_estimate(
+        self,
+        *,
+        candidate: PreparedTimetableCandidate,
+        liveboard: dict[str, Any],
+        observed_ratio: float,
+        train_info_by_train_no: dict[str, dict[str, Any]] | None = None,
+    ) -> DelayEstimate:
+        upstream_departure = parse_time_on_date(date.today(), candidate.upstream.get("DepartureTime") or candidate.upstream.get("ArrivalTime"))
+        downstream_arrival = parse_time_on_date(date.today(), candidate.downstream.get("ArrivalTime") or candidate.downstream.get("DepartureTime"))
+        observed_at = self._parse_liveboard_update_time(
+            liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime"),
+            default_tz=upstream_departure.tzinfo if upstream_departure is not None else None,
+        )
+        if upstream_departure is not None and downstream_arrival is not None and observed_at is not None and downstream_arrival > upstream_departure:
+            train_info = candidate.timetable.get("TrainInfo", {})
+            profile = (getattr(self, "travel_profile_service", None) or TravelProfileService()).estimate(
+                ratio=observed_ratio,
+                train_type_name=self._extract_train_type(train_info.get("TrainTypeName") or liveboard.get("TrainTypeName")),
+                upstream_dwell_seconds=self._stop_dwell_seconds(candidate.upstream),
+                downstream_dwell_seconds=self._stop_dwell_seconds(candidate.downstream),
+            )
+            scheduled_observed_time = upstream_departure + (downstream_arrival - upstream_departure) * profile.time_fraction
+            delta_seconds = int(round((observed_at - scheduled_observed_time).total_seconds()))
+            if -300 <= delta_seconds <= 7200:
+                return DelayEstimate(
+                    seconds=delta_seconds,
+                    minutes=int(round(delta_seconds / 60.0)),
+                    source="liveboard",
+                )
+
+        return self._resolve_liveboard_delay_estimate(
+            train_no=str((candidate.timetable.get("TrainInfo") or {}).get("TrainNo") or liveboard.get("TrainNo") or ""),
+            liveboard=liveboard,
+            observed_stop=candidate.upstream,
+            train_info_by_train_no=train_info_by_train_no,
+        )
 
     def _resolve_stop_pair(
         self,
@@ -983,33 +1245,51 @@ class PredictorService:
             prediction.downstream_station_id,
         )
 
-    def _prediction_preference_key(self, prediction: PredictionRecord) -> tuple[int, int, int, Any]:
+    def _prediction_preference_key(self, prediction: PredictionRecord) -> tuple[int, int, int, int, Any]:
         basis_rank = 0 if prediction.data_basis == "liveboard" else 1
         source_match_rank = 0 if prediction.source_station_id in {prediction.upstream_station_id, prediction.downstream_station_id} else 1
-        delay_rank = 0 if prediction.delay_source == "train_info" else 1 if prediction.delay_source == "liveboard" else 2
-        return (basis_rank, source_match_rank, delay_rank, prediction.eta)
+        anchor_rank = 0 if prediction.anchor_time_source is not None else 1
+        delay_rank = 0 if prediction.delay_source == "liveboard" else 1 if prediction.delay_source == "train_info" else 2
+        return (basis_rank, source_match_rank, anchor_rank, delay_rank, prediction.eta)
 
     def _dedupe_liveboards(self, liveboards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        deduped: list[dict[str, Any]] = []
-        seen_keys: set[tuple[str, str, str, int]] = set()
+        selected: dict[tuple[str, str], dict[str, Any]] = {}
         for liveboard in liveboards:
             train_no = str(liveboard.get("TrainNo") or "").strip()
+            station_id = str(liveboard.get("StationID") or "").strip()
             if not train_no:
                 continue
-            key = self._liveboard_identity_key(liveboard)
-            if key in seen_keys:
+            if not station_id:
                 continue
-            seen_keys.add(key)
-            deduped.append(liveboard)
-        return deduped
+            key = (train_no, station_id)
+            current = selected.get(key)
+            if current is None or self._liveboard_sort_value(liveboard) >= self._liveboard_sort_value(current):
+                selected[key] = liveboard
+        return sorted(selected.values(), key=self._liveboard_sort_value, reverse=True)
 
-    def _liveboard_identity_key(self, liveboard: dict[str, Any]) -> tuple[str, str, str, int]:
-        return (
-            str(liveboard.get("TrainNo") or "").strip(),
-            str(liveboard.get("StationID") or "").strip(),
-            str(liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime") or "").strip(),
-            safe_int(liveboard.get("DelayTime"), default=0),
-        )
+    def _liveboard_sort_value(self, liveboard: dict[str, Any]) -> float:
+        parsed = self._parse_liveboard_update_time(liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime"))
+        if parsed is None:
+            return float("-inf")
+        return parsed.timestamp()
+
+    def _parse_liveboard_update_time(
+        self,
+        value: Any,
+        *,
+        default_tz=None,
+    ) -> datetime | None:
+        if not isinstance(value, str) or not value:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=default_tz or UTC)
+        if default_tz is not None:
+            parsed = parsed.astimezone(default_tz)
+        return parsed
 
     def _build_train_info_index(self, train_infos: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         index: dict[str, dict[str, Any]] = {}
@@ -1122,6 +1402,7 @@ class PredictorService:
         upstream_departure: datetime,
         downstream_arrival: datetime,
         delay_minutes: int,
+        delay_seconds: int | None = None,
         delay_source: str,
         direction: int | None,
         station_lookup_by_id: dict[str, dict[str, Any]] | None = None,
@@ -1145,8 +1426,9 @@ class PredictorService:
             return None
 
         scheduled_duration = downstream_arrival - upstream_departure
-        actual_upstream = upstream_departure + timedelta(minutes=delay_minutes)
-        actual_downstream = downstream_arrival + timedelta(minutes=delay_minutes)
+        delay_delta = timedelta(seconds=delay_seconds if delay_seconds is not None else delay_minutes * 60)
+        actual_upstream = upstream_departure + delay_delta
+        actual_downstream = downstream_arrival + delay_delta
         travel_profile_service = getattr(self, "travel_profile_service", None) or TravelProfileService()
         calibration_service = getattr(self, "prediction_calibration_service", None) or PredictionCalibrationService(travel_profile_service)
         profile = travel_profile_service.estimate(
@@ -1167,14 +1449,11 @@ class PredictorService:
             scheduled_downstream=actual_downstream,
         )
         if anchor_time is not None:
-            anchored_downstream = anchor_time + scheduled_duration
-            anchored_eta = anchor_time + scheduled_duration * profile.time_fraction
-            if anchored_eta > eta:
-                actual_upstream = anchor_time
-                actual_downstream = anchored_downstream
-                eta = anchored_eta
-                timing_model = "liveboard_anchor_profile"
-                anchor_time_source = "liveboard_update"
+            actual_upstream = anchor_time
+            actual_downstream = anchor_time + scheduled_duration
+            eta = actual_upstream + scheduled_duration * profile.time_fraction
+            timing_model = "liveboard_anchor_profile"
+            anchor_time_source = "liveboard_update"
 
         calibration_offset_seconds = 0
         calibration_rule_id = None
@@ -1237,16 +1516,12 @@ class PredictorService:
     ) -> datetime | None:
         if liveboard is None or str(liveboard.get("StationID") or "") != str(upstream_station_id or ""):
             return None
-        raw_value = liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime")
-        if not raw_value or not isinstance(raw_value, str):
+        parsed = self._parse_liveboard_update_time(
+            liveboard.get("UpdateTime") or liveboard.get("SrcUpdateTime"),
+            default_tz=scheduled_upstream.tzinfo,
+        )
+        if parsed is None:
             return None
-        try:
-            parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
-        except ValueError:
-            return None
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=scheduled_upstream.tzinfo)
-        parsed = parsed.astimezone(scheduled_upstream.tzinfo)
         earliest = scheduled_upstream - timedelta(minutes=5)
         latest = scheduled_downstream + timedelta(minutes=10)
         if parsed < earliest or parsed > latest:
@@ -1266,15 +1541,17 @@ class PredictorService:
         uncertainty = max(base_uncertainty_seconds, 15)
         if data_basis == "timetable":
             uncertainty += 25
-        elif delay_source == "train_info":
-            uncertainty += 12
+        if delay_source == "train_info":
+            uncertainty += 18
         elif delay_source == "none":
             uncertainty += 18
+        elif delay_source == "liveboard":
+            uncertainty += 4
 
         if anchor_time_source is not None:
-            uncertainty = max(20, uncertainty - 12)
+            uncertainty = max(18, uncertainty - 15)
         if calibration_rule_id is not None:
-            uncertainty = max(18, uncertainty - 8)
+            uncertainty = max(18, uncertainty - 6)
 
         if segment_confidence == "medium":
             uncertainty += 20

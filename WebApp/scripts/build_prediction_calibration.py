@@ -102,7 +102,15 @@ async def main() -> None:
         if not candidates:
             rows.append({"id": observation.get("id"), "status": "missing_timetable", "reason": f"No timetable candidate for train {train_no}."})
             continue
-        candidate = candidates[0]
+        selected_liveboard = select_liveboard_record(liveboard_by_train_no.get(train_no, []))
+        liveboard_context = predictor._select_liveboard_candidate_context(
+            crossing,
+            [selected_liveboard] if selected_liveboard is not None else [],
+            candidates,
+            train_info_by_train_no=train_info_by_train_no,
+            station_lookup_by_id=station_lookup_by_id,
+        )
+        candidate = liveboard_context.candidate if liveboard_context is not None else candidates[0]
         timetable = candidate.timetable
         upstream = candidate.upstream
         downstream = candidate.downstream
@@ -114,7 +122,16 @@ async def main() -> None:
             rows.append({"id": observation.get("id"), "status": "invalid_time", "reason": "Observation or timetable time could not be parsed."})
             continue
 
-        delay_minutes, delay_source = predictor._resolve_delay_minutes(train_no, train_info_by_train_no=train_info_by_train_no)
+        if liveboard_context is not None:
+            runtime_delay_minutes = liveboard_context.delay_estimate.minutes
+            runtime_delay_seconds = liveboard_context.delay_estimate.seconds
+            runtime_delay_source = liveboard_context.delay_estimate.source
+            runtime_liveboard = liveboard_context.liveboard
+        else:
+            runtime_delay_minutes, runtime_delay_source = predictor._resolve_delay_minutes(train_no, train_info_by_train_no=train_info_by_train_no)
+            runtime_delay_seconds = runtime_delay_minutes * 60
+            runtime_liveboard = None
+
         runtime_timing = predictor._estimate_prediction_timing(
             crossing,
             train_no=train_no,
@@ -125,25 +142,27 @@ async def main() -> None:
             downstream=downstream,
             upstream_departure=upstream_departure,
             downstream_arrival=downstream_arrival,
-            delay_minutes=delay_minutes,
-            delay_source=delay_source,
+            delay_minutes=runtime_delay_minutes,
+            delay_seconds=runtime_delay_seconds,
+            delay_source=runtime_delay_source,
             direction=candidate.direction,
+            liveboard=runtime_liveboard,
             station_lookup_by_id=station_lookup_by_id,
-            data_basis="timetable",
+            data_basis="liveboard" if runtime_liveboard is not None else "timetable",
             apply_calibration=False,
         )
         if runtime_timing is None:
             rows.append({"id": observation.get("id"), "status": "missing_ratio", "reason": "No runtime OSM segment ratio was available."})
             continue
 
-        selected_liveboard = select_liveboard_record(liveboard_by_train_no.get(train_no, []))
-        benchmark_delay_minutes, benchmark_delay_source = resolve_benchmark_delay(
+        benchmark_delay_minutes, benchmark_delay_seconds, benchmark_delay_source = resolve_benchmark_delay(
             train_no,
             train_info_by_train_no=train_info_by_train_no,
             liveboard=selected_liveboard,
+            liveboard_context=liveboard_context,
         )
         benchmark_timing = runtime_timing
-        if benchmark_delay_minutes != delay_minutes or benchmark_delay_source != delay_source:
+        if benchmark_delay_seconds != runtime_delay_seconds or benchmark_delay_source != runtime_delay_source:
             recalculated = predictor._estimate_prediction_timing(
                 crossing,
                 train_no=train_no,
@@ -155,10 +174,12 @@ async def main() -> None:
                 upstream_departure=upstream_departure,
                 downstream_arrival=downstream_arrival,
                 delay_minutes=benchmark_delay_minutes,
+                delay_seconds=benchmark_delay_seconds,
                 delay_source=benchmark_delay_source,
                 direction=candidate.direction,
+                liveboard=selected_liveboard if liveboard_context is not None else None,
                 station_lookup_by_id=station_lookup_by_id,
-                data_basis="timetable",
+                data_basis="liveboard" if liveboard_context is not None else "timetable",
                 apply_calibration=False,
             )
             if recalculated is not None:
@@ -179,10 +200,12 @@ async def main() -> None:
                 "train_type_family": runtime_timing.train_type_family,
                 "prediction_method": runtime_timing.timing_model,
                 "predicted_eta": runtime_timing.eta.isoformat(),
-                "runtime_delay_minutes": delay_minutes,
-                "runtime_delay_source": delay_source,
+                "runtime_delay_minutes": runtime_delay_minutes,
+                "runtime_delay_seconds": runtime_delay_seconds,
+                "runtime_delay_source": runtime_delay_source,
                 "benchmark_predicted_eta": benchmark_timing.eta.isoformat(),
                 "benchmark_delay_minutes": benchmark_delay_minutes,
+                "benchmark_delay_seconds": benchmark_delay_seconds,
                 "benchmark_delay_source": benchmark_delay_source,
                 "tdx_liveboard_station_id": selected_liveboard.get("StationID") if selected_liveboard else None,
                 "tdx_liveboard_station_name": ((selected_liveboard.get("StationName") or {}).get("Zh_tw") if selected_liveboard else None),
@@ -193,7 +216,7 @@ async def main() -> None:
                 "observed_eta": observed_passage.isoformat(),
                 "runtime_error_seconds": runtime_error_seconds,
                 "benchmark_error_seconds": benchmark_error_seconds,
-                "rule_error_seconds": benchmark_error_seconds,
+                "rule_error_seconds": runtime_error_seconds,
                 "calibration_eligible": bool(observation.get("calibration_eligible", True)),
             }
         )
@@ -281,7 +304,8 @@ def build_rule_candidate(group: list[dict[str, Any]], *, spread_limit_seconds: i
         return None
     errors = [int(row["rule_error_seconds"]) for row in group]
     median_error = float(median(errors))
-    inliers = [row for row in group if abs(int(row["rule_error_seconds"]) - median_error) <= 30]
+    inlier_limit_seconds = min(20, spread_limit_seconds)
+    inliers = [row for row in group if abs(int(row["rule_error_seconds"]) - median_error) <= inlier_limit_seconds]
     if len(inliers) < minimum_inliers:
         return None
     inlier_errors = [int(row["rule_error_seconds"]) for row in inliers]
@@ -320,13 +344,22 @@ def resolve_benchmark_delay(
     *,
     train_info_by_train_no: dict[str, dict[str, Any]],
     liveboard: dict[str, Any] | None,
-) -> tuple[int, str]:
+    liveboard_context: Any | None = None,
+) -> tuple[int, int, str]:
+    if liveboard_context is not None:
+        return (
+            liveboard_context.delay_estimate.minutes,
+            liveboard_context.delay_estimate.seconds,
+            liveboard_context.delay_estimate.source,
+        )
+    if liveboard is not None and liveboard.get("DelayTime") is not None:
+        delay_minutes = int(liveboard.get("DelayTime") or 0)
+        return (delay_minutes, delay_minutes * 60, "liveboard")
     train_info = train_info_by_train_no.get(train_no)
     if train_info is not None and train_info.get("DelayTime") is not None:
-        return (int(train_info.get("DelayTime") or 0), "train_info")
-    if liveboard is not None and liveboard.get("DelayTime") is not None:
-        return (int(liveboard.get("DelayTime") or 0), "liveboard")
-    return (0, "none")
+        delay_minutes = int(train_info.get("DelayTime") or 0)
+        return (delay_minutes, delay_minutes * 60, "train_info")
+    return (0, 0, "none")
 
 
 def parse_update_time(value: Any) -> datetime:

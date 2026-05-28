@@ -47,6 +47,7 @@ class PredictionRecord(BaseModel):
     confidence: ConfidenceLevel
     confidence_reason: str | None = None
     delay_minutes: int = 0
+    delay_seconds: int | None = None
     delay_source: Literal["train_info", "liveboard", "none"] | None = None
     data_basis: Literal["liveboard", "timetable"]
     prediction_method: str | None = None

@@ -165,6 +165,19 @@ def test_dedupe_liveboards_keeps_station_context() -> None:
     assert {record["StationID"] for record in deduped} == {"A", "B"}
 
 
+def test_dedupe_liveboards_keeps_freshest_record_per_station() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    liveboards = [
+        {"TrainNo": "3001", "StationID": "A", "UpdateTime": "2026-05-28T10:00:00+08:00", "DelayTime": 1},
+        {"TrainNo": "3001", "StationID": "A", "UpdateTime": "2026-05-28T10:02:00+08:00", "DelayTime": 3},
+    ]
+
+    deduped = predictor._dedupe_liveboards(liveboards)
+
+    assert len(deduped) == 1
+    assert deduped[0]["DelayTime"] == 3
+
+
 def test_select_best_timetable_prefers_exact_anchor_pair() -> None:
     predictor = PredictorService.__new__(PredictorService)
     station_lookup_by_id = {
@@ -257,6 +270,175 @@ def test_build_predictions_from_timetables_applies_train_info_delay() -> None:
     assert predictions[0].delay_source == "train_info"
     assert predictions[0].previous_stop_departure == parse_time_on_date(date.today(), "10:04")
     assert predictions[0].next_stop_arrival == parse_time_on_date(date.today(), "10:14")
+
+
+def test_build_predictions_from_liveboards_uses_observed_stop_delay_before_crossing() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    now = parse_time_on_date(date.today(), "09:50")
+    assert now is not None
+
+    crossing = {
+        "station_a_id": "A",
+        "station_b_id": "B",
+        "segment_ratio": 0.5,
+        "ratio_source": "osm_path",
+        "geolocation_confidence": "high",
+        "segment_confidence": "high",
+    }
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.0, "PositionLon": 120.0}},
+        "B": {"StationPosition": {"PositionLat": 22.9, "PositionLon": 120.1}},
+        "X": {"StationPosition": {"PositionLat": 23.05, "PositionLon": 120.05}},
+    }
+    timetables = [
+        {
+            "TrainInfo": {
+                "TrainNo": "3001",
+                "TrainTypeName": {"Zh_tw": "區間"},
+                "StartingStationID": "X",
+                "StartingStationName": {"Zh_tw": "前站"},
+                "EndingStationID": "B",
+                "EndingStationName": {"Zh_tw": "乙站"},
+            },
+            "StopTimes": [
+                {
+                    "StopSequence": 1,
+                    "StationID": "X",
+                    "StationName": {"Zh_tw": "前站"},
+                    "ArrivalTime": "09:55",
+                    "DepartureTime": "09:55",
+                },
+                {
+                    "StopSequence": 2,
+                    "StationID": "A",
+                    "StationName": {"Zh_tw": "甲站"},
+                    "ArrivalTime": "10:00",
+                    "DepartureTime": "10:00",
+                },
+                {
+                    "StopSequence": 3,
+                    "StationID": "B",
+                    "StationName": {"Zh_tw": "乙站"},
+                    "ArrivalTime": "10:10",
+                    "DepartureTime": "10:10",
+                },
+            ],
+        }
+    ]
+    liveboards = [
+        {
+            "TrainNo": "3001",
+            "StationID": "X",
+            "StationName": {"Zh_tw": "前站"},
+            "TrainTypeName": {"Zh_tw": "區間"},
+            "UpdateTime": f"{date.today().isoformat()}T09:57:00+08:00",
+            "DelayTime": 0,
+        }
+    ]
+
+    predictions = predictor._build_predictions_from_liveboards(
+        crossing,
+        liveboards,
+        timetables,
+        train_info_by_train_no={"3001": {"DelayTime": 0}},
+        station_lookup_by_id=station_lookup_by_id,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+        warning_minutes=5,
+    )
+
+    assert len(predictions) == 1
+    assert predictions[0].source_station_id == "X"
+    assert predictions[0].delay_source == "liveboard"
+    assert predictions[0].delay_seconds == 120
+    assert predictions[0].previous_stop_departure == parse_time_on_date(date.today(), "10:02")
+
+
+def test_build_predictions_from_liveboards_uses_projected_pass_through_station_delay() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+    now = parse_time_on_date(date.today(), "09:55")
+    assert now is not None
+
+    class _StubStationGraphService:
+        def resolve_runtime_ratio_for_station_pair(self, crossing, **kwargs):  # noqa: ANN001
+            geometry = crossing.get("geometry") or {}
+            if geometry.get("lon") == 120.05:
+                return (0.5, "osm_path", "high", "stubbed pass-through station")
+            return (None, "unavailable", "low", "no projection")
+
+    predictor.station_graph_service = _StubStationGraphService()
+    crossing = {
+        "station_a_id": "A",
+        "station_b_id": "B",
+        "segment_ratio": 0.8,
+        "ratio_source": "osm_path",
+        "geolocation_confidence": "high",
+        "segment_confidence": "high",
+        "geometry": {"lon": 120.08, "lat": 23.0},
+        "osm_rail_way_ids": [1],
+    }
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.0, "PositionLon": 120.0}},
+        "B": {"StationPosition": {"PositionLat": 23.0, "PositionLon": 120.1}},
+        "L": {"StationPosition": {"PositionLat": 23.0, "PositionLon": 120.05}},
+    }
+    timetables = [
+        {
+            "TrainInfo": {
+                "TrainNo": "3002",
+                "TrainTypeName": {"Zh_tw": "區間"},
+                "StartingStationID": "A",
+                "StartingStationName": {"Zh_tw": "甲站"},
+                "EndingStationID": "B",
+                "EndingStationName": {"Zh_tw": "乙站"},
+            },
+            "StopTimes": [
+                {
+                    "StopSequence": 1,
+                    "StationID": "A",
+                    "StationName": {"Zh_tw": "甲站"},
+                    "ArrivalTime": "10:00",
+                    "DepartureTime": "10:00",
+                },
+                {
+                    "StopSequence": 2,
+                    "StationID": "B",
+                    "StationName": {"Zh_tw": "乙站"},
+                    "ArrivalTime": "10:10",
+                    "DepartureTime": "10:10",
+                },
+            ],
+        }
+    ]
+    liveboards = [
+        {
+            "TrainNo": "3002",
+            "StationID": "L",
+            "StationName": {"Zh_tw": "通過站"},
+            "TrainTypeName": {"Zh_tw": "區間"},
+            "UpdateTime": f"{date.today().isoformat()}T10:06:00+08:00",
+            "DelayTime": 0,
+        }
+    ]
+
+    predictions = predictor._build_predictions_from_liveboards(
+        crossing,
+        liveboards,
+        timetables,
+        train_info_by_train_no={"3002": {"DelayTime": 0}},
+        station_lookup_by_id=station_lookup_by_id,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+        warning_minutes=5,
+    )
+
+    assert len(predictions) == 1
+    assert predictions[0].source_station_id == "L"
+    assert predictions[0].delay_source == "liveboard"
+    assert predictions[0].delay_seconds == 60
+    assert predictions[0].previous_stop_departure == parse_time_on_date(date.today(), "10:01")
 
 
 def test_partition_predictions_keeps_recent_past_and_next_two_upcoming() -> None:

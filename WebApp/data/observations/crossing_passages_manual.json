@@ -76,20 +76,6 @@
       "note": "Corrected southbound EMU3000 observation provided by the user."
     },
     {
-      "id": "2026-05-28-sichaxiang-115-duplicate",
-      "service_date": "2026-05-28",
-      "crossing_id": "四叉巷-縱貫線北段-k353375",
-      "crossing_name": "四叉巷 K353+375",
-      "station_pair_text": "永康-台南",
-      "train_no": "115",
-      "train_type": "自強",
-      "scheduled_station_name": "台南",
-      "scheduled_station_time": "13:33",
-      "observed_passage_time": "13:33:52",
-      "calibration_eligible": true,
-      "note": "Corrected southbound Tze-Chiang observation provided by the user."
-    },
-    {
       "id": "2026-05-28-sichaxiang-176",
       "service_date": "2026-05-28",
       "crossing_id": "四叉巷-縱貫線北段-k353375",
