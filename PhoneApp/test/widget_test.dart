@@ -4,25 +4,42 @@ import 'package:crossradar_phone/src/app.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('loads the main CrossRadar shell from a mobile bundle asset', (tester) async {
     TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
     tester.binding.defaultBinaryMessenger.setMockMessageHandler('flutter/assets', (message) async {
       final key = const StringCodec().decodeMessage(message);
-      if (key != 'assets/data/crossradar_mobile_bundle.json') return null;
+      if (key == 'logo/logo.png') {
+        return ByteData.view(_transparentPng.buffer);
+      }
+      if (key != 'assets/data/crossradar_mobile_bundle.json') {
+        return null;
+      }
       final encoded = utf8.encode(jsonEncode(_bundleFixture));
       return ByteData.view(Uint8List.fromList(encoded).buffer);
     });
 
     await tester.pumpWidget(const ProviderScope(child: CrossRadarApp()));
+    await tester.pump(const Duration(milliseconds: 1200));
     await tester.pumpAndSettle();
 
-    expect(find.text('CrossRadar'), findsOneWidget);
-    expect(find.text('地圖'), findsOneWidget);
-    expect(find.text('搜尋'), findsOneWidget);
+    expect(find.text('搜尋平交道'), findsOneWidget);
+    expect(find.byTooltip('地圖'), findsOneWidget);
+    expect(find.byTooltip('搜尋'), findsOneWidget);
+    expect(find.byTooltip('TDX'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('搜尋'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('四叉巷'), findsOneWidget);
+    expect(find.text('永康-臺南'), findsNothing);
   });
 }
+
+final _transparentPng = Uint8List.fromList(base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='));
 
 final _bundleFixture = {
   'metadata': {'schema_version': 2, 'runtime_ratio_count': 2},

@@ -55,6 +55,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
   mocktail: ^1.0.5
 
 # For information on the generic Dart part of this file, see the
@@ -70,6 +72,8 @@ flutter:
 
   assets:
     - assets/data/crossradar_mobile_bundle.json
+    - assets/config/
+    - logo/logo.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -101,3 +105,25 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: logo/logo.png
+  adaptive_icon_background: "#EEF6FF"
+  adaptive_icon_foreground: logo/logo.png
+  min_sdk_android: 23
+
+flutter_native_splash:
+  android: true
+  ios: false
+  web: false
+  color: "#EEF6FF"
+  color_dark: "#121827"
+  image: logo/logo.png
+  android_12:
+    color: "#EEF6FF"
+    color_dark: "#121827"
+    image: logo/logo.png
+    icon_background_color: "#EEF6FF"
+    icon_background_color_dark: "#121827"

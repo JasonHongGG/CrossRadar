@@ -57,7 +57,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
       appBar: AppBar(
         title: Text(widget.crossing.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
-          IconButton(tooltip: 'TDX', onPressed: _openCredentialsDialog, icon: const Icon(Icons.key_rounded)),
           IconButton(tooltip: '定位', onPressed: _focusGps, icon: const Icon(Icons.my_location_rounded)),
           IconButton(tooltip: '刷新', onPressed: () => _refreshPrediction(forceRefresh: true), icon: const Icon(Icons.refresh_rounded)),
           IconButton(tooltip: '通知', onPressed: mainPrediction == null ? null : () => _notify(mainPrediction), icon: const Icon(Icons.notifications_active_rounded)),
@@ -172,46 +171,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
     if (!ok) return;
     await _notificationService.schedulePredictionAlert(prediction, widget.crossing);
   }
-
-  Future<void> _openCredentialsDialog() async {
-    final idController = TextEditingController();
-    final secretController = TextEditingController();
-    final saved = await _credentialStore.read();
-    if (saved != null) idController.text = saved.clientId;
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('TDX'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: idController,
-              decoration: const InputDecoration(labelText: 'Client ID'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: secretController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Client Secret'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          FilledButton(
-            onPressed: () async {
-              await _credentialStore.save(TdxCredentials(clientId: idController.text, clientSecret: secretController.text));
-              if (context.mounted) Navigator.pop(context);
-              await _refreshPrediction(forceRefresh: true);
-            },
-            child: const Text('儲存'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _MiniMap extends StatelessWidget {
@@ -232,6 +191,7 @@ class _MiniMap extends StatelessWidget {
           options: MapOptions(initialCenter: LatLng(crossing.geometry.lat, crossing.geometry.lon), initialZoom: 14),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone'),
+            PolylineLayer(polylines: _connectionLine()),
             MarkerLayer(
               markers: [
                 if (crossing.stationA.position != null) _stationMarker(crossing.stationA, AppColors.amber),
@@ -263,6 +223,15 @@ class _MiniMap extends StatelessWidget {
         child: Icon(Icons.train_rounded, color: color, size: 28),
       ),
     );
+  }
+
+  List<Polyline> _connectionLine() {
+    final stationA = crossing.stationA.position;
+    final stationB = crossing.stationB.position;
+    if (stationA == null || stationB == null) return const [];
+    return [
+      Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.blue.withValues(alpha: 0.62), strokeWidth: 4),
+    ];
   }
 }
 

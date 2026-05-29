@@ -5,3 +5,9 @@ __pycache__/
 .env
 .runtime
 *.pdf
+
+
+PhoneApp/logo/*
+!/PhoneApp/logo/.gitkeep
+!/PhoneApp/logo/logo.png
+PhoneApp/assets/config/default_credentials.json
