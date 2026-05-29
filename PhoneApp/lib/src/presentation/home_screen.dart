@@ -70,7 +70,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           switchOutCurve: Curves.easeInCubic,
           child: _mode == 0
               ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction)
-              : _SearchResults(key: const ValueKey('search'), bundle: bundle, groups: groups, history: history, onPick: _openPrediction, onHistoryDelete: _deleteHistory),
+              : _SearchResults(key: const ValueKey('search'), bundle: bundle, groups: groups, history: history, searchQuery: _searchController.text, onPick: _openPrediction, onHistoryDelete: _deleteHistory),
         ),
         Positioned(
           top: 0,
@@ -78,7 +78,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           right: 0,
           child: SafeArea(
             bottom: false,
-            child: _HomeCommandBar(controller: _searchController, mode: _mode, onModeChanged: (mode) => setState(() => _mode = mode), onSearchFocus: () => setState(() => _mode = 1), onSettings: _openSettings),
+            child: _HomeCommandBar(controller: _searchController, onSearchFocus: () => setState(() => _mode = 1), onSettings: _openSettings),
+          ),
+        ),
+        Positioned(
+          bottom: 32,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: _FloatingModeSwitch(mode: _mode, onModeChanged: (mode) => setState(() => _mode = mode)),
           ),
         ),
       ],
@@ -113,6 +121,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _openPrediction(Crossing crossing, MobileBundle bundle) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final history = await _historyService.save(crossing);
     if (!mounted) return;
     setState(() {
@@ -130,11 +139,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _HomeCommandBar extends StatelessWidget {
-  const _HomeCommandBar({required this.controller, required this.mode, required this.onModeChanged, required this.onSearchFocus, required this.onSettings});
+  const _HomeCommandBar({required this.controller, required this.onSearchFocus, required this.onSettings});
 
   final TextEditingController controller;
-  final int mode;
-  final ValueChanged<int> onModeChanged;
   final VoidCallback onSearchFocus;
   final VoidCallback onSettings;
 
@@ -168,22 +175,12 @@ class _HomeCommandBar extends StatelessWidget {
                         hintStyle: const TextStyle(color: AppColors.muted),
                         fillColor: Colors.white.withValues(alpha: 0.6),
                         prefixIcon: const Icon(Icons.search_rounded, color: AppColors.pastelBlueDeep),
-                        suffixIcon: controller.text.isEmpty ? null : IconButton(tooltip: '清除', onPressed: controller.clear, icon: const Icon(Icons.close_rounded, color: AppColors.muted)),
+                        suffixIcon: controller.text.isEmpty ? null : IconButton(tooltip: '清除', onPressed: () {
+                          controller.clear();
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        }, icon: const Icon(Icons.close_rounded, color: AppColors.muted)),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(24)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ModeIconButton(icon: Icons.map_rounded, selected: mode == 0, onPressed: () => onModeChanged(0)),
-                      _ModeIconButton(icon: Icons.format_list_bulleted_rounded, selected: mode == 1, onPressed: () => onModeChanged(1)),
-                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -202,10 +199,42 @@ class _HomeCommandBar extends StatelessWidget {
   }
 }
 
-class _ModeIconButton extends StatelessWidget {
-  const _ModeIconButton({required this.icon, required this.selected, required this.onPressed});
+class _FloatingModeSwitch extends StatelessWidget {
+  const _FloatingModeSwitch({required this.mode, required this.onModeChanged});
+
+  final int mode;
+  final ValueChanged<int> onModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _FloatingModeButton(icon: Icons.map_rounded, label: '地圖', selected: mode == 0, onPressed: () => onModeChanged(0)),
+          const SizedBox(width: 8),
+          _FloatingModeButton(icon: Icons.format_list_bulleted_rounded, label: '列表', selected: mode == 1, onPressed: () {
+            onModeChanged(1);
+            FocusManager.instance.primaryFocus?.unfocus();
+          }),
+        ],
+      ),
+    );
+  }
+}
+
+class _FloatingModeButton extends StatelessWidget {
+  const _FloatingModeButton({required this.icon, required this.label, required this.selected, required this.onPressed});
 
   final IconData icon;
+  final String label;
   final bool selected;
   final VoidCallback onPressed;
 
@@ -214,18 +243,27 @@ class _ModeIconButton extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
-      width: 40,
-      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 44,
       decoration: BoxDecoration(
         color: selected ? AppColors.pastelBlueDeep : Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: selected ? [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
+        borderRadius: BorderRadius.circular(22),
       ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        onPressed: onPressed,
-        style: IconButton.styleFrom(backgroundColor: Colors.transparent, foregroundColor: selected ? Colors.white : AppColors.muted),
-        icon: Icon(icon, size: 20),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onPressed,
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: selected ? Colors.white : AppColors.muted),
+              if (selected) ...[
+                const SizedBox(width: 8),
+                Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -250,7 +288,7 @@ class _MapPicker extends StatelessWidget {
           mapController: mapController,
           options: MapOptions(initialCenter: LatLng(center.lat, center.lon), initialZoom: 12),
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone'),
+            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone', retinaMode: true),
             if (selectedCrossing != null) PolylineLayer(polylines: _selectedPolylines()),
             MarkerLayer(markers: _stationMarkers(bundle.stations)),
             if (selectedCrossing != null) MarkerLayer(markers: _selectedStationMarkers()),
@@ -259,16 +297,30 @@ class _MapPicker extends StatelessWidget {
           ],
         ),
         Positioned(
-          right: 20,
-          bottom: 24,
-          child: FloatingActionButton(
-            heroTag: 'home_gps',
-            onPressed: onGps,
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.pastelBlueDeep,
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.my_location_rounded),
+          right: 16,
+          bottom: 120,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'home_compass',
+                onPressed: () => mapController.rotate(0),
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.pastelBlueDeep,
+                elevation: 4,
+                child: const Icon(Icons.explore_rounded),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton(
+                heroTag: 'home_gps',
+                onPressed: onGps,
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.pastelBlueDeep,
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: const Icon(Icons.my_location_rounded),
+              ),
+            ],
           ),
         ),
       ],
@@ -303,11 +355,22 @@ class _MapPicker extends StatelessWidget {
   List<Marker> _stationMarkers(List<Station> stations) {
     return stations.map((station) => Marker(
       point: LatLng(station.position.lat, station.position.lon),
-      width: 28,
-      height: 28,
-      child: Container(
-        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.2), blurRadius: 4)]),
-        child: const Icon(Icons.train_rounded, size: 14, color: AppColors.pastelBlueDeep),
+      width: 100,
+      height: 36,
+      alignment: Alignment.topCenter,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.2), blurRadius: 4)]),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.train_rounded, size: 14, color: AppColors.pastelBlueDeep),
+              const SizedBox(width: 4),
+              Flexible(child: Text(station.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep))),
+            ],
+          ),
+        ),
       ),
     )).toList(growable: false);
   }
@@ -335,22 +398,34 @@ class _MapPicker extends StatelessWidget {
     final position = station.position!;
     return Marker(
       point: LatLng(position.lat, position.lon),
-      width: 44,
-      height: 44,
-      child: Container(
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
-        child: const Icon(Icons.train_rounded, size: 20, color: Colors.white),
+      width: 120,
+      height: 48,
+      alignment: Alignment.topCenter,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.train_rounded, size: 18, color: Colors.white),
+              const SizedBox(width: 6),
+              Flexible(child: Text(station.name ?? '未知車站', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white))),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 class _SearchResults extends StatelessWidget {
-  const _SearchResults({super.key, required this.bundle, required this.groups, required this.history, required this.onPick, required this.onHistoryDelete});
+  const _SearchResults({super.key, required this.bundle, required this.groups, required this.history, required this.searchQuery, required this.onPick, required this.onHistoryDelete});
 
   final MobileBundle bundle;
   final List<SearchGroup> groups;
   final List<SearchHistoryEntry> history;
+  final String searchQuery;
   final Future<void> Function(Crossing crossing, MobileBundle bundle) onPick;
   final ValueChanged<String> onHistoryDelete;
 
@@ -359,10 +434,10 @@ class _SearchResults extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(color: AppColors.surface),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 120, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 120, 16, 100),
         children: [
           if (history.isNotEmpty) ...[_HistoryRail(history: history, crossingById: bundle.crossingById, bundle: bundle, onPick: onPick, onDelete: onHistoryDelete), const SizedBox(height: 24)],
-          if (groups.isEmpty) const _EmptySearchState() else for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) _SearchGroupSection(group: groups[groupIndex], bundle: bundle, groupIndex: groupIndex, onPick: onPick),
+          if (groups.isEmpty) const _EmptySearchState() else for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) _SearchGroupSection(group: groups[groupIndex], bundle: bundle, groupIndex: groupIndex, isExpanded: searchQuery.isNotEmpty, onPick: onPick),
         ],
       ),
     );
@@ -442,29 +517,59 @@ class _HistoryChip extends StatelessWidget {
   }
 }
 
-class _SearchGroupSection extends StatelessWidget {
-  const _SearchGroupSection({required this.group, required this.bundle, required this.groupIndex, required this.onPick});
+class _SearchGroupSection extends StatefulWidget {
+  const _SearchGroupSection({required this.group, required this.bundle, required this.groupIndex, required this.isExpanded, required this.onPick});
 
   final SearchGroup group;
   final MobileBundle bundle;
   final int groupIndex;
+  final bool isExpanded;
   final Future<void> Function(Crossing crossing, MobileBundle bundle) onPick;
+
+  @override
+  State<_SearchGroupSection> createState() => _SearchGroupSectionState();
+}
+
+class _SearchGroupSectionState extends State<_SearchGroupSection> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.isExpanded;
+  }
+
+  @override
+  void didUpdateWidget(covariant _SearchGroupSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isExpanded != oldWidget.isExpanded) {
+      _expanded = widget.isExpanded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 300 + math.min(groupIndex, 4) * 60),
+      duration: Duration(milliseconds: 300 + math.min(widget.groupIndex, 4) * 60),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) => Opacity(opacity: value, child: Transform.translate(offset: Offset(0, 20 * (1 - value)), child: child)),
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(padding: const EdgeInsets.only(left: 4, bottom: 12), child: Text(group.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.pastelBlueDeep))),
-            ...group.crossings.take(80).map((crossing) => _SearchResultTile(crossing: crossing, onTap: () => onPick(crossing, bundle))),
-          ],
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            title: Text(widget.group.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.pastelBlueDeep)),
+            initiallyExpanded: _expanded,
+            onExpansionChanged: (val) => setState(() => _expanded = val),
+            iconColor: AppColors.pastelBlueDeep,
+            collapsedIconColor: AppColors.muted,
+            tilePadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+            children: [
+              const SizedBox(height: 8),
+              ...widget.group.crossings.take(80).map((crossing) => _SearchResultTile(crossing: crossing, onTap: () => widget.onPick(crossing, widget.bundle))),
+            ],
+          ),
         ),
       ),
     );

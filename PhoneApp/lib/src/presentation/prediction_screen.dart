@@ -55,7 +55,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
     final following = (_envelope?.upcomingPredictions.length ?? 0) > 1 ? _envelope!.upcomingPredictions[1] : null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.crossing.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(tooltip: '定位', onPressed: _focusGps, icon: const Icon(Icons.my_location_rounded)),
           IconButton(tooltip: '刷新', onPressed: () => _refreshPrediction(forceRefresh: true), icon: const Icon(Icons.refresh_rounded)),
@@ -199,20 +198,36 @@ class _MiniMap extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: FlutterMap(
-          mapController: controller,
-          options: MapOptions(initialCenter: LatLng(crossing.geometry.lat, crossing.geometry.lon), initialZoom: 14),
+        child: Stack(
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone'),
-            PolylineLayer(polylines: _connectionLine()),
-            MarkerLayer(
-              markers: [
-                if (crossing.stationA.position != null) _stationMarker(crossing.stationA),
-                if (crossing.stationB.position != null) _stationMarker(crossing.stationB),
-                Marker(point: LatLng(crossing.geometry.lat, crossing.geometry.lon), width: 44, height: 44, child: const _CrossingMarker()),
-                if (userLocation != null)
-                  Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 28, height: 28, child: const Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep)),
+            FlutterMap(
+              mapController: controller,
+              options: MapOptions(initialCenter: LatLng(crossing.geometry.lat, crossing.geometry.lon), initialZoom: 14),
+              children: [
+                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone', retinaMode: true),
+                PolylineLayer(polylines: _connectionLine()),
+                MarkerLayer(
+                  markers: [
+                    if (crossing.stationA.position != null) _stationMarker(crossing.stationA),
+                    if (crossing.stationB.position != null) _stationMarker(crossing.stationB),
+                    Marker(point: LatLng(crossing.geometry.lat, crossing.geometry.lon), width: 44, height: 44, child: const _CrossingMarker()),
+                    if (userLocation != null)
+                      Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 28, height: 28, child: const Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep)),
+                  ],
+                ),
               ],
+            ),
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: FloatingActionButton.small(
+                heroTag: 'prediction_compass',
+                onPressed: () => controller.rotate(0),
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.pastelBlueDeep,
+                elevation: 4,
+                child: const Icon(Icons.explore_rounded),
+              ),
             ),
           ],
         ),
@@ -224,11 +239,22 @@ class _MiniMap extends StatelessWidget {
     final point = station.position!;
     return Marker(
       point: LatLng(point.lat, point.lon),
-      width: 32,
-      height: 32,
-      child: Container(
-        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 4)]),
-        child: const Icon(Icons.train_rounded, color: AppColors.pastelBlueDeep, size: 16),
+      width: 100,
+      height: 36,
+      alignment: Alignment.topCenter,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 4)]),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.train_rounded, color: AppColors.pastelBlueDeep, size: 14),
+              const SizedBox(width: 4),
+              Flexible(child: Text(station.name ?? '未知車站', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep))),
+            ],
+          ),
+        ),
       ),
     );
   }
