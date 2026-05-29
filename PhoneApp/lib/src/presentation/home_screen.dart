@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -61,23 +62,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildLoaded(MobileBundle bundle) {
     final groups = _searchService.search(bundle.crossings, _searchController.text);
     final history = _history.where((entry) => bundle.crossingById.containsKey(entry.crossingId)).toList(growable: false);
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: AppGradients.softBrand),
-      child: SafeArea(
-        child: Column(
-          children: [
-            _HomeCommandBar(controller: _searchController, mode: _mode, onModeChanged: (mode) => setState(() => _mode = mode), onSearchFocus: () => setState(() => _mode = 1), onSettings: _openSettings, onAbout: _showAbout),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                child: _mode == 0 ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction) : _SearchResults(key: const ValueKey('search'), bundle: bundle, groups: groups, history: history, onPick: _openPrediction, onHistoryDelete: _deleteHistory),
-              ),
-            ),
-          ],
+    return Stack(
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 360),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: _mode == 0
+              ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction)
+              : _SearchResults(key: const ValueKey('search'), bundle: bundle, groups: groups, history: history, onPick: _openPrediction, onHistoryDelete: _deleteHistory),
         ),
-      ),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: _HomeCommandBar(controller: _searchController, mode: _mode, onModeChanged: (mode) => setState(() => _mode = mode), onSearchFocus: () => setState(() => _mode = 1), onSettings: _openSettings),
+          ),
+        ),
+      ],
     );
   }
 
@@ -116,68 +120,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _history = history;
     });
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PredictionScreen(crossing: crossing, bundle: bundle),
-      ),
+      MaterialPageRoute(builder: (_) => PredictionScreen(crossing: crossing, bundle: bundle)),
     );
   }
 
   Future<void> _openSettings() async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
   }
-
-  void _showAbout() {
-    showAboutDialog(context: context, applicationName: 'CrossRadar', applicationVersion: '1.0.0', children: const [Text('Map tiles and rail-derived crossing assets contain OpenStreetMap data. OpenStreetMap contributors, ODbL.')]);
-  }
 }
 
 class _HomeCommandBar extends StatelessWidget {
-  const _HomeCommandBar({required this.controller, required this.mode, required this.onModeChanged, required this.onSearchFocus, required this.onSettings, required this.onAbout});
+  const _HomeCommandBar({required this.controller, required this.mode, required this.onModeChanged, required this.onSearchFocus, required this.onSettings});
 
   final TextEditingController controller;
   final int mode;
   final ValueChanged<int> onModeChanged;
   final VoidCallback onSearchFocus;
   final VoidCallback onSettings;
-  final VoidCallback onAbout;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: AppColors.blueDeep.withValues(alpha: 0.10), blurRadius: 24, offset: const Offset(0, 12))],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 46,
-                child: TextField(
-                  controller: controller,
-                  onTap: onSearchFocus,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: '搜尋平交道',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: controller.text.isEmpty ? null : IconButton(tooltip: '清除', onPressed: controller.clear, icon: const Icon(Icons.close_rounded)),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.glassBackground,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
+              boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 12))],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: TextField(
+                      controller: controller,
+                      onTap: onSearchFocus,
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: '搜尋平交道...',
+                        hintStyle: const TextStyle(color: AppColors.muted),
+                        fillColor: Colors.white.withValues(alpha: 0.6),
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.pastelBlueDeep),
+                        suffixIcon: controller.text.isEmpty ? null : IconButton(tooltip: '清除', onPressed: controller.clear, icon: const Icon(Icons.close_rounded, color: AppColors.muted)),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Container(
+                  height: 48,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(24)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ModeIconButton(icon: Icons.map_rounded, selected: mode == 0, onPressed: () => onModeChanged(0)),
+                      _ModeIconButton(icon: Icons.format_list_bulleted_rounded, selected: mode == 1, onPressed: () => onModeChanged(1)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), shape: BoxShape.circle),
+                  child: IconButton(tooltip: '設定', onPressed: onSettings, icon: const Icon(Icons.tune_rounded, color: AppColors.ink)),
+                ),
+              ],
             ),
-            const SizedBox(width: 6),
-            _ModeIconButton(icon: Icons.map_rounded, tooltip: '地圖', selected: mode == 0, onPressed: () => onModeChanged(0)),
-            const SizedBox(width: 4),
-            _ModeIconButton(icon: Icons.manage_search_rounded, tooltip: '搜尋', selected: mode == 1, onPressed: () => onModeChanged(1)),
-            const SizedBox(width: 4),
-            IconButton(tooltip: 'TDX', onPressed: onSettings, icon: const Icon(Icons.tune_rounded)),
-            const SizedBox(width: 4),
-            IconButton(tooltip: '授權', onPressed: onAbout, icon: const Icon(Icons.info_outline_rounded)),
-          ],
+          ),
         ),
       ),
     );
@@ -185,24 +203,29 @@ class _HomeCommandBar extends StatelessWidget {
 }
 
 class _ModeIconButton extends StatelessWidget {
-  const _ModeIconButton({required this.icon, required this.tooltip, required this.selected, required this.onPressed});
+  const _ModeIconButton({required this.icon, required this.selected, required this.onPressed});
 
   final IconData icon;
-  final String tooltip;
   final bool selected;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(gradient: selected ? AppGradients.brand : null, color: selected ? null : AppColors.panelTint, borderRadius: BorderRadius.circular(8)),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: selected ? AppColors.pastelBlueDeep : Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: selected ? [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))] : [],
+      ),
       child: IconButton(
-        tooltip: tooltip,
+        padding: EdgeInsets.zero,
         onPressed: onPressed,
-        style: IconButton.styleFrom(backgroundColor: Colors.transparent, foregroundColor: selected ? Colors.white : AppColors.blueDeep),
-        icon: Icon(icon),
+        style: IconButton.styleFrom(backgroundColor: Colors.transparent, foregroundColor: selected ? Colors.white : AppColors.muted),
+        icon: Icon(icon, size: 20),
       ),
     );
   }
@@ -225,114 +248,98 @@ class _MapPicker extends StatelessWidget {
       children: [
         FlutterMap(
           mapController: mapController,
-          options: MapOptions(initialCenter: LatLng(center.lat, center.lon), initialZoom: 11),
+          options: MapOptions(initialCenter: LatLng(center.lat, center.lon), initialZoom: 12),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone'),
             if (selectedCrossing != null) PolylineLayer(polylines: _selectedPolylines()),
             MarkerLayer(markers: _stationMarkers(bundle.stations)),
             if (selectedCrossing != null) MarkerLayer(markers: _selectedStationMarkers()),
             MarkerLayer(markers: _crossingMarkers(context)),
-            if (userLocation != null)
-              MarkerLayer(
-                markers: [Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 34, height: 34, child: const _PulseDot())],
-              ),
+            if (userLocation != null) MarkerLayer(markers: [Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 44, height: 44, child: const _PulseDot())]),
           ],
         ),
         Positioned(
-          right: 16,
-          bottom: 18,
-          child: FloatingActionButton.small(heroTag: 'home_gps', onPressed: onGps, child: const Icon(Icons.my_location_rounded)),
+          right: 20,
+          bottom: 24,
+          child: FloatingActionButton(
+            heroTag: 'home_gps',
+            onPressed: onGps,
+            backgroundColor: Colors.white,
+            foregroundColor: AppColors.pastelBlueDeep,
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.my_location_rounded),
+          ),
         ),
       ],
     );
   }
 
   List<Marker> _crossingMarkers(BuildContext context) {
-    return bundle.crossings
-        .map(
-          (crossing) => Marker(
-            point: LatLng(crossing.geometry.lat, crossing.geometry.lon),
-            width: 38,
-            height: 38,
-            child: Tooltip(
-              message: crossing.name,
-              child: GestureDetector(
-                onTap: () => onPick(crossing, bundle),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  decoration: BoxDecoration(
-                    gradient: selectedCrossing?.id == crossing.id ? AppGradients.brand : null,
-                    color: selectedCrossing?.id == crossing.id ? null : AppColors.rose.withValues(alpha: 0.92),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: [BoxShadow(color: AppColors.rose.withValues(alpha: 0.25), blurRadius: 14)],
-                  ),
-                  child: const Icon(Icons.close_rounded, size: 17, color: Colors.white),
-                ),
-              ),
+    return bundle.crossings.map((crossing) {
+      final isSelected = selectedCrossing?.id == crossing.id;
+      return Marker(
+        point: LatLng(crossing.geometry.lat, crossing.geometry.lon),
+        width: isSelected ? 48 : 36,
+        height: isSelected ? 48 : 36,
+        child: GestureDetector(
+          onTap: () => onPick(crossing, bundle),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.pastelPinkDeep : Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: isSelected ? Colors.white : AppColors.pastelPinkDeep, width: isSelected ? 4 : 2),
+              boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.3), blurRadius: isSelected ? 12 : 6, offset: const Offset(0, 4))],
             ),
+            child: Icon(Icons.railway_alert_rounded, size: isSelected ? 22 : 18, color: isSelected ? Colors.white : AppColors.pastelPinkDeep),
           ),
-        )
-        .toList(growable: false);
+        ),
+      );
+    }).toList(growable: false);
   }
 
   List<Marker> _stationMarkers(List<Station> stations) {
-    return stations
-        .map(
-          (station) => Marker(
-            point: LatLng(station.position.lat, station.position.lon),
-            width: 30,
-            height: 30,
-            child: Tooltip(
-              message: station.name,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.blue.withValues(alpha: 0.82),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: const Icon(Icons.train_rounded, size: 14, color: Colors.white),
-              ),
-            ),
-          ),
-        )
-        .toList(growable: false);
+    return stations.map((station) => Marker(
+      point: LatLng(station.position.lat, station.position.lon),
+      width: 28,
+      height: 28,
+      child: Container(
+        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.2), blurRadius: 4)]),
+        child: const Icon(Icons.train_rounded, size: 14, color: AppColors.pastelBlueDeep),
+      ),
+    )).toList(growable: false);
   }
 
   List<Polyline> _selectedPolylines() {
     final crossing = selectedCrossing;
     final stationA = crossing?.stationA.position;
     final stationB = crossing?.stationB.position;
-    if (crossing == null || stationA == null || stationB == null) {
-      return const [];
-    }
+    if (crossing == null || stationA == null || stationB == null) return const [];
     return [
-      Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.blue.withValues(alpha: 0.55), strokeWidth: 3),
+      Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.pastelBlueDeep.withValues(alpha: 0.8), strokeWidth: 4),
     ];
   }
 
   List<Marker> _selectedStationMarkers() {
     final crossing = selectedCrossing;
     if (crossing == null) return const [];
-    return [if (crossing.stationA.position != null) _stationRefMarker(crossing.stationA, AppColors.amber), if (crossing.stationB.position != null) _stationRefMarker(crossing.stationB, AppColors.blue)];
+    return [
+      if (crossing.stationA.position != null) _stationRefMarker(crossing.stationA, AppColors.pastelBlueDeep),
+      if (crossing.stationB.position != null) _stationRefMarker(crossing.stationB, AppColors.pastelBlueDeep),
+    ];
   }
 
   Marker _stationRefMarker(StationRef station, Color color) {
     final position = station.position!;
     return Marker(
       point: LatLng(position.lat, position.lon),
-      width: 42,
-      height: 42,
-      child: Tooltip(
-        message: station.ukPrimary == null ? station.name ?? '' : '${station.name} · ${station.ukPrimary}',
-        child: Container(
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-          ),
-          child: const Icon(Icons.train_rounded, size: 18, color: Colors.white),
-        ),
+      width: 44,
+      height: 44,
+      child: Container(
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
+        child: const Icon(Icons.train_rounded, size: 20, color: Colors.white),
       ),
     );
   }
@@ -349,12 +356,15 @@ class _SearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 2, 12, 20),
-      children: [
-        if (history.isNotEmpty) ...[_HistoryRail(history: history, crossingById: bundle.crossingById, bundle: bundle, onPick: onPick, onDelete: onHistoryDelete), const SizedBox(height: 8)],
-        if (groups.isEmpty) const _EmptySearchState() else for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) _SearchGroupSection(group: groups[groupIndex], bundle: bundle, groupIndex: groupIndex, onPick: onPick),
-      ],
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: AppColors.surface),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 120, 16, 32),
+        children: [
+          if (history.isNotEmpty) ...[_HistoryRail(history: history, crossingById: bundle.crossingById, bundle: bundle, onPick: onPick, onDelete: onHistoryDelete), const SizedBox(height: 24)],
+          if (groups.isEmpty) const _EmptySearchState() else for (var groupIndex = 0; groupIndex < groups.length; groupIndex++) _SearchGroupSection(group: groups[groupIndex], bundle: bundle, groupIndex: groupIndex, onPick: onPick),
+        ],
+      ),
     );
   }
 }
@@ -371,11 +381,11 @@ class _HistoryRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 88,
+      height: 100,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: history.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final entry = history[index];
           final crossing = crossingById[entry.crossingId];
@@ -397,51 +407,31 @@ class _HistoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedScale(
-      duration: const Duration(milliseconds: 160),
-      scale: enabled ? 1 : 0.96,
-      child: SizedBox(
-        width: 178,
+      duration: const Duration(milliseconds: 200),
+      scale: enabled ? 1 : 0.95,
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4))]),
         child: Material(
-          color: Colors.white.withValues(alpha: 0.94),
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(20),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(gradient: AppGradients.brand, borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.close_rounded, color: Colors.white, size: 17),
-                      ),
+                      Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: AppColors.pastelPinkSoft, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.history_rounded, color: AppColors.pastelPinkDeep, size: 16)),
                       const Spacer(),
-                      InkResponse(
-                        radius: 18,
-                        onTap: onDelete,
-                        child: const Icon(Icons.close_rounded, size: 17, color: AppColors.muted),
-                      ),
+                      InkResponse(radius: 20, onTap: onDelete, child: const Icon(Icons.close_rounded, size: 16, color: AppColors.muted)),
                     ],
                   ),
                   const Spacer(),
-                  Text(
-                    entry.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
-                  ),
-                  if (entry.detail != null)
-                    Text(
-                      entry.detail!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700),
-                    ),
+                  Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink)),
+                  if (entry.detail != null) Text(entry.detail!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                 ],
               ),
             ),
@@ -464,24 +454,15 @@ class _SearchGroupSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 220 + math.min(groupIndex, 4) * 55),
+      duration: Duration(milliseconds: 300 + math.min(groupIndex, 4) * 60),
       curve: Curves.easeOutCubic,
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.translate(offset: Offset(0, 12 * (1 - value)), child: child),
-      ),
+      builder: (context, value, child) => Opacity(opacity: value, child: Transform.translate(offset: Offset(0, 20 * (1 - value)), child: child)),
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 8),
-              child: Text(
-                group.label,
-                style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.blueDeep),
-              ),
-            ),
+            Padding(padding: const EdgeInsets.only(left: 4, bottom: 12), child: Text(group.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.pastelBlueDeep))),
             ...group.crossings.take(80).map((crossing) => _SearchResultTile(crossing: crossing, onTap: () => onPick(crossing, bundle))),
           ],
         ),
@@ -499,47 +480,38 @@ class _SearchResultTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(color: AppColors.roseSoft, borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.close_rounded, color: AppColors.roseDeep, size: 21),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        crossing.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
-                      ),
-                      if (crossing.subtitle.isNotEmpty)
-                        Text(
-                          crossing.subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700),
-                        ),
-                    ],
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 4))]),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.railway_alert_rounded, color: AppColors.pastelBlueDeep, size: 24),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right_rounded, color: AppColors.blue),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(crossing.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.ink)),
+                        const SizedBox(height: 4),
+                        if (crossing.subtitle.isNotEmpty) Text(crossing.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.pastelBlueDeep, size: 16),
+                ],
+              ),
             ),
           ),
         ),
@@ -554,13 +526,17 @@ class _EmptySearchState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 220,
+      height: 300,
       child: Center(
-        child: Container(
-          width: 84,
-          height: 84,
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.86), borderRadius: BorderRadius.circular(8)),
-          child: const Icon(Icons.manage_search_rounded, size: 38, color: AppColors.blue),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(width: 96, height: 96, decoration: const BoxDecoration(color: AppColors.pastelBlueSoft, shape: BoxShape.circle), child: const Icon(Icons.search_off_rounded, size: 48, color: AppColors.pastelBlueDeep)),
+            const SizedBox(height: 24),
+            const Text('找不到結果', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.ink)),
+            const SizedBox(height: 8),
+            const Text('請嘗試其他關鍵字', style: TextStyle(color: AppColors.muted)),
+          ],
         ),
       ),
     );
@@ -573,20 +549,11 @@ class _PulseDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.55, end: 1),
-      duration: const Duration(milliseconds: 900),
+      tween: Tween(begin: 0.4, end: 1),
+      duration: const Duration(milliseconds: 1200),
       builder: (context, value, _) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.blue.withValues(alpha: 0.18 + value * 0.20),
-          shape: BoxShape.circle,
-        ),
-        child: Center(
-          child: Container(
-            width: 13,
-            height: 13,
-            decoration: const BoxDecoration(color: AppColors.blue, shape: BoxShape.circle),
-          ),
-        ),
+        decoration: BoxDecoration(color: AppColors.pastelBlueDeep.withValues(alpha: 0.15 + value * 0.25), shape: BoxShape.circle),
+        child: Center(child: Container(width: 16, height: 16, decoration: BoxDecoration(color: AppColors.pastelBlueDeep, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)))),
       ),
     );
   }
@@ -599,11 +566,6 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(message, textAlign: TextAlign.center),
-      ),
-    );
+    return Center(child: Padding(padding: const EdgeInsets.all(32), child: Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600))));
   }
 }

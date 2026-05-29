@@ -36,23 +36,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: const Text('TDX'),
+        title: const Text('設定', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: [IconButton(tooltip: '重新載入', onPressed: _loading ? null : _load, icon: const Icon(Icons.sync_rounded))],
       ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppGradients.softBrand),
-        child: SafeArea(
-          top: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 240),
-                child: _loading ? const _SettingsSkeleton(key: ValueKey('loading')) : _CredentialPanel(key: const ValueKey('credentials'), source: _source, saving: _saving, clientIdController: _clientIdController, clientSecretController: _clientSecretController, secretVisible: _secretVisible, onToggleSecret: () => setState(() => _secretVisible = !_secretVisible), onSave: _save, onClear: _clear),
-              ),
-            ],
-          ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              child: _loading ? const _SettingsSkeleton(key: ValueKey('loading')) : _CredentialPanel(key: const ValueKey('credentials'), source: _source, saving: _saving, clientIdController: _clientIdController, clientSecretController: _clientSecretController, secretVisible: _secretVisible, onToggleSecret: () => setState(() => _secretVisible = !_secretVisible), onSave: _save, onClear: _clear),
+            ),
+          ],
         ),
       ),
     );
@@ -105,45 +104,47 @@ class _CredentialPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.10), blurRadius: 28, offset: const Offset(0, 16))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 16))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const _GradientIcon(icon: Icons.key_rounded),
-              const SizedBox(width: 10),
-              Expanded(child: _SourceChip(source: source)),
+              const _HeaderIcon(icon: Icons.key_rounded),
+              const SizedBox(width: 16),
+              const Text('TDX 憑證', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
+              const Spacer(),
+              _SourceChip(source: source),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 24),
           TextField(
             controller: clientIdController,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(labelText: 'Client ID', prefixIcon: Icon(Icons.badge_rounded)),
+            decoration: const InputDecoration(labelText: 'Client ID', prefixIcon: Icon(Icons.badge_rounded, color: AppColors.pastelBlueDeep)),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: clientSecretController,
             obscureText: !secretVisible,
             decoration: InputDecoration(
               labelText: 'Client Secret',
-              prefixIcon: const Icon(Icons.lock_rounded),
-              suffixIcon: IconButton(tooltip: secretVisible ? '隱藏' : '顯示', onPressed: onToggleSecret, icon: Icon(secretVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded)),
+              prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.pastelBlueDeep),
+              suffixIcon: IconButton(tooltip: secretVisible ? '隱藏' : '顯示', onPressed: onToggleSecret, icon: Icon(secretVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: AppColors.muted)),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
-                child: FilledButton.icon(onPressed: saving ? null : onSave, icon: const Icon(Icons.save_rounded), label: const Text('儲存')),
+                child: FilledButton.icon(onPressed: saving ? null : onSave, icon: const Icon(Icons.save_rounded), label: const Text('儲存設定')),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               IconButton.filledTonal(tooltip: '清除', onPressed: saving ? null : onClear, icon: const Icon(Icons.delete_outline_rounded)),
             ],
           ),
@@ -161,45 +162,37 @@ class _SourceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, label, color) = switch (source) {
-      TdxCredentialSource.saved => (Icons.verified_rounded, '已儲存', AppColors.blue),
-      TdxCredentialSource.defaults => (Icons.tune_rounded, '.env 預設', AppColors.rose),
-      TdxCredentialSource.none => (Icons.error_outline_rounded, '待設定', AppColors.amber),
+      TdxCredentialSource.saved => (Icons.verified_rounded, '已儲存', AppColors.mint),
+      TdxCredentialSource.defaults => (Icons.tune_rounded, '預設', AppColors.pastelBlueDeep),
+      TdxCredentialSource.none => (Icons.error_outline_rounded, '待設定', AppColors.pastelPinkDeep),
     };
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: DecoratedBox(
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(color: color, fontWeight: FontWeight.w900),
-              ),
-            ],
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 13)),
+        ],
       ),
     );
   }
 }
 
-class _GradientIcon extends StatelessWidget {
-  const _GradientIcon({required this.icon});
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({required this.icon});
 
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(gradient: AppGradients.brand, borderRadius: BorderRadius.circular(8)),
-      child: Icon(icon, color: Colors.white),
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(16)),
+      child: Icon(icon, color: AppColors.pastelBlueDeep, size: 24),
     );
   }
 }
@@ -210,8 +203,8 @@ class _SettingsSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 236,
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.84), borderRadius: BorderRadius.circular(8)),
+      height: 320,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
       child: const Center(child: CircularProgressIndicator()),
     );
   }

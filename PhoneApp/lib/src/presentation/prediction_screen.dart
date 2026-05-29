@@ -55,50 +55,59 @@ class _PredictionScreenState extends State<PredictionScreen> {
     final following = (_envelope?.upcomingPredictions.length ?? 0) > 1 ? _envelope!.upcomingPredictions[1] : null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.crossing.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(widget.crossing.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           IconButton(tooltip: '定位', onPressed: _focusGps, icon: const Icon(Icons.my_location_rounded)),
           IconButton(tooltip: '刷新', onPressed: () => _refreshPrediction(forceRefresh: true), icon: const Icon(Icons.refresh_rounded)),
           IconButton(tooltip: '通知', onPressed: mainPrediction == null ? null : () => _notify(mainPrediction), icon: const Icon(Icons.notifications_active_rounded)),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+      body: Stack(
         children: [
-          _MiniMap(crossing: widget.crossing, userLocation: _userLocation, controller: _mapController),
-          const SizedBox(height: 12),
-          _CrossingStrip(crossing: widget.crossing),
-          const SizedBox(height: 14),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            child: _loading
-                ? const _PredictionSkeleton(key: ValueKey('loading'))
-                : _error != null
-                ? _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!)
-                : _envelope?.available == false
-                ? _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '')
-                : mainPrediction == null
-                ? const _UnavailablePanel(key: ValueKey('empty'), title: '尚無班次', detail: '目前快照沒有可用的下一班資料。')
-                : Column(
-                    key: ValueKey(mainPrediction.identityKey),
-                    children: [
-                      _MainPredictionPanel(prediction: mainPrediction, now: DateTime.now()),
-                      const SizedBox(height: 10),
-                      _SnapshotLine(snapshot: _envelope?.dataSnapshot),
-                    ],
-                  ),
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            children: [
+              _MiniMap(crossing: widget.crossing, userLocation: _userLocation, controller: _mapController),
+              const SizedBox(height: 16),
+              _CrossingStrip(crossing: widget.crossing),
+              const SizedBox(height: 24),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOutCubic,
+                child: _loading
+                    ? const _PredictionSkeleton(key: ValueKey('loading'))
+                    : _error != null
+                    ? _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!)
+                    : _envelope?.available == false
+                    ? _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '')
+                    : mainPrediction == null
+                    ? const _UnavailablePanel(key: ValueKey('empty'), title: '尚無班次', detail: '目前快照沒有可用的下一班資料。')
+                    : Column(
+                        key: ValueKey(mainPrediction.identityKey),
+                        children: [
+                          _MainPredictionPanel(prediction: mainPrediction, now: DateTime.now()),
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 140,
+                child: PageView(
+                  controller: PageController(viewportFraction: 0.92),
+                  children: [
+                    _CompactPredictionCard(icon: Icons.skip_previous_rounded, prediction: _runtime.previous),
+                    _CompactPredictionCard(icon: Icons.skip_next_rounded, prediction: following),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 158,
-            child: PageView(
-              controller: PageController(viewportFraction: 0.92),
-              children: [
-                _CompactPredictionCard(label: '上一班', prediction: _runtime.previous),
-                _CompactPredictionCard(label: '下下一班', prediction: following),
-              ],
+          if (_envelope?.dataSnapshot != null)
+            Positioned(
+              top: 8,
+              right: 16,
+              child: _SnapshotDot(snapshot: _envelope!.dataSnapshot!),
             ),
-          ),
         ],
       ),
     );
@@ -182,10 +191,14 @@ class _MiniMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: SizedBox(
-        height: 188,
+    return Container(
+      height: 188,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 8))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
         child: FlutterMap(
           mapController: controller,
           options: MapOptions(initialCenter: LatLng(crossing.geometry.lat, crossing.geometry.lon), initialZoom: 14),
@@ -194,16 +207,11 @@ class _MiniMap extends StatelessWidget {
             PolylineLayer(polylines: _connectionLine()),
             MarkerLayer(
               markers: [
-                if (crossing.stationA.position != null) _stationMarker(crossing.stationA, AppColors.amber),
-                if (crossing.stationB.position != null) _stationMarker(crossing.stationB, AppColors.blue),
+                if (crossing.stationA.position != null) _stationMarker(crossing.stationA),
+                if (crossing.stationB.position != null) _stationMarker(crossing.stationB),
                 Marker(point: LatLng(crossing.geometry.lat, crossing.geometry.lon), width: 44, height: 44, child: const _CrossingMarker()),
                 if (userLocation != null)
-                  Marker(
-                    point: LatLng(userLocation!.lat, userLocation!.lon),
-                    width: 28,
-                    height: 28,
-                    child: const Icon(Icons.my_location_rounded, color: AppColors.blue),
-                  ),
+                  Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 28, height: 28, child: const Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep)),
               ],
             ),
           ],
@@ -212,15 +220,15 @@ class _MiniMap extends StatelessWidget {
     );
   }
 
-  Marker _stationMarker(StationRef station, Color color) {
+  Marker _stationMarker(StationRef station) {
     final point = station.position!;
     return Marker(
       point: LatLng(point.lat, point.lon),
-      width: 34,
-      height: 34,
-      child: Tooltip(
-        message: station.name ?? '',
-        child: Icon(Icons.train_rounded, color: color, size: 28),
+      width: 32,
+      height: 32,
+      child: Container(
+        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 4)]),
+        child: const Icon(Icons.train_rounded, color: AppColors.pastelBlueDeep, size: 16),
       ),
     );
   }
@@ -229,9 +237,7 @@ class _MiniMap extends StatelessWidget {
     final stationA = crossing.stationA.position;
     final stationB = crossing.stationB.position;
     if (stationA == null || stationB == null) return const [];
-    return [
-      Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.blue.withValues(alpha: 0.62), strokeWidth: 4),
-    ];
+    return [Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.pastelBlueDeep.withValues(alpha: 0.6), strokeWidth: 4)];
   }
 }
 
@@ -241,12 +247,8 @@ class _CrossingMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.rose,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-      ),
-      child: const Icon(Icons.close_rounded, color: Colors.white),
+      decoration: BoxDecoration(color: AppColors.pastelPinkDeep, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
+      child: const Icon(Icons.railway_alert_rounded, color: Colors.white, size: 20),
     );
   }
 }
@@ -264,30 +266,17 @@ class _CrossingStrip extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                crossing.name,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.ink),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                crossing.subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.muted),
-              ),
+              Text(crossing.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.ink)),
+              const SizedBox(height: 4),
+              if (crossing.subtitle.isNotEmpty) Text(crossing.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
             ],
           ),
         ),
-        const SizedBox(width: 10),
-        DecoratedBox(
-          decoration: BoxDecoration(color: AppColors.blueSoft, borderRadius: BorderRadius.circular(999)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text(
-              crossing.stationPairLabel,
-              style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
-            ),
-          ),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(20)),
+          child: Text(crossing.stationPairLabel, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep)),
         ),
       ],
     );
@@ -304,68 +293,81 @@ class _MainPredictionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final remaining = prediction.eta.difference(now);
     final isWarning = remaining.inSeconds <= prediction.warningWindowMinutes * 60;
-    final color = isWarning ? AppColors.danger : AppColors.blue;
+    
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isWarning ? AppColors.roseSoft : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.16), blurRadius: 28, offset: const Offset(0, 14))],
+        color: isWarning ? AppColors.pastelPinkSoft : Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: isWarning ? AppColors.pastelPinkDeep.withValues(alpha: 0.3) : AppColors.pastelBlueSoft, width: 1.5),
+        boxShadow: [BoxShadow(color: (isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep).withValues(alpha: 0.12), blurRadius: 32, offset: const Offset(0, 16))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              _BasisChip(icon: prediction.dataBasis == 'liveboard' ? Icons.bolt_rounded : Icons.schedule_rounded, text: prediction.dataBasis == 'liveboard' ? '即時' : '班表', color: color),
+              Icon(prediction.dataBasis == 'liveboard' ? Icons.bolt_rounded : Icons.schedule_rounded, color: isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep),
               const SizedBox(width: 8),
-              _BasisChip(icon: Icons.directions_railway_rounded, text: '${prediction.trainNo}次', color: AppColors.ink),
+              Text('${prediction.trainNo}次', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
               const Spacer(),
-              Text(prediction.direction == 1 ? '南下' : '北上', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _BasisChip(icon: Icons.speed_rounded, text: _accuracyText(prediction), color: AppColors.mint),
-              _BasisChip(icon: Icons.more_time_rounded, text: _delayText(prediction), color: prediction.delaySeconds == null || prediction.delaySeconds == 0 ? AppColors.muted : AppColors.amber),
-              if (prediction.calibrationOffsetSeconds != 0) _BasisChip(icon: Icons.tune_rounded, text: '${prediction.calibrationOffsetSeconds > 0 ? '+' : ''}${prediction.calibrationOffsetSeconds}s', color: AppColors.blue),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            _formatCountdown(remaining),
-            style: TextStyle(fontSize: 48, height: 0.95, fontWeight: FontWeight.w900, color: color),
-          ),
-          const SizedBox(height: 14),
-          LinearProgressIndicator(minHeight: 6, borderRadius: BorderRadius.circular(999), value: _progress(remaining, prediction.warningWindowMinutes), backgroundColor: Colors.white, color: color),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _StopBlock(name: prediction.previousStopStationName ?? prediction.upstreamStationName, time: prediction.previousStopDeparture),
-              ),
-              const Icon(Icons.arrow_forward_rounded, color: AppColors.muted),
-              Expanded(
-                child: _StopBlock(name: prediction.nextStopStationName ?? prediction.downstreamStationName, time: prediction.nextStopArrival, alignEnd: true),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${prediction.originStationName ?? ''} → ${prediction.destinationStationName ?? ''}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: (prediction.direction == 1 ? AppColors.pastelBlueSoft : AppColors.pastelPinkSoft), borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    Icon(prediction.direction == 1 ? Icons.south_rounded : Icons.north_rounded, size: 16, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
+                    const SizedBox(width: 4),
+                    Text(prediction.direction == 1 ? '南下' : '北上', style: TextStyle(fontWeight: FontWeight.w900, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep)),
+                  ],
                 ),
               ),
-              Text(_formatClock(prediction.eta), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: Text(
+              _formatCountdown(remaining),
+              style: TextStyle(
+                fontSize: 64,
+                height: 1.0,
+                letterSpacing: -2,
+                fontWeight: FontWeight.w900,
+                color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _TimelineNode(name: prediction.previousStopStationName ?? prediction.upstreamStationName, time: prediction.previousStopDeparture, alignStart: true),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(height: 4, decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2))),
+                      LinearProgressIndicator(value: _progress(remaining, prediction.warningWindowMinutes), minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                      Icon(Icons.directions_railway_rounded, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                    ],
+                  ),
+                ),
+              ),
+              _TimelineNode(name: prediction.nextStopStationName ?? prediction.downstreamStationName, time: prediction.nextStopArrival, alignStart: false),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _IconStat(icon: Icons.access_time_rounded, value: _formatClock(prediction.eta)),
+              const SizedBox(width: 24),
+              _IconStat(icon: Icons.update_rounded, value: _delayText(prediction), color: (prediction.delaySeconds ?? 0) > 0 ? AppColors.amber : AppColors.muted),
+              const SizedBox(width: 24),
+              _IconStat(icon: Icons.speed_rounded, value: _accuracyText(prediction)),
             ],
           ),
         ],
@@ -380,33 +382,58 @@ class _MainPredictionPanel extends StatelessWidget {
   }
 }
 
-class _SnapshotLine extends StatelessWidget {
-  const _SnapshotLine({required this.snapshot});
-
-  final PredictionDataSnapshot? snapshot;
+class _TimelineNode extends StatelessWidget {
+  const _TimelineNode({required this.name, required this.time, required this.alignStart});
+  final String name;
+  final DateTime? time;
+  final bool alignStart;
 
   @override
   Widget build(BuildContext context) {
-    final snapshot = this.snapshot;
-    if (snapshot == null) return const SizedBox.shrink();
-    final source = snapshot.sources.map((item) => '${_sourceLabel(item.source)} ${item.recordCount}${item.isStale ? ' stale' : ''}').join(' · ');
-    return DecoratedBox(
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.78), borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-        child: Row(
-          children: [
-            Icon(snapshot.hasStaleSource ? Icons.cloud_off_rounded : Icons.cloud_done_rounded, size: 17, color: snapshot.hasStaleSource ? AppColors.amber : AppColors.blue),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                source.isEmpty ? '快照 ${snapshot.liveboardCount}/${snapshot.timetableCount}/${snapshot.trainInfoCount}' : source,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
+        Text(name, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink)),
+        const SizedBox(height: 4),
+        Text(_formatClock(time), style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class _IconStat extends StatelessWidget {
+  const _IconStat({required this.icon, required this.value, this.color = AppColors.muted});
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w700, color: color)),
+      ],
+    );
+  }
+}
+
+class _SnapshotDot extends StatelessWidget {
+  const _SnapshotDot({required this.snapshot});
+  final PredictionDataSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: snapshot.sources.map((item) => '${_sourceLabel(item.source)} ${item.recordCount}${item.isStale ? ' stale' : ''}').join(' · '),
+      child: Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: snapshot.hasStaleSource ? AppColors.amber : AppColors.mint,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
         ),
       ),
     );
@@ -414,22 +441,24 @@ class _SnapshotLine extends StatelessWidget {
 }
 
 class _CompactPredictionCard extends StatelessWidget {
-  const _CompactPredictionCard({required this.label, required this.prediction});
-
-  final String label;
+  const _CompactPredictionCard({required this.icon, required this.prediction});
+  final IconData icon;
   final PredictionRecord? prediction;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(right: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      color: Colors.white,
+      shadowColor: AppColors.pastelBlueDeep.withValues(alpha: 0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: prediction == null
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+                  Icon(icon, color: AppColors.muted),
                   const Spacer(),
                   const Icon(Icons.hourglass_empty_rounded, color: AppColors.muted),
                 ],
@@ -439,18 +468,15 @@ class _CompactPredictionCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+                      Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 18, color: AppColors.pastelBlueDeep)),
                       const Spacer(),
-                      Text('${prediction!.trainNo}次', style: const TextStyle(fontWeight: FontWeight.w800)),
+                      Text('${prediction!.trainNo}次', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink)),
                     ],
                   ),
                   const Spacer(),
-                  Text('${prediction!.previousStopStationName ?? prediction!.upstreamStationName} → ${prediction!.nextStopStationName ?? prediction!.downstreamStationName}', maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 8),
-                  Text(
-                    _formatClock(prediction!.eta),
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.blue),
-                  ),
+                  Text('${prediction!.previousStopStationName ?? prediction!.upstreamStationName} → ${prediction!.nextStopStationName ?? prediction!.downstreamStationName}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
+                  const SizedBox(height: 4),
+                  Text(_formatClock(prediction!.eta), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.pastelBlueDeep)),
                 ],
               ),
       ),
@@ -458,100 +484,33 @@ class _CompactPredictionCard extends StatelessWidget {
   }
 }
 
-class _BasisChip extends StatelessWidget {
-  const _BasisChip({required this.icon, required this.text, required this.color});
-
-  final IconData icon;
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          children: [
-            Icon(icon, size: 15, color: color),
-            const SizedBox(width: 5),
-            Text(
-              text,
-              style: TextStyle(fontWeight: FontWeight.w800, color: color),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StopBlock extends StatelessWidget {
-  const _StopBlock({required this.name, required this.time, this.alignEnd = false});
-
-  final String name;
-  final DateTime? time;
-  final bool alignEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          _formatClock(time),
-          style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
-  }
-}
-
 class _PredictionSkeleton extends StatelessWidget {
   const _PredictionSkeleton({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 286,
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-      child: const Center(child: CircularProgressIndicator()),
-    );
+    return Container(height: 320, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)), child: const Center(child: CircularProgressIndicator()));
   }
 }
 
 class _UnavailablePanel extends StatelessWidget {
   const _UnavailablePanel({super.key, required this.title, required this.detail});
-
   final String title;
   final String detail;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 220,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+      height: 240,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline_rounded, color: AppColors.blue),
+          const Icon(Icons.info_outline_rounded, color: AppColors.pastelBlueDeep, size: 32),
           const Spacer(),
-          Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
-          Text(
-            detail,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.muted),
-          ),
+          Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.ink)),
+          const SizedBox(height: 8),
+          Text(detail, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
         ],
       ),
     );
@@ -565,32 +524,32 @@ String _formatClock(DateTime? value) {
 
 String _formatCountdown(Duration remaining) {
   final seconds = remaining.inSeconds;
-  if (seconds <= 0) return '已通過';
+  if (seconds <= 0) return '通過';
   final minutes = seconds ~/ 60;
   final rest = seconds % 60;
   if (minutes >= 60) {
-    return '${minutes ~/ 60}時${(minutes % 60).toString().padLeft(2, '0')}分';
+    return '${minutes ~/ 60}h${(minutes % 60).toString().padLeft(2, '0')}m';
   }
   return '${minutes.toString().padLeft(2, '0')}:${rest.toString().padLeft(2, '0')}';
 }
 
 String _accuracyText(PredictionRecord prediction) {
   final tier = switch (prediction.accuracyTier) {
-    'high' => '高信度',
-    'medium' => '中信度',
-    'low' => '低信度',
-    _ => '信度',
+    'high' => 'H',
+    'medium' => 'M',
+    'low' => 'L',
+    _ => '?',
   };
   final uncertainty = prediction.etaUncertaintySeconds;
-  return uncertainty == null ? tier : '$tier ±${uncertainty}s';
+  return uncertainty == null ? tier : '±${uncertainty}s';
 }
 
 String _delayText(PredictionRecord prediction) {
   final seconds = prediction.delaySeconds ?? prediction.delayMinutes * 60;
   if (seconds == 0) return '準點';
-  final label = seconds > 0 ? '延誤' : '提早';
+  final prefix = seconds > 0 ? '+' : '-';
   final minutes = (seconds.abs() / 60).round();
-  return '$label $minutes分';
+  return '$prefix${minutes}m';
 }
 
 String _sourceLabel(String source) => switch (source) {

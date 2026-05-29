@@ -73,7 +73,7 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
                       decoration: BoxDecoration(
                         gradient: AppGradients.brand,
                         borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: AppColors.blue.withValues(alpha: 0.24), blurRadius: 36, offset: const Offset(0, 18))],
+                        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.24), blurRadius: 36, offset: const Offset(0, 18))],
                       ),
                       child: DecoratedBox(
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
@@ -82,7 +82,7 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
                           child: Image.asset(
                             'logo/logo.png',
                             fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.radar_rounded, color: AppColors.blue, size: 56),
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.radar_rounded, color: AppColors.pastelBlueDeep, size: 56),
                           ),
                         ),
                       ),
@@ -100,7 +100,7 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
                 duration: const Duration(milliseconds: 240),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999),
-                  child: const LinearProgressIndicator(minHeight: 4, backgroundColor: Colors.white, color: AppColors.blue),
+                  child: const LinearProgressIndicator(minHeight: 4, backgroundColor: Colors.white, color: AppColors.pastelBlueDeep),
                 ),
               ),
             ),
@@ -142,12 +142,12 @@ class _LaunchRailPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5
       ..strokeCap = StrokeCap.round
-      ..shader = const LinearGradient(colors: [AppColors.blue, AppColors.rose]).createShader(Offset.zero & size);
+      ..shader = const LinearGradient(colors: [AppColors.pastelBlue, AppColors.pastelPink]).createShader(Offset.zero & size);
     final secondPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
-      ..color = AppColors.blueDeep.withValues(alpha: 0.10);
+      ..color = AppColors.pastelBlueDeep.withValues(alpha: 0.10);
 
     final wave = math.sin(progress * math.pi).clamp(0.0, 1.0);
     final firstPath = Path()
