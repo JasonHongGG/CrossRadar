@@ -16,11 +16,7 @@ import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 
 class PredictionScreen extends StatefulWidget {
-  const PredictionScreen({
-    super.key,
-    required this.crossing,
-    required this.bundle,
-  });
+  const PredictionScreen({super.key, required this.crossing, required this.bundle});
 
   final Crossing crossing;
   final MobileBundle bundle;
@@ -33,9 +29,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
   final _credentialStore = const TdxCredentialStore();
   final _railwayClock = RailwayClock.instance;
   late final _tdxClient = TdxTraClient(railwayClock: _railwayClock);
-  late final _predictionService = PredictionService(
-    railwayClock: _railwayClock,
-  );
+  late final _predictionService = PredictionService(railwayClock: _railwayClock);
   final _locationService = LocationService();
   final _notificationService = NotificationService();
   final _mapController = MapController();
@@ -65,28 +59,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
     return Scaffold(
       appBar: AppBar(
         actions: [
-          IconButton(
-            tooltip: '定位',
-            onPressed: _focusGps,
-            icon: const Icon(Icons.my_location_rounded),
-          ),
-          IconButton(
-            tooltip: '刷新',
-            onPressed: () => _refreshPrediction(forceRefresh: true),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-          IconButton(
-            tooltip: '通知',
-            onPressed: mainPrediction == null
-                ? null
-                : () => _notify(mainPrediction),
-            icon: const Icon(Icons.notifications_active_rounded),
-          ),
-          IconButton(
-            tooltip: '複製診斷',
-            onPressed: _envelope == null ? null : _copyDiagnostics,
-            icon: const Icon(Icons.content_copy_rounded),
-          ),
+          IconButton(tooltip: '定位', onPressed: _focusGps, icon: const Icon(Icons.my_location_rounded)),
+          IconButton(tooltip: '刷新', onPressed: () => _refreshPrediction(forceRefresh: true), icon: const Icon(Icons.refresh_rounded)),
+          IconButton(tooltip: '通知', onPressed: mainPrediction == null ? null : () => _notify(mainPrediction), icon: const Icon(Icons.notifications_active_rounded)),
+          IconButton(tooltip: '複製診斷', onPressed: _envelope == null ? null : _copyDiagnostics, icon: const Icon(Icons.content_copy_rounded)),
         ],
       ),
       body: Stack(
@@ -97,47 +73,17 @@ class _PredictionScreenState extends State<PredictionScreen> {
               child: Column(
                 children: [
                   Expanded(
-                    child: _MiniMap(
-                      crossing: widget.crossing,
-                      userLocation: _userLocation,
-                      controller: _mapController,
-                    ),
+                    child: _MiniMap(crossing: widget.crossing, userLocation: _userLocation, controller: _mapController),
                   ),
                   const SizedBox(height: 16),
                   _CrossingStrip(crossing: widget.crossing),
                   const SizedBox(height: 24),
-                  if (_loading)
-                    const _PredictionSkeleton(key: ValueKey('loading'))
-                  else if (_error != null)
-                    _UnavailablePanel(
-                      key: const ValueKey('error'),
-                      title: '無法更新',
-                      detail: _error!,
-                    )
-                  else if (_envelope?.available == false)
-                    _UnavailablePanel(
-                      key: const ValueKey('unavailable'),
-                      title: '暫無預測',
-                      detail:
-                          _envelope?.unavailableDetail ??
-                          _envelope?.unavailableReason ??
-                          '',
-                    )
-                  else
-                    _PredictionCarousel(
-                      predictions: _carouselPredictions,
-                      now: _railwayClock.nowTaipei(),
-                    ),
+                  if (_loading) const _PredictionSkeleton(key: ValueKey('loading')) else if (_error != null) _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!) else if (_envelope?.available == false) _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '') else _PredictionCarousel(predictions: _carouselPredictions, now: _railwayClock.nowTaipei()),
                 ],
               ),
             ),
           ),
-          if (_envelope?.dataSnapshot != null)
-            Positioned(
-              top: 8,
-              right: 16,
-              child: _SnapshotDot(snapshot: _envelope!.dataSnapshot!),
-            ),
+          if (_envelope?.dataSnapshot != null) Positioned(top: 8, right: 16, child: _SnapshotDot(snapshot: _envelope!.dataSnapshot!)),
         ],
       ),
     );
@@ -157,60 +103,27 @@ class _PredictionScreenState extends State<PredictionScreen> {
         });
         return;
       }
-      final liveboardsFuture = _tdxClient.getLiveboardsSnapshot(
-        credentials,
-        forceRefresh: forceRefresh,
-      );
-      final timetablesFuture = _tdxClient.getTodayTimetablesSnapshot(
-        credentials,
-        forceRefresh: forceRefresh,
-      );
-      final trainInfosFuture = _tdxClient.getTodayTrainInfosSnapshot(
-        credentials,
-        forceRefresh: forceRefresh,
-      );
+      final liveboardsFuture = _tdxClient.getLiveboardsSnapshot(credentials, forceRefresh: forceRefresh);
+      final timetablesFuture = _tdxClient.getTodayTimetablesSnapshot(credentials, forceRefresh: forceRefresh);
+      final trainInfosFuture = _tdxClient.getTodayTrainInfosSnapshot(credentials, forceRefresh: forceRefresh);
       final liveboards = await liveboardsFuture;
       final timetables = await timetablesFuture;
       final trainInfos = await trainInfosFuture;
       final snapshot = PredictionDataSnapshot(
-        comprehensive:
-            liveboards.complete && timetables.complete && trainInfos.complete,
+        comprehensive: liveboards.complete && timetables.complete && trainInfos.complete,
         liveboardCount: liveboards.items.length,
-        delayedLiveboardCount: liveboards.items
-            .where((item) => (item.delayTime ?? 0) != 0)
-            .length,
+        delayedLiveboardCount: liveboards.items.where((item) => (item.delayTime ?? 0) != 0).length,
         timetableCount: timetables.items.length,
         trainInfoCount: trainInfos.items.length,
-        delayedTrainInfoCount: trainInfos.items
-            .where((item) => (item.delayTime ?? 0) != 0)
-            .length,
+        delayedTrainInfoCount: trainInfos.items.where((item) => (item.delayTime ?? 0) != 0).length,
         liveboardScope: const ['all'],
         sources: [
-          liveboards.toSnapshotSource(
-            source: 'liveboards',
-            scope: 'all',
-            delayed: (item) => (item.delayTime ?? 0) != 0,
-          ),
+          liveboards.toSnapshotSource(source: 'liveboards', scope: 'all', delayed: (item) => (item.delayTime ?? 0) != 0),
           timetables.toSnapshotSource(source: 'timetables'),
-          trainInfos.toSnapshotSource(
-            source: 'train_info',
-            delayed: (item) => (item.delayTime ?? 0) != 0,
-          ),
+          trainInfos.toSnapshotSource(source: 'train_info', delayed: (item) => (item.delayTime ?? 0) != 0),
         ],
       );
-      final envelope = _predictionService.predictForCrossing(
-        crossing: widget.crossing,
-        liveboards: liveboards.items,
-        timetables: timetables.items,
-        trainInfos: trainInfos.items,
-        stationLookupById: widget.bundle.stationById,
-        calibrationRules: widget.bundle.calibrationRules,
-        stationPairProjections: widget.bundle.stationPairProjections,
-        stationPairProjectionRejections:
-            widget.bundle.stationPairProjectionRejections,
-        dataSnapshot: snapshot,
-        horizonMinutes: null,
-      );
+      final envelope = _predictionService.predictForCrossing(crossing: widget.crossing, liveboards: liveboards.items, timetables: timetables.items, trainInfos: trainInfos.items, stationLookupById: widget.bundle.stationById, calibrationRules: widget.bundle.calibrationRules, stationPairProjections: widget.bundle.stationPairProjections, stationPairProjectionRejections: widget.bundle.stationPairProjectionRejections, dataSnapshot: snapshot, horizonMinutes: null);
       if (!mounted) return;
       setState(() {
         _envelope = envelope;
@@ -226,12 +139,9 @@ class _PredictionScreenState extends State<PredictionScreen> {
   }
 
   void _tick() {
-    final predictions =
-        _envelope?.upcomingPredictions ?? const <PredictionRecord>[];
+    final predictions = _envelope?.upcomingPredictions ?? const <PredictionRecord>[];
     if (predictions.isEmpty) return;
-    setState(
-      () => _runtime = _runtime.advance(predictions, _railwayClock.nowTaipei()),
-    );
+    setState(() => _runtime = _runtime.advance(predictions, _railwayClock.nowTaipei()));
   }
 
   Future<void> _focusGps() async {
@@ -244,28 +154,16 @@ class _PredictionScreenState extends State<PredictionScreen> {
   Future<void> _notify(PredictionRecord prediction) async {
     final ok = await _notificationService.requestPermission();
     if (!ok) return;
-    await _notificationService.schedulePredictionAlert(
-      prediction,
-      widget.crossing,
-    );
+    await _notificationService.schedulePredictionAlert(prediction, widget.crossing);
   }
 
   Future<void> _copyDiagnostics() async {
     final envelope = _envelope;
     if (envelope == null) return;
-    final capture = buildPredictionDebugCapture(
-      crossing: widget.crossing,
-      bundle: widget.bundle,
-      envelope: envelope,
-      capturedAt: _railwayClock.nowTaipei(),
-    );
-    await Clipboard.setData(
-      ClipboardData(text: encodePredictionDebugCapture(capture)),
-    );
+    final capture = buildPredictionDebugCapture(crossing: widget.crossing, bundle: widget.bundle, envelope: envelope, capturedAt: _railwayClock.nowTaipei());
+    await Clipboard.setData(ClipboardData(text: encodePredictionDebugCapture(capture)));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('已複製預測診斷資料')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已複製預測診斷資料')));
   }
 
   List<PredictionRecord?> get _carouselPredictions {
@@ -290,11 +188,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
 }
 
 class _MiniMap extends StatelessWidget {
-  const _MiniMap({
-    required this.crossing,
-    required this.userLocation,
-    required this.controller,
-  });
+  const _MiniMap({required this.crossing, required this.userLocation, required this.controller});
 
   final Crossing crossing;
   final GeoPoint? userLocation;
@@ -306,13 +200,7 @@ class _MiniMap extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.pastelBlueDeep.withValues(alpha: 0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 8))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
@@ -320,44 +208,21 @@ class _MiniMap extends StatelessWidget {
           children: [
             FlutterMap(
               mapController: controller,
-              options: MapOptions(
-                initialCenter: LatLng(
-                  crossing.geometry.lat,
-                  crossing.geometry.lon,
-                ),
-                initialZoom: 14,
-              ),
+              options: MapOptions(initialCenter: LatLng(crossing.geometry.lat, crossing.geometry.lon), initialZoom: 14),
               children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'crossradar.phone',
-                  retinaMode: true,
-                ),
+                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone', retinaMode: true),
                 PolylineLayer(polylines: _connectionLine()),
                 MarkerLayer(
                   markers: [
-                    if (crossing.stationA.position != null)
-                      _stationMarker(crossing.stationA),
-                    if (crossing.stationB.position != null)
-                      _stationMarker(crossing.stationB),
-                    Marker(
-                      point: LatLng(
-                        crossing.geometry.lat,
-                        crossing.geometry.lon,
-                      ),
-                      width: 44,
-                      height: 44,
-                      child: const _CrossingMarker(),
-                    ),
+                    if (crossing.stationA.position != null) _stationMarker(crossing.stationA),
+                    if (crossing.stationB.position != null) _stationMarker(crossing.stationB),
+                    Marker(point: LatLng(crossing.geometry.lat, crossing.geometry.lon), width: 44, height: 44, child: const _CrossingMarker()),
                     if (userLocation != null)
                       Marker(
                         point: LatLng(userLocation!.lat, userLocation!.lon),
                         width: 28,
                         height: 28,
-                        child: const Icon(
-                          Icons.my_location_rounded,
-                          color: AppColors.pastelBlueDeep,
-                        ),
+                        child: const Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep),
                       ),
                   ],
                 ),
@@ -378,11 +243,7 @@ class _MiniMap extends StatelessWidget {
                     elevation: 4,
                     child: Transform.rotate(
                       angle: -rotation * (3.1415926535897932 / 180.0),
-                      child: const Icon(
-                        Icons.navigation_rounded,
-                        color: AppColors.pastelPinkDeep,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.navigation_rounded, color: AppColors.pastelPinkDeep, size: 20),
                     ),
                   );
                 },
@@ -408,31 +269,18 @@ class _MiniMap extends StatelessWidget {
             color: AppColors.pastelBlueSoft,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.pastelBlueDeep.withValues(alpha: 0.3),
-                blurRadius: 4,
-              ),
-            ],
+            boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 4)],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.train_rounded,
-                color: AppColors.pastelBlueDeep,
-                size: 14,
-              ),
+              const Icon(Icons.train_rounded, color: AppColors.pastelBlueDeep, size: 14),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   station.name ?? '未知車站',
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.pastelBlueDeep,
-                  ),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep),
                 ),
               ),
             ],
@@ -447,15 +295,7 @@ class _MiniMap extends StatelessWidget {
     final stationB = crossing.stationB.position;
     if (stationA == null || stationB == null) return const [];
     return [
-      Polyline(
-        points: [
-          LatLng(stationA.lat, stationA.lon),
-          LatLng(crossing.geometry.lat, crossing.geometry.lon),
-          LatLng(stationB.lat, stationB.lon),
-        ],
-        color: AppColors.pastelBlueDeep.withValues(alpha: 0.6),
-        strokeWidth: 4,
-      ),
+      Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.pastelBlueDeep.withValues(alpha: 0.6), strokeWidth: 4),
     ];
   }
 }
@@ -470,19 +310,9 @@ class _CrossingMarker extends StatelessWidget {
         color: AppColors.pastelPinkDeep,
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 3),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.pastelPinkDeep.withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))],
       ),
-      child: const Icon(
-        Icons.railway_alert_rounded,
-        color: Colors.white,
-        size: 20,
-      ),
+      child: const Icon(Icons.railway_alert_rounded, color: Colors.white, size: 20),
     );
   }
 }
@@ -502,11 +332,7 @@ class _CrossingStrip extends StatelessWidget {
             children: [
               Text(
                 crossing.name,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
-                ),
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.ink),
               ),
               const SizedBox(height: 4),
               if (crossing.subtitle.isNotEmpty)
@@ -522,16 +348,10 @@ class _CrossingStrip extends StatelessWidget {
         const SizedBox(width: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.pastelBlueSoft,
-            borderRadius: BorderRadius.circular(20),
-          ),
+          decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(20)),
           child: Text(
             crossing.stationPairLabel,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.pastelBlueDeep,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep),
           ),
         ),
       ],
@@ -548,8 +368,7 @@ class _MainPredictionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final remaining = prediction.eta.difference(now);
-    final isWarning =
-        remaining.inSeconds <= prediction.warningWindowMinutes * 60;
+    final isWarning = remaining.inSeconds <= prediction.warningWindowMinutes * 60;
     final progressValue = _progress(remaining, prediction.warningWindowMinutes);
 
     return AnimatedContainer(
@@ -558,23 +377,8 @@ class _MainPredictionPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: isWarning ? AppColors.pastelPinkSoft : Colors.white,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: isWarning
-              ? AppColors.pastelPinkDeep.withValues(alpha: 0.3)
-              : AppColors.pastelBlueSoft,
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color:
-                (isWarning
-                        ? AppColors.pastelPinkDeep
-                        : AppColors.pastelBlueDeep)
-                    .withValues(alpha: 0.12),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
-          ),
-        ],
+        border: Border.all(color: isWarning ? AppColors.pastelPinkDeep.withValues(alpha: 0.3) : AppColors.pastelBlueSoft, width: 1.5),
+        boxShadow: [BoxShadow(color: (isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep).withValues(alpha: 0.12), blurRadius: 32, offset: const Offset(0, 16))],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -582,55 +386,23 @@ class _MainPredictionPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                prediction.dataBasis == 'liveboard'
-                    ? Icons.bolt_rounded
-                    : Icons.schedule_rounded,
-                color: isWarning
-                    ? AppColors.pastelPinkDeep
-                    : AppColors.pastelBlueDeep,
-              ),
+              Icon(prediction.dataBasis == 'liveboard' ? Icons.bolt_rounded : Icons.schedule_rounded, color: isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep),
               const SizedBox(width: 8),
               Text(
                 '${prediction.trainNo}次',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.ink,
-                ),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: (prediction.direction == 1
-                      ? AppColors.pastelBlueSoft
-                      : AppColors.pastelPinkSoft),
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: (prediction.direction == 1 ? AppColors.pastelBlueSoft : AppColors.pastelPinkSoft), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
-                    Icon(
-                      prediction.direction == 1
-                          ? Icons.south_rounded
-                          : Icons.north_rounded,
-                      size: 16,
-                      color: prediction.direction == 1
-                          ? AppColors.pastelBlueDeep
-                          : AppColors.pastelPinkDeep,
-                    ),
+                    Icon(prediction.direction == 1 ? Icons.south_rounded : Icons.north_rounded, size: 16, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
                     const SizedBox(width: 4),
                     Text(
                       prediction.direction == 1 ? '南下' : '北上',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        color: prediction.direction == 1
-                            ? AppColors.pastelBlueDeep
-                            : AppColors.pastelPinkDeep,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w900, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
                     ),
                   ],
                 ),
@@ -641,26 +413,14 @@ class _MainPredictionPanel extends StatelessWidget {
           Center(
             child: Text(
               _formatCountdown(remaining),
-              style: TextStyle(
-                fontSize: 64,
-                height: 1.0,
-                letterSpacing: -2,
-                fontWeight: FontWeight.w900,
-                color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep,
-              ),
+              style: TextStyle(fontSize: 64, height: 1.0, letterSpacing: -2, fontWeight: FontWeight.w900, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
             ),
           ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _TimelineNode(
-                name:
-                    prediction.previousStopStationName ??
-                    prediction.upstreamStationName,
-                time: prediction.previousStopDeparture,
-                alignStart: true,
-              ),
+              _TimelineNode(name: prediction.previousStopStationName ?? prediction.upstreamStationName, time: prediction.previousStopDeparture, alignStart: true),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -669,63 +429,29 @@ class _MainPredictionPanel extends StatelessWidget {
                     children: [
                       Container(
                         height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.pastelBlueSoft,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2)),
                       ),
-                      LinearProgressIndicator(
-                        value: progressValue,
-                        minHeight: 4,
-                        borderRadius: BorderRadius.circular(2),
-                        backgroundColor: Colors.transparent,
-                        color: isWarning
-                            ? AppColors.danger
-                            : AppColors.pastelBlueDeep,
-                      ),
+                      LinearProgressIndicator(value: progressValue, minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
                       Align(
                         alignment: Alignment(-1.0 + (progressValue * 2), 0.0),
-                        child: Icon(
-                          Icons.directions_railway_rounded,
-                          color: isWarning
-                              ? AppColors.danger
-                              : AppColors.pastelBlueDeep,
-                        ),
+                        child: Icon(Icons.directions_railway_rounded, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
                       ),
                     ],
                   ),
                 ),
               ),
-              _TimelineNode(
-                name:
-                    prediction.nextStopStationName ??
-                    prediction.downstreamStationName,
-                time: prediction.nextStopArrival,
-                alignStart: false,
-              ),
+              _TimelineNode(name: prediction.nextStopStationName ?? prediction.downstreamStationName, time: prediction.nextStopArrival, alignStart: false),
             ],
           ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _IconStat(
-                icon: Icons.access_time_rounded,
-                value: _formatClock(prediction.eta),
-              ),
+              _IconStat(icon: Icons.access_time_rounded, value: _formatClock(prediction.eta)),
               const SizedBox(width: 24),
-              _IconStat(
-                icon: Icons.update_rounded,
-                value: _delayText(prediction),
-                color: (prediction.delaySeconds ?? 0) > 0
-                    ? AppColors.amber
-                    : AppColors.muted,
-              ),
+              _IconStat(icon: Icons.update_rounded, value: _delayText(prediction), color: (prediction.delaySeconds ?? 0) > 0 ? AppColors.amber : AppColors.muted),
               const SizedBox(width: 24),
-              _IconStat(
-                icon: Icons.speed_rounded,
-                value: _accuracyText(prediction),
-              ),
+              _IconStat(icon: Icons.speed_rounded, value: _accuracyText(prediction)),
             ],
           ),
         ],
@@ -736,19 +462,12 @@ class _MainPredictionPanel extends StatelessWidget {
   static double _progress(Duration remaining, int warningMinutes) {
     final window = warningMinutes * 60;
     if (window <= 0) return 0;
-    return (1.0 - remaining.inSeconds.clamp(0, window) / window).clamp(
-      0.0,
-      1.0,
-    );
+    return (1.0 - remaining.inSeconds.clamp(0, window) / window).clamp(0.0, 1.0);
   }
 }
 
 class _TimelineNode extends StatelessWidget {
-  const _TimelineNode({
-    required this.name,
-    required this.time,
-    required this.alignStart,
-  });
+  const _TimelineNode({required this.name, required this.time, required this.alignStart});
   final String name;
   final DateTime? time;
   final bool alignStart;
@@ -756,25 +475,16 @@ class _TimelineNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: alignStart
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.end,
+      crossAxisAlignment: alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.end,
       children: [
         Text(
           name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w900,
-            color: AppColors.ink,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
         ),
         const SizedBox(height: 4),
         Text(
           _formatClockMinute(time),
-          style: const TextStyle(
-            color: AppColors.muted,
-            fontWeight: FontWeight.w700,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12),
         ),
       ],
     );
@@ -782,11 +492,7 @@ class _TimelineNode extends StatelessWidget {
 }
 
 class _IconStat extends StatelessWidget {
-  const _IconStat({
-    required this.icon,
-    required this.value,
-    this.color = AppColors.muted,
-  });
+  const _IconStat({required this.icon, required this.value, this.color = AppColors.muted});
   final IconData icon;
   final String value;
   final Color color;
@@ -813,12 +519,7 @@ class _SnapshotDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: snapshot.sources
-          .map(
-            (item) =>
-                '${_sourceLabel(item.source)} ${item.recordCount}${item.isStale ? ' stale' : ''}',
-          )
-          .join(' · '),
+      message: snapshot.sources.map((item) => '${_sourceLabel(item.source)} ${item.recordCount}${item.isStale ? ' stale' : ''}').join(' · '),
       child: Container(
         width: 12,
         height: 12,
@@ -848,9 +549,7 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
   void initState() {
     super.initState();
     int initial = 1;
-    if (widget.predictions.length > 1 &&
-        widget.predictions[1] == null &&
-        widget.predictions[0] != null) {
+    if (widget.predictions.length > 1 && widget.predictions[1] == null && widget.predictions[0] != null) {
       initial = 0;
     }
     _pageController = PageController(initialPage: initial);
@@ -866,11 +565,7 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
     super.didUpdateWidget(oldWidget);
 
     bool changed = false;
-    for (
-      int i = 0;
-      i < widget.predictions.length || i < oldWidget.predictions.length;
-      i++
-    ) {
+    for (int i = 0; i < widget.predictions.length || i < oldWidget.predictions.length; i++) {
       if (_getKey(oldWidget.predictions, i) != _getKey(widget.predictions, i)) {
         changed = true;
         break;
@@ -883,9 +578,7 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
 
       int newIndex = -1;
       if (oldKey != null) {
-        newIndex = widget.predictions.indexWhere(
-          (p) => p?.identityKey == oldKey,
-        );
+        newIndex = widget.predictions.indexWhere((p) => p?.identityKey == oldKey);
       }
 
       if (newIndex != -1 && newIndex != currentPage) {
@@ -893,20 +586,11 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
         currentPage = newIndex;
       }
 
-      int oldIndex = oldWidget.predictions.indexWhere(
-        (p) => p?.identityKey == oldKey,
-      );
-      if (oldIndex == 1 &&
-          newIndex == 0 &&
-          widget.predictions.length > 1 &&
-          widget.predictions[1] != null) {
+      int oldIndex = oldWidget.predictions.indexWhere((p) => p?.identityKey == oldKey);
+      if (oldIndex == 1 && newIndex == 0 && widget.predictions.length > 1 && widget.predictions[1] != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            _pageController.animateToPage(
-              1,
-              duration: const Duration(milliseconds: 600),
-              curve: Curves.easeOutCubic,
-            );
+            _pageController.animateToPage(1, duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic);
           }
         });
       }
@@ -932,20 +616,14 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
           if (prediction == null) {
             return const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.0),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: _EmptyPredictionPanel(),
-              ),
+              child: Align(alignment: Alignment.topCenter, child: _EmptyPredictionPanel()),
             );
           }
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Align(
               alignment: Alignment.topCenter,
-              child: _MainPredictionPanel(
-                prediction: prediction,
-                now: widget.now,
-              ),
+              child: _MainPredictionPanel(prediction: prediction, now: widget.now),
             ),
           );
         },
@@ -966,31 +644,17 @@ class _EmptyPredictionPanel extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: AppColors.pastelBlueSoft, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.pastelBlueDeep.withValues(alpha: 0.08),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 16))],
       ),
       child: const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.train_rounded,
-              size: 48,
-              color: AppColors.pastelBlueSoft,
-            ),
+            Icon(Icons.train_rounded, size: 48, color: AppColors.pastelBlueSoft),
             SizedBox(height: 16),
             Text(
               '無班次資訊',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: AppColors.muted,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.muted),
             ),
           ],
         ),
@@ -1005,21 +669,14 @@ class _PredictionSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 320,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
       child: const Center(child: CircularProgressIndicator()),
     );
   }
 }
 
 class _UnavailablePanel extends StatelessWidget {
-  const _UnavailablePanel({
-    super.key,
-    required this.title,
-    required this.detail,
-  });
+  const _UnavailablePanel({super.key, required this.title, required this.detail});
   final String title;
   final String detail;
 
@@ -1028,26 +685,15 @@ class _UnavailablePanel extends StatelessWidget {
     return Container(
       height: 240,
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_outline_rounded,
-            color: AppColors.pastelBlueDeep,
-            size: 32,
-          ),
+          const Icon(Icons.info_outline_rounded, color: AppColors.pastelBlueDeep, size: 32),
           const Spacer(),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: AppColors.ink,
-            ),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.ink),
           ),
           const SizedBox(height: 8),
           Text(

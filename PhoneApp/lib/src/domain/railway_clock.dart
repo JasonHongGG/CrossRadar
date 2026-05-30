@@ -30,17 +30,7 @@ class RailwayClock {
 
   DateTime normalizeTaipei(DateTime value) {
     if (value.isUtc) return timezone.TZDateTime.from(value, taipeiLocation);
-    return timezone.TZDateTime(
-      taipeiLocation,
-      value.year,
-      value.month,
-      value.day,
-      value.hour,
-      value.minute,
-      value.second,
-      value.millisecond,
-      value.microsecond,
-    );
+    return timezone.TZDateTime(taipeiLocation, value.year, value.month, value.day, value.hour, value.minute, value.second, value.millisecond, value.microsecond);
   }
 
   DateTime? parseTimetableTime(DateTime serviceDate, String? timeText) {
@@ -52,15 +42,7 @@ class RailwayClock {
     final second = parts.length >= 3 ? int.tryParse(parts[2]) ?? 0 : 0;
     if (hour == null || minute == null) return null;
     final reference = normalizeTaipei(serviceDate);
-    return timezone.TZDateTime(
-      taipeiLocation,
-      reference.year,
-      reference.month,
-      reference.day,
-      hour,
-      minute,
-      second,
-    );
+    return timezone.TZDateTime(taipeiLocation, reference.year, reference.month, reference.day, hour, minute, second);
   }
 
   DateTime? parseTdxUpdateTime(String? rawValue, {DateTime? defaultDate}) {
@@ -74,17 +56,7 @@ class RailwayClock {
       return timezone.TZDateTime.from(parsed.toUtc(), taipeiLocation);
     }
     final reference = defaultDate == null ? null : normalizeTaipei(defaultDate);
-    return timezone.TZDateTime(
-      taipeiLocation,
-      parsed.year == 0 ? reference?.year ?? parsed.year : parsed.year,
-      parsed.month,
-      parsed.day,
-      parsed.hour,
-      parsed.minute,
-      parsed.second,
-      parsed.millisecond,
-      parsed.microsecond,
-    );
+    return timezone.TZDateTime(taipeiLocation, parsed.year == 0 ? reference?.year ?? parsed.year : parsed.year, parsed.month, parsed.day, parsed.hour, parsed.minute, parsed.second, parsed.millisecond, parsed.microsecond);
   }
 
   String serviceDateKey([DateTime? value]) {

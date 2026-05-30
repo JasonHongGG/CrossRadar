@@ -5,47 +5,24 @@ import 'package:crossradar_phone/src/domain/prediction_diagnostics.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test(
-    'exports replayable prediction debug capture with trace and bundle contract',
-    () {
-      final capture = buildPredictionDebugCapture(
-        crossing: _crossing,
-        bundle: _bundle,
-        envelope: _envelope,
-        capturedAt: DateTime.utc(2026, 5, 28, 2),
-      );
-      final decoded =
-          jsonDecode(encodePredictionDebugCapture(capture))
-              as Map<String, dynamic>;
-      final prediction = decoded['prediction'] as Map<String, dynamic>;
-      final predictions = prediction['predictions'] as List;
-      final trace =
-          (predictions.single as Map<String, dynamic>)['trace']
-              as Map<String, dynamic>;
+  test('exports replayable prediction debug capture with trace and bundle contract', () {
+    final capture = buildPredictionDebugCapture(crossing: _crossing, bundle: _bundle, envelope: _envelope, capturedAt: DateTime.utc(2026, 5, 28, 2));
+    final decoded = jsonDecode(encodePredictionDebugCapture(capture)) as Map<String, dynamic>;
+    final prediction = decoded['prediction'] as Map<String, dynamic>;
+    final predictions = prediction['predictions'] as List;
+    final trace = (predictions.single as Map<String, dynamic>)['trace'] as Map<String, dynamic>;
 
-      expect(decoded['railway_time_zone'], 'Asia/Taipei');
-      expect((decoded['bundle'] as Map<String, dynamic>)['schema_version'], 3);
-      expect(
-        (decoded['crossing'] as Map<String, dynamic>)['runtime_ratios'],
-        contains('1000|2000'),
-      );
-      expect(trace['train_no'], '1234');
-      expect(trace['timing_model'], 'scheduled_segment_fraction');
-      expect(trace['eta'], '2026-05-28T10:05:30.000Z');
-    },
-  );
+    expect(decoded['railway_time_zone'], 'Asia/Taipei');
+    expect((decoded['bundle'] as Map<String, dynamic>)['schema_version'], 3);
+    expect((decoded['crossing'] as Map<String, dynamic>)['runtime_ratios'], contains('1000|2000'));
+    expect(trace['train_no'], '1234');
+    expect(trace['timing_model'], 'scheduled_segment_fraction');
+    expect(trace['eta'], '2026-05-28T10:05:30.000Z');
+  });
 }
 
-const _stationA = StationRef(
-  id: '1000',
-  name: '永康',
-  position: GeoPoint(lat: 23.038, lon: 120.253),
-);
-const _stationB = StationRef(
-  id: '2000',
-  name: '臺南',
-  position: GeoPoint(lat: 22.997, lon: 120.212),
-);
+const _stationA = StationRef(id: '1000', name: '永康', position: GeoPoint(lat: 23.038, lon: 120.253));
+const _stationB = StationRef(id: '2000', name: '臺南', position: GeoPoint(lat: 22.997, lon: 120.212));
 
 final _crossing = Crossing(
   id: 'c1',
@@ -53,15 +30,7 @@ final _crossing = Crossing(
   geometry: const GeoPoint(lat: 23.0, lon: 120.2),
   stationA: _stationA,
   stationB: _stationB,
-  runtimeRatios: const {
-    '1000|2000': RuntimeRatio(
-      upstreamStationId: '1000',
-      downstreamStationId: '2000',
-      ratio: 0.55,
-      source: 'osm_chainage',
-      confidence: 'high',
-    ),
-  },
+  runtimeRatios: const {'1000|2000': RuntimeRatio(upstreamStationId: '1000', downstreamStationId: '2000', ratio: 0.55, source: 'osm_chainage', confidence: 'high')},
 );
 
 final _bundle = MobileBundle(
@@ -76,16 +45,8 @@ final _bundle = MobileBundle(
   },
   crossings: [_crossing],
   stations: const [
-    Station(
-      id: '1000',
-      name: '永康',
-      position: GeoPoint(lat: 23.038, lon: 120.253),
-    ),
-    Station(
-      id: '2000',
-      name: '臺南',
-      position: GeoPoint(lat: 22.997, lon: 120.212),
-    ),
+    Station(id: '1000', name: '永康', position: GeoPoint(lat: 23.038, lon: 120.253)),
+    Station(id: '2000', name: '臺南', position: GeoPoint(lat: 22.997, lon: 120.212)),
   ],
   calibrationRules: const [],
 );
