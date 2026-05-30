@@ -180,15 +180,21 @@ class _PredictionScreenState extends State<PredictionScreen> {
     final selectedFuture = future.take(5).toList();
 
     final list = <PredictionRecord?>[];
+    // Ensure exactly 2 past slots (fill with null if less)
+    if (selectedPast.length < 2) {
+      list.addAll(List.filled(2 - selectedPast.length, null));
+    }
     list.addAll(selectedPast);
     
-    _initialPage = list.length;
+    // The next train is always at index 2
+    _initialPage = 2;
 
-    if (selectedFuture.isEmpty) {
-      list.add(null);
-    } else {
-      list.addAll(selectedFuture);
+    // Ensure exactly 5 future slots (including the next train)
+    list.addAll(selectedFuture);
+    if (selectedFuture.length < 5) {
+      list.addAll(List.filled(5 - selectedFuture.length, null));
     }
+
     return list;
   }
 }

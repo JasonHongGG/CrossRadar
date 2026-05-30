@@ -291,8 +291,9 @@ class _MapPicker extends StatelessWidget {
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone', retinaMode: true),
             if (selectedCrossing != null) PolylineLayer(polylines: _selectedPolylines()),
             MarkerLayer(markers: _stationMarkers(bundle.stations)),
-            if (selectedCrossing != null) MarkerLayer(markers: _selectedStationMarkers()),
             MarkerLayer(markers: _crossingMarkers(context)),
+            if (selectedCrossing != null) MarkerLayer(markers: _selectedStationMarkers()),
+            if (selectedCrossing != null) MarkerLayer(markers: _selectedCrossingMarker(context)),
             if (userLocation != null) MarkerLayer(markers: [Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 44, height: 44, child: const _PulseDot())]),
           ],
         ),
@@ -309,20 +310,38 @@ class _MapPicker extends StatelessWidget {
   }
 
   List<Marker> _crossingMarkers(BuildContext context) {
-    return bundle.crossings.map((crossing) {
-      final isSelected = selectedCrossing?.id == crossing.id;
+    return bundle.crossings
+        .where((c) => selectedCrossing?.id != c.id)
+        .map((crossing) {
       return Marker(
         point: LatLng(crossing.geometry.lat, crossing.geometry.lon),
-        width: isSelected ? 48 : 36,
-        height: isSelected ? 48 : 36,
+        width: 36,
+        height: 36,
         rotate: true,
         alignment: Alignment.center,
         child: GestureDetector(
           onTap: () => onPick(crossing, bundle),
-          child: _CrossingMarkerWidget(isSelected: isSelected),
+          child: const _CrossingMarkerUnselected(),
         ),
       );
     }).toList(growable: false);
+  }
+
+  List<Marker> _selectedCrossingMarker(BuildContext context) {
+    if (selectedCrossing == null) return const [];
+    return [
+      Marker(
+        point: LatLng(selectedCrossing!.geometry.lat, selectedCrossing!.geometry.lon),
+        width: 48,
+        height: 48,
+        rotate: true,
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () => onPick(selectedCrossing!, bundle),
+          child: const _CrossingMarkerWidget(isSelected: true),
+        ),
+      )
+    ];
   }
 
   List<Marker> _stationMarkers(List<Station> stations) {
