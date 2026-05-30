@@ -15,26 +15,42 @@ class LaunchScreen extends ConsumerStatefulWidget {
   ConsumerState<LaunchScreen> createState() => _LaunchScreenState();
 }
 
-class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+class _LaunchScreenState extends ConsumerState<LaunchScreen> with TickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final AnimationController _radarController;
   late final Animation<double> _logoScale;
   late final Animation<double> _logoOpacity;
+  late final Animation<Offset> _textOffset;
+  late final Animation<double> _textOpacity;
   var _minimumElapsed = false;
   var _navigated = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1150))..forward();
+    _entranceController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..forward();
+    _radarController = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+
     _logoScale = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.10, 0.84, curve: Curves.easeOutBack),
+      parent: _entranceController,
+      curve: const Interval(0.1, 0.7, curve: Curves.easeOutBack),
     );
     _logoOpacity = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0, 0.42, curve: Curves.easeOut),
+      parent: _entranceController,
+      curve: const Interval(0.1, 0.5, curve: Curves.easeOut),
     );
-    Timer(const Duration(milliseconds: 950), () {
+    _textOffset = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _entranceController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOutCubic),
+      ),
+    );
+    _textOpacity = CurvedAnimation(
+      parent: _entranceController,
+      curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
+    );
+
+    Timer(const Duration(milliseconds: 3000), () {
       if (!mounted) return;
       setState(() => _minimumElapsed = true);
     });
@@ -42,7 +58,8 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entranceController.dispose();
+    _radarController.dispose();
     super.dispose();
   }
 
@@ -52,56 +69,88 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
     _finishWhenReady(bundle);
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppGradients.softBrand),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFE4EDF7), Color(0xFFFDFBFD), Color(0xFFE8F1FA)],
+          ),
+        ),
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // Radar Animation Background
             AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) => CustomPaint(painter: _LaunchRailPainter(progress: _controller.value)),
+              animation: _radarController,
+              builder: (context, _) => CustomPaint(painter: _RadarPainter(progress: _radarController.value)),
             ),
             SafeArea(
               child: Center(
-                child: FadeTransition(
-                  opacity: _logoOpacity,
-                  child: ScaleTransition(
-                    scale: Tween<double>(begin: 0.82, end: 1).animate(_logoScale),
-                    child: Container(
-                      width: 132,
-                      height: 132,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        gradient: AppGradients.brand,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.24), blurRadius: 36, offset: const Offset(0, 18))],
-                      ),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Image.asset(
-                            'logo/logo.png',
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.radar_rounded, color: AppColors.pastelBlueDeep, size: 56),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: _logoOpacity,
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.7, end: 1).animate(_logoScale),
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [AppColors.pastelBlueDeep, Color(0xFF5A8DBE)],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 40, offset: const Offset(0, 20)),
+                              BoxShadow(color: Colors.white, blurRadius: 2, spreadRadius: 2),
+                            ],
+                          ),
+                          child: DecoratedBox(
+                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Image.asset(
+                                'logo/logo.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.radar_rounded, color: AppColors.pastelBlueDeep, size: 64),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    FadeTransition(
+                      opacity: _textOpacity,
+                      child: SlideTransition(
+                        position: _textOffset,
+                        child: const Text(
+                          'CrossRadar',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: AppColors.pastelBlueDeep,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             Positioned(
-              left: 40,
-              right: 40,
-              bottom: 58,
+              left: 0,
+              right: 0,
+              bottom: 64,
               child: AnimatedOpacity(
-                opacity: bundle.isLoading ? 0.62 : 0,
-                duration: const Duration(milliseconds: 240),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: const LinearProgressIndicator(minHeight: 4, backgroundColor: Colors.white, color: AppColors.pastelBlueDeep),
-                ),
+                opacity: bundle.isLoading ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: const _CustomLoader(),
               ),
             ),
           ],
@@ -117,7 +166,7 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder<void>(
-          transitionDuration: const Duration(milliseconds: 420),
+          transitionDuration: const Duration(milliseconds: 600),
           pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
@@ -131,35 +180,104 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with SingleTickerPr
   }
 }
 
-class _LaunchRailPainter extends CustomPainter {
-  const _LaunchRailPainter({required this.progress});
+class _RadarPainter extends CustomPainter {
+  const _RadarPainter({required this.progress});
 
   final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final firstPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..strokeCap = StrokeCap.round
-      ..shader = const LinearGradient(colors: [AppColors.pastelBlue, AppColors.pastelPink]).createShader(Offset.zero & size);
-    final secondPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..color = AppColors.pastelBlueDeep.withValues(alpha: 0.10);
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = math.sqrt(size.width * size.width + size.height * size.height) / 2;
 
-    final wave = math.sin(progress * math.pi).clamp(0.0, 1.0);
-    final firstPath = Path()
-      ..moveTo(-40, size.height * 0.34)
-      ..cubicTo(size.width * 0.22, size.height * (0.20 + wave * 0.04), size.width * 0.48, size.height * 0.52, size.width + 40, size.height * 0.36);
-    final secondPath = Path()
-      ..moveTo(-20, size.height * 0.68)
-      ..cubicTo(size.width * 0.30, size.height * 0.78, size.width * 0.70, size.height * (0.48 - wave * 0.03), size.width + 20, size.height * 0.64);
-    canvas.drawPath(firstPath, firstPaint..color = firstPaint.color.withValues(alpha: 0.10 + progress * 0.28));
-    canvas.drawPath(secondPath, secondPaint);
+    // Draw concentric circles
+    final circlePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    for (int i = 1; i <= 6; i++) {
+      final baseRadius = maxRadius * (i / 6.0);
+      final radius = (baseRadius + (progress * maxRadius / 6.0)) % maxRadius;
+      final opacity = 0.15 * (1 - (radius / maxRadius));
+      canvas.drawCircle(center, radius, circlePaint..color = AppColors.pastelBlueDeep.withValues(alpha: opacity));
+    }
+
+    // Draw sweep
+    final sweepPaint = Paint()
+      ..style = PaintingStyle.fill
+      ..shader = SweepGradient(
+        center: Alignment.center,
+        startAngle: 0.0,
+        endAngle: math.pi * 0.4,
+        colors: [
+          AppColors.pastelBlueDeep.withValues(alpha: 0.0),
+          AppColors.pastelBlueDeep.withValues(alpha: 0.2),
+        ],
+        transform: GradientRotation(progress * math.pi * 2),
+      ).createShader(Rect.fromCircle(center: center, radius: maxRadius));
+
+    canvas.drawArc(Rect.fromCircle(center: center, radius: maxRadius), progress * math.pi * 2, math.pi * 0.4, true, sweepPaint);
   }
 
   @override
-  bool shouldRepaint(covariant _LaunchRailPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _RadarPainter oldDelegate) => oldDelegate.progress != progress;
+}
+
+class _CustomLoader extends StatefulWidget {
+  const _CustomLoader();
+
+  @override
+  State<_CustomLoader> createState() => _CustomLoaderState();
+}
+
+class _CustomLoaderState extends State<_CustomLoader> with SingleTickerProviderStateMixin {
+  late final AnimationController _loaderController;
+
+  @override
+  void initState() {
+    super.initState();
+    _loaderController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _loaderController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _loaderController,
+      builder: (context, _) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(3, (index) {
+            final delay = index * 0.2;
+            final val = (_loaderController.value - delay) % 1.0;
+            final scale = val < 0.0 ? 1.0 : (1.0 + math.sin(val * math.pi) * 0.5);
+            final opacity = val < 0.0 ? 0.3 : (0.3 + math.sin(val * math.pi) * 0.7);
+            
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.pastelPinkDeep.withValues(alpha: opacity),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: opacity * 0.5), blurRadius: 8),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
 }

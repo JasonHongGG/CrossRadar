@@ -69,7 +69,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
         children: [
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Column(
                 children: [
                   Expanded(
@@ -77,8 +77,8 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   ),
                   const SizedBox(height: 16),
                   _CrossingStrip(crossing: widget.crossing),
-                  const SizedBox(height: 24),
-                  if (_loading) const _PredictionSkeleton(key: ValueKey('loading')) else if (_error != null) _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!) else if (_envelope?.available == false) _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '') else _PredictionCarousel(predictions: _carouselPredictions, now: _railwayClock.nowTaipei()),
+                  const SizedBox(height: 16),
+                  if (_loading) const _PredictionSkeleton(key: ValueKey('loading')) else if (_error != null) _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!) else if (_envelope?.available == false) _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '') else _PredictionCarousel(predictions: _carouselPredictions, now: _railwayClock.nowTaipei(), initialPage: _initialPage),
                 ],
               ),
             ),
@@ -166,22 +166,28 @@ class _PredictionScreenState extends State<PredictionScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已複製預測診斷資料')));
   }
 
+  int _initialPage = 0;
+
   List<PredictionRecord?> get _carouselPredictions {
-    final upcoming = _envelope?.upcomingPredictions ?? [];
+    final all = _envelope?.predictions ?? [];
     final now = _railwayClock.nowTaipei();
-    final actualUpcoming = upcoming.where((p) => p.eta.isAfter(now)).toList();
+    
+    final sorted = List.of(all)..sort((a, b) => a.eta.compareTo(b.eta));
+    final past = sorted.where((p) => p.eta.isBefore(now)).toList();
+    final future = sorted.where((p) => !p.eta.isBefore(now)).toList();
+
+    final selectedPast = past.length > 2 ? past.sublist(past.length - 2) : past;
+    final selectedFuture = future.take(5).toList();
 
     final list = <PredictionRecord?>[];
-    list.add(_runtime.previous); // Slot 0: Previous (can be null)
+    list.addAll(selectedPast);
+    
+    _initialPage = list.length;
 
-    if (actualUpcoming.isEmpty) {
-      list.add(null); // Slot 1: Current
-      list.add(null); // Slot 2: Next
-    } else if (actualUpcoming.length == 1) {
-      list.add(actualUpcoming[0]);
+    if (selectedFuture.isEmpty) {
       list.add(null);
     } else {
-      list.addAll(actualUpcoming);
+      list.addAll(selectedFuture);
     }
     return list;
   }
@@ -360,102 +366,117 @@ class _CrossingStrip extends StatelessWidget {
 }
 
 class _MainPredictionPanel extends StatelessWidget {
-  const _MainPredictionPanel({required this.prediction, required this.now});
+  const _MainPredictionPanel({required this.prediction, required this.now, required this.status, required this.sequenceIndex});
 
   final PredictionRecord prediction;
   final DateTime now;
+  final _TrainSequenceStatus status;
+  final int sequenceIndex;
 
   @override
   Widget build(BuildContext context) {
     final remaining = prediction.eta.difference(now);
-    final isWarning = remaining.inSeconds <= prediction.warningWindowMinutes * 60;
+    final isWarning = status == _TrainSequenceStatus.next && remaining.inSeconds <= prediction.warningWindowMinutes * 60;
     final progressValue = _progress(remaining, prediction.warningWindowMinutes);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isWarning ? AppColors.pastelPinkSoft : Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: isWarning ? AppColors.pastelPinkDeep.withValues(alpha: 0.3) : AppColors.pastelBlueSoft, width: 1.5),
-        boxShadow: [BoxShadow(color: (isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep).withValues(alpha: 0.12), blurRadius: 32, offset: const Offset(0, 16))],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(prediction.dataBasis == 'liveboard' ? Icons.bolt_rounded : Icons.schedule_rounded, color: isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep),
-              const SizedBox(width: 8),
-              Text(
-                '${prediction.trainNo}次',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: (prediction.direction == 1 ? AppColors.pastelBlueSoft : AppColors.pastelPinkSoft), borderRadius: BorderRadius.circular(12)),
-                child: Row(
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+            decoration: BoxDecoration(
+              color: isWarning ? AppColors.pastelPinkSoft : Colors.white,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: isWarning ? AppColors.pastelPinkDeep.withValues(alpha: 0.3) : AppColors.pastelBlueSoft, width: 1.5),
+              boxShadow: [BoxShadow(color: (isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep).withValues(alpha: 0.12), blurRadius: 32, offset: const Offset(0, 16))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Icon(prediction.direction == 1 ? Icons.south_rounded : Icons.north_rounded, size: 16, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
-                    const SizedBox(width: 4),
+                    Icon(prediction.dataBasis == 'liveboard' ? Icons.bolt_rounded : Icons.schedule_rounded, color: isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep),
+                    const SizedBox(width: 8),
                     Text(
-                      prediction.direction == 1 ? '南下' : '北上',
-                      style: TextStyle(fontWeight: FontWeight.w900, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
+                      '${prediction.trainNo}次',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: (prediction.direction == 1 ? AppColors.pastelBlueSoft : AppColors.pastelPinkSoft), borderRadius: BorderRadius.circular(12)),
+                      child: Row(
+                        children: [
+                          Icon(prediction.direction == 1 ? Icons.south_rounded : Icons.north_rounded, size: 16, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
+                          const SizedBox(width: 4),
+                          Text(
+                            prediction.direction == 1 ? '南下' : '北上',
+                            style: TextStyle(fontWeight: FontWeight.w900, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Center(
-            child: Text(
-              _formatCountdown(remaining),
-              style: TextStyle(fontSize: 64, height: 1.0, letterSpacing: -2, fontWeight: FontWeight.w900, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _TimelineNode(name: prediction.previousStopStationName ?? prediction.upstreamStationName, time: prediction.previousStopDeparture, alignStart: true),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        height: 4,
-                        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2)),
-                      ),
-                      LinearProgressIndicator(value: progressValue, minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
-                      Align(
-                        alignment: Alignment(-1.0 + (progressValue * 2), 0.0),
-                        child: Icon(Icons.directions_railway_rounded, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
-                      ),
-                    ],
+                const Spacer(),
+                Center(
+                  child: Text(
+                    _formatCountdown(remaining),
+                    style: TextStyle(fontSize: 64, height: 1.0, letterSpacing: -2, fontWeight: FontWeight.w900, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
                   ),
                 ),
-              ),
-              _TimelineNode(name: prediction.nextStopStationName ?? prediction.downstreamStationName, time: prediction.nextStopArrival, alignStart: false),
-            ],
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _TimelineNode(name: prediction.previousStopStationName ?? prediction.upstreamStationName, time: prediction.previousStopDeparture, alignStart: true),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              height: 4,
+                              decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2)),
+                            ),
+                            LinearProgressIndicator(value: progressValue, minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                            Align(
+                              alignment: Alignment(-1.0 + (progressValue * 2), 0.0),
+                              child: Icon(Icons.directions_railway_rounded, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _TimelineNode(name: prediction.nextStopStationName ?? prediction.downstreamStationName, time: prediction.nextStopArrival, alignStart: false),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _IconStat(icon: Icons.access_time_rounded, value: _formatClock(prediction.eta)),
+                    const SizedBox(width: 24),
+                    _IconStat(icon: Icons.update_rounded, value: _delayText(prediction), color: (prediction.delaySeconds ?? 0) > 0 ? AppColors.amber : AppColors.muted),
+                    const SizedBox(width: 24),
+                    _IconStat(icon: Icons.speed_rounded, value: _accuracyText(prediction)),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _IconStat(icon: Icons.access_time_rounded, value: _formatClock(prediction.eta)),
-              const SizedBox(width: 24),
-              _IconStat(icon: Icons.update_rounded, value: _delayText(prediction), color: (prediction.delaySeconds ?? 0) > 0 ? AppColors.amber : AppColors.muted),
-              const SizedBox(width: 24),
-              _IconStat(icon: Icons.speed_rounded, value: _accuracyText(prediction)),
-            ],
-          ),
-        ],
-      ),
+        ),
+        Positioned(
+          top: 0,
+          child: _SequenceIndicator(status: status, sequenceIndex: sequenceIndex, isWarning: isWarning),
+        ),
+      ],
     );
   }
 
@@ -534,9 +555,10 @@ class _SnapshotDot extends StatelessWidget {
 }
 
 class _PredictionCarousel extends StatefulWidget {
-  const _PredictionCarousel({required this.predictions, required this.now});
+  const _PredictionCarousel({required this.predictions, required this.now, required this.initialPage});
   final List<PredictionRecord?> predictions;
   final DateTime now;
+  final int initialPage;
 
   @override
   State<_PredictionCarousel> createState() => _PredictionCarouselState();
@@ -548,11 +570,7 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
   @override
   void initState() {
     super.initState();
-    int initial = 1;
-    if (widget.predictions.length > 1 && widget.predictions[1] == null && widget.predictions[0] != null) {
-      initial = 0;
-    }
-    _pageController = PageController(initialPage: initial);
+    _pageController = PageController(initialPage: widget.initialPage);
   }
 
   String? _getKey(List<PredictionRecord?> list, int index) {
@@ -606,24 +624,31 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 310,
+      height: 290,
       child: PageView.builder(
         controller: _pageController,
         clipBehavior: Clip.none,
         itemCount: widget.predictions.length,
         itemBuilder: (context, index) {
           final prediction = widget.predictions[index];
+          final status = index < widget.initialPage 
+              ? _TrainSequenceStatus.past 
+              : index == widget.initialPage 
+                  ? _TrainSequenceStatus.next 
+                  : _TrainSequenceStatus.future;
+          final sequenceIndex = index - widget.initialPage + 1;
+
           if (prediction == null) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.0),
-              child: Align(alignment: Alignment.topCenter, child: _EmptyPredictionPanel()),
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Align(alignment: Alignment.bottomCenter, child: _EmptyPredictionPanel(status: status, sequenceIndex: sequenceIndex)),
             );
           }
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Align(
-              alignment: Alignment.topCenter,
-              child: _MainPredictionPanel(prediction: prediction, now: widget.now),
+              alignment: Alignment.bottomCenter,
+              child: _MainPredictionPanel(prediction: prediction, now: widget.now, status: status, sequenceIndex: sequenceIndex),
             ),
           );
         },
@@ -633,31 +658,101 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
 }
 
 class _EmptyPredictionPanel extends StatelessWidget {
-  const _EmptyPredictionPanel();
+  const _EmptyPredictionPanel({required this.status, required this.sequenceIndex});
+  final _TrainSequenceStatus status;
+  final int sequenceIndex;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      constraints: const BoxConstraints(minHeight: 260),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.pastelBlueSoft, width: 1.5),
-        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 16))],
-      ),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.train_rounded, size: 48, color: AppColors.pastelBlueSoft),
-            SizedBox(height: 16),
-            Text(
-              '無班次資訊',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.muted),
-            ),
-          ],
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 14),
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: AppColors.pastelBlueSoft, width: 1.5),
+            boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 16))],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              const Spacer(),
+              const Icon(Icons.train_rounded, size: 48, color: AppColors.pastelBlueSoft),
+              const SizedBox(height: 16),
+              const Text(
+                '無班次資訊',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.muted),
+              ),
+              const Spacer(),
+            ],
+          ),
         ),
+        Positioned(
+          top: 0,
+          child: _SequenceIndicator(status: status, sequenceIndex: sequenceIndex),
+        ),
+      ],
+    );
+  }
+}
+
+enum _TrainSequenceStatus { past, next, future }
+
+class _SequenceIndicator extends StatelessWidget {
+  const _SequenceIndicator({required this.status, required this.sequenceIndex, this.isWarning = false});
+  final _TrainSequenceStatus status;
+  final int sequenceIndex;
+  final bool isWarning;
+
+  @override
+  Widget build(BuildContext context) {
+    Color bgColor;
+    Color textColor;
+    IconData icon;
+    String label;
+
+    switch (status) {
+      case _TrainSequenceStatus.past:
+        bgColor = AppColors.pastelBlueSoft.withValues(alpha: 0.4);
+        textColor = AppColors.pastelBlueDeep.withValues(alpha: 0.6);
+        icon = Icons.history_rounded;
+        label = '已過站';
+        break;
+      case _TrainSequenceStatus.next:
+        bgColor = isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep;
+        textColor = Colors.white;
+        icon = Icons.directions_railway_rounded;
+        label = '即將到來';
+        break;
+      case _TrainSequenceStatus.future:
+        bgColor = AppColors.pastelBlueSoft;
+        textColor = AppColors.pastelBlueDeep;
+        icon = Icons.update_rounded;
+        label = '第 $sequenceIndex 順位';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: textColor),
+          ),
+        ],
       ),
     );
   }
