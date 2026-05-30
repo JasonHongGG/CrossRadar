@@ -299,28 +299,9 @@ class _MapPicker extends StatelessWidget {
         Positioned(
           right: 16,
           bottom: 120,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FloatingActionButton.small(
-                heroTag: 'home_compass',
-                onPressed: () => mapController.rotate(0),
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.pastelBlueDeep,
-                elevation: 4,
-                child: const Icon(Icons.explore_rounded),
-              ),
-              const SizedBox(height: 12),
-              FloatingActionButton(
-                heroTag: 'home_gps',
-                onPressed: onGps,
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.pastelBlueDeep,
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: const Icon(Icons.my_location_rounded),
-              ),
-            ],
+          child: _MapControls(
+            mapController: mapController,
+            onGps: onGps,
           ),
         ),
       ],
@@ -334,19 +315,11 @@ class _MapPicker extends StatelessWidget {
         point: LatLng(crossing.geometry.lat, crossing.geometry.lon),
         width: isSelected ? 48 : 36,
         height: isSelected ? 48 : 36,
+        rotate: true,
+        alignment: Alignment.center,
         child: GestureDetector(
           onTap: () => onPick(crossing, bundle),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutBack,
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.pastelPinkDeep : Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: isSelected ? Colors.white : AppColors.pastelPinkDeep, width: isSelected ? 4 : 2),
-              boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.3), blurRadius: isSelected ? 12 : 6, offset: const Offset(0, 4))],
-            ),
-            child: Icon(Icons.railway_alert_rounded, size: isSelected ? 22 : 18, color: isSelected ? Colors.white : AppColors.pastelPinkDeep),
-          ),
+          child: _CrossingMarkerWidget(isSelected: isSelected),
         ),
       );
     }).toList(growable: false);
@@ -358,17 +331,20 @@ class _MapPicker extends StatelessWidget {
       width: 100,
       height: 36,
       alignment: Alignment.topCenter,
+      rotate: true,
       child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.2), blurRadius: 4)]),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.train_rounded, size: 14, color: AppColors.pastelBlueDeep),
-              const SizedBox(width: 4),
-              Flexible(child: Text(station.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep))),
-            ],
+        child: RepaintBoundary(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.2), blurRadius: 4)]),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.train_rounded, size: 14, color: AppColors.pastelBlueDeep),
+                const SizedBox(width: 4),
+                Flexible(child: Text(station.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep))),
+              ],
+            ),
           ),
         ),
       ),
@@ -401,19 +377,121 @@ class _MapPicker extends StatelessWidget {
       width: 120,
       height: 48,
       alignment: Alignment.topCenter,
+      rotate: true,
       child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.train_rounded, size: 18, color: Colors.white),
-              const SizedBox(width: 6),
-              Flexible(child: Text(station.name ?? '未知車站', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white))),
-            ],
+        child: RepaintBoundary(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.train_rounded, size: 18, color: Colors.white),
+                const SizedBox(width: 6),
+                Flexible(child: Text(station.name ?? '未知車站', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white))),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MapControls extends StatelessWidget {
+  const _MapControls({required this.mapController, required this.onGps});
+  final MapController mapController;
+  final VoidCallback onGps;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.15), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          StreamBuilder<MapEvent>(
+            stream: mapController.mapEventStream,
+            builder: (context, snapshot) {
+              final rotation = mapController.camera.rotation;
+              return InkWell(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                onTap: () => mapController.rotate(0),
+                child: SizedBox(
+                  height: 48,
+                  width: 48,
+                  child: Center(
+                    child: Transform.rotate(
+                      angle: -rotation * math.pi / 180,
+                      child: const Icon(Icons.navigation_rounded, color: AppColors.pastelPinkDeep, size: 24),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          Container(height: 1, width: 32, color: AppColors.pastelBlueDeep.withValues(alpha: 0.1)),
+          InkWell(
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+            onTap: onGps,
+            child: const SizedBox(
+              height: 48,
+              width: 48,
+              child: Center(
+                child: Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep, size: 22),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CrossingMarkerWidget extends StatelessWidget {
+  const _CrossingMarkerWidget({required this.isSelected});
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSelected) {
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutBack,
+        decoration: BoxDecoration(
+          color: AppColors.pastelPinkDeep,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 4),
+          boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: const Icon(Icons.railway_alert_rounded, size: 22, color: Colors.white),
+      );
+    }
+    return const _CrossingMarkerUnselected();
+  }
+}
+
+class _CrossingMarkerUnselected extends StatelessWidget {
+  const _CrossingMarkerUnselected();
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.pastelPinkDeep, width: 2),
+          boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 4))],
+        ),
+        child: const Icon(Icons.railway_alert_rounded, size: 18, color: AppColors.pastelPinkDeep),
       ),
     );
   }
