@@ -1,21 +1,20 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import sys
-from collections import defaultdict
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
-from statistics import median
 from typing import Any
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from backend.app.config import get_settings
 from backend.app.clients.tdx_auth import TdxTokenManager
 from backend.app.clients.tdx_tra import TdxTraClient
+from backend.app.config import get_settings
 from backend.app.services.crossing_catalog import CrossingCatalogService
 from backend.app.services.crossing_scraper import TraOfficialCrossingScraper
 from backend.app.services.osm_enricher import OsmEnricher
@@ -24,10 +23,16 @@ from backend.app.services.predictor import PredictorService
 from backend.app.services.rail_path import RailPathService
 from backend.app.services.station_graph import StationGraphService
 from backend.app.services.travel_profile import TravelProfileService
-from backend.app.utils import parse_time_on_date
+from build_prediction_calibration import (
+    build_calibration_readiness,
+    build_liveboard_index,
+    build_rules,
+    resolve_benchmark_delay,
+    select_liveboard_record,
+)
 
 
-async def main() -> None:
+async def build_replay_payload() -> dict[str, Any]:
     settings = get_settings()
     observations_payload = json.loads(settings.manual_passage_observations_path.read_text(encoding="utf-8"))
     observations = observations_payload.get("observations", [])
@@ -63,15 +68,6 @@ async def main() -> None:
     for observation in observations:
         service_date_text = str(observation.get("service_date") or "")
         observation_date = date.fromisoformat(service_date_text)
-        if observation_date != date.today():
-            rows.append(
-                {
-                    "id": observation.get("id"),
-                    "status": "skipped",
-                    "reason": f"Only same-day observations can be rebuilt from current timetable snapshots; got {service_date_text}.",
-                }
-            )
-            continue
 
         crossing_id = str(observation.get("crossing_id") or "")
         if crossing_id not in crossing_cache:
@@ -102,6 +98,7 @@ async def main() -> None:
         if not candidates:
             rows.append({"id": observation.get("id"), "status": "missing_timetable", "reason": f"No timetable candidate for train {train_no}."})
             continue
+
         selected_liveboard = select_liveboard_record(liveboard_by_train_no.get(train_no, []))
         liveboard_selection = predictor._select_liveboard_candidate_context(
             crossing,
@@ -118,16 +115,19 @@ async def main() -> None:
         upstream = candidate.upstream
         downstream = candidate.downstream
         train_info = timetable.get("TrainInfo", {})
+        upstream_departure = predictor._parse_liveboard_update_time("1970-01-01T00:00:00+00:00")  # warm parser path
+        del upstream_departure
+        from backend.app.utils import parse_time_on_date
+
         upstream_departure = parse_time_on_date(observation_date, upstream.get("DepartureTime") or upstream.get("ArrivalTime"))
         downstream_arrival = parse_time_on_date(observation_date, downstream.get("ArrivalTime") or downstream.get("DepartureTime"))
         observed_passage = parse_time_on_date(observation_date, observation.get("observed_passage_time"))
         if upstream_departure is None or downstream_arrival is None or observed_passage is None:
             rows.append({"id": observation.get("id"), "status": "invalid_time", "reason": "Observation or timetable time could not be parsed."})
             continue
-        runtime_projection_reason = liveboard_context.projection_reason if liveboard_context is not None else None
-        runtime_delay_estimate = None
-        runtime_selected_liveboard = liveboard_context.liveboard if liveboard_context is not None else selected_liveboard
 
+        runtime_projection_reason = liveboard_context.projection_reason if liveboard_context is not None else None
+        runtime_selected_liveboard = liveboard_context.liveboard if liveboard_context is not None else selected_liveboard
         if liveboard_context is not None:
             runtime_delay_estimate = liveboard_context.delay_estimate
             runtime_liveboard = liveboard_context.liveboard
@@ -145,11 +145,6 @@ async def main() -> None:
                 )
             runtime_liveboard = None
 
-        runtime_delay_minutes = runtime_delay_estimate.minutes
-        runtime_delay_seconds = runtime_delay_estimate.seconds
-        runtime_delay_source = runtime_delay_estimate.source
-        runtime_delay_reason = runtime_delay_estimate.reason
-
         runtime_timing = predictor._estimate_prediction_timing(
             crossing,
             train_no=train_no,
@@ -160,9 +155,9 @@ async def main() -> None:
             downstream=downstream,
             upstream_departure=upstream_departure,
             downstream_arrival=downstream_arrival,
-            delay_minutes=runtime_delay_minutes,
-            delay_seconds=runtime_delay_seconds,
-            delay_source=runtime_delay_source,
+            delay_minutes=runtime_delay_estimate.minutes,
+            delay_seconds=runtime_delay_estimate.seconds,
+            delay_source=runtime_delay_estimate.source,
             direction=candidate.direction,
             liveboard=runtime_liveboard,
             station_lookup_by_id=station_lookup_by_id,
@@ -181,7 +176,7 @@ async def main() -> None:
             liveboard_context=liveboard_context,
         )
         benchmark_timing = runtime_timing
-        if benchmark_delay_seconds != runtime_delay_seconds or benchmark_delay_source != runtime_delay_source:
+        if benchmark_delay_seconds != runtime_delay_estimate.seconds or benchmark_delay_source != runtime_delay_estimate.source:
             recalculated = predictor._estimate_prediction_timing(
                 crossing,
                 train_no=train_no,
@@ -212,6 +207,7 @@ async def main() -> None:
                 "id": observation.get("id"),
                 "status": "ok",
                 "crossing_id": crossing_id,
+                "service_date": service_date_text,
                 "train_no": train_no,
                 "direction": candidate.direction,
                 "upstream_station_id": upstream.get("StationID"),
@@ -220,10 +216,10 @@ async def main() -> None:
                 "train_type_family": runtime_timing.train_type_family,
                 "prediction_method": runtime_timing.timing_model,
                 "predicted_eta": runtime_timing.eta.isoformat(),
-                "runtime_delay_minutes": runtime_delay_minutes,
-                "runtime_delay_seconds": runtime_delay_seconds,
-                "runtime_delay_source": runtime_delay_source,
-                "runtime_delay_reason": runtime_delay_reason,
+                "runtime_delay_minutes": runtime_delay_estimate.minutes,
+                "runtime_delay_seconds": runtime_delay_estimate.seconds,
+                "runtime_delay_source": runtime_delay_estimate.source,
+                "runtime_delay_reason": runtime_delay_estimate.reason,
                 "runtime_liveboard_context_present": liveboard_context is not None,
                 "runtime_liveboard_fallback_reason": liveboard_fallback_reason,
                 "runtime_projection_reason": runtime_projection_reason,
@@ -254,10 +250,13 @@ async def main() -> None:
     runtime_errors = [abs(int(row["runtime_error_seconds"])) for row in ok_rows]
     benchmark_rows = [row for row in ok_rows if row.get("benchmark_error_seconds") is not None]
     benchmark_errors = [abs(int(row["benchmark_error_seconds"])) for row in benchmark_rows]
-    payload = {
+    replay_dates = sorted({row.get("service_date") for row in ok_rows if row.get("service_date")})
+    return {
         "metadata": {
             "generated_from": str(settings.manual_passage_observations_path.relative_to(ROOT_DIR)),
             "generated_on": date.today().isoformat(),
+            "mode": "archived_snapshot_replay",
+            "replayed_service_dates": replay_dates,
             "observation_count": len(observations),
             "usable_count": len(ok_rows),
         },
@@ -272,210 +271,24 @@ async def main() -> None:
         "rules": rules,
         "observations": rows,
     }
-    settings.prediction_calibration_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"wrote {settings.prediction_calibration_path}")
+
+
+async def main() -> None:
+    parser = argparse.ArgumentParser(description="Replay archived prediction observations without overwriting the main calibration artifact.")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=ROOT_DIR / ".runtime" / "prediction" / "prediction_observation_replay.json",
+        help="Path to write the replay artifact.",
+    )
+    args = parser.parse_args()
+
+    payload = await build_replay_payload()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"wrote {args.output}")
     print(json.dumps(payload["baseline"], ensure_ascii=False, indent=2))
-    print(json.dumps({"family_ready_count": readiness["family_ready_count"], "segment_ready_count": readiness["segment_ready_count"]}, ensure_ascii=False, indent=2))
-    print(f"rules={len(rules)}")
-
-
-def build_rules(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    eligible_rows = [row for row in rows if row.get("status") == "ok" and row.get("calibration_eligible")]
-    rules: list[dict[str, Any]] = []
-    used_ids: set[str] = set()
-
-    family_groups: dict[tuple[str, int, str, str], list[dict[str, Any]]] = defaultdict(list)
-    segment_groups: dict[tuple[str, int, str], list[dict[str, Any]]] = defaultdict(list)
-    for row in eligible_rows:
-        family_groups[(row["crossing_id"], row["direction"], row["upstream_station_id"], row["train_type_family"])].append(row)
-        segment_groups[(row["crossing_id"], row["direction"], row["upstream_station_id"])].append(row)
-
-    for (crossing_id, direction, upstream_station_id, train_type_family), group in family_groups.items():
-        candidate = build_rule_candidate(group, spread_limit_seconds=25, minimum_inliers=2)
-        if candidate is None:
-            continue
-        rule = {
-            "id": f"{crossing_id}:{direction}:{upstream_station_id}:{train_type_family}",
-            "match": {
-                "crossing_id": crossing_id,
-                "direction": direction,
-                "upstream_station_id": upstream_station_id,
-                "train_type_family": train_type_family,
-            },
-            **candidate,
-        }
-        rules.append(rule)
-        used_ids.update(str(row["id"]) for row in candidate["inlier_rows"])
-
-    for (crossing_id, direction, upstream_station_id), group in segment_groups.items():
-        remaining = [row for row in group if str(row["id"]) not in used_ids]
-        candidate = build_rule_candidate(remaining, spread_limit_seconds=30, minimum_inliers=3)
-        if candidate is None:
-            continue
-        rules.append(
-            {
-                "id": f"{crossing_id}:{direction}:{upstream_station_id}:segment",
-                "match": {
-                    "crossing_id": crossing_id,
-                    "direction": direction,
-                    "upstream_station_id": upstream_station_id,
-                },
-                **candidate,
-            }
-        )
-
-    for rule in rules:
-        rule.pop("inlier_rows", None)
-    return rules
-
-
-def build_calibration_readiness(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    eligible_rows = [row for row in rows if row.get("status") == "ok" and row.get("calibration_eligible")]
-    family_groups: dict[tuple[str, int, str, str], list[dict[str, Any]]] = defaultdict(list)
-    segment_groups: dict[tuple[str, int, str], list[dict[str, Any]]] = defaultdict(list)
-    for row in eligible_rows:
-        family_groups[(row["crossing_id"], row["direction"], row["upstream_station_id"], row["train_type_family"])].append(row)
-        segment_groups[(row["crossing_id"], row["direction"], row["upstream_station_id"])].append(row)
-
-    family_entries = []
-    for key in sorted(family_groups):
-        crossing_id, direction, upstream_station_id, train_type_family = key
-        assessment = evaluate_rule_candidate(family_groups[key], spread_limit_seconds=25, minimum_inliers=2)
-        family_entries.append(
-            {
-                "match": {
-                    "crossing_id": crossing_id,
-                    "direction": direction,
-                    "upstream_station_id": upstream_station_id,
-                    "train_type_family": train_type_family,
-                },
-                "row_ids": [row["id"] for row in family_groups[key]],
-                **assessment,
-            }
-        )
-
-    segment_entries = []
-    for key in sorted(segment_groups):
-        crossing_id, direction, upstream_station_id = key
-        assessment = evaluate_rule_candidate(segment_groups[key], spread_limit_seconds=30, minimum_inliers=3)
-        segment_entries.append(
-            {
-                "match": {
-                    "crossing_id": crossing_id,
-                    "direction": direction,
-                    "upstream_station_id": upstream_station_id,
-                },
-                "row_ids": [row["id"] for row in segment_groups[key]],
-                **assessment,
-            }
-        )
-
-    return {
-        "eligible_observation_count": len(eligible_rows),
-        "family_ready_count": sum(1 for entry in family_entries if entry["ready"]),
-        "segment_ready_count": sum(1 for entry in segment_entries if entry["ready"]),
-        "family_groups": family_entries,
-        "segment_groups": segment_entries,
-    }
-
-
-def evaluate_rule_candidate(group: list[dict[str, Any]], *, spread_limit_seconds: int, minimum_inliers: int) -> dict[str, Any]:
-    assessment: dict[str, Any] = {
-        "count": len(group),
-        "minimum_inliers": minimum_inliers,
-        "spread_limit_seconds": spread_limit_seconds,
-        "median_error_seconds": None,
-        "inlier_count": 0,
-        "spread_seconds": None,
-        "offset_seconds": None,
-        "ready": False,
-        "reason": "insufficient_samples",
-        "inlier_rows": [],
-    }
-    if len(group) < minimum_inliers:
-        return assessment
-    errors = [int(row["rule_error_seconds"]) for row in group]
-    median_error = float(median(errors))
-    assessment["median_error_seconds"] = int(round(median_error))
-    inlier_limit_seconds = min(20, spread_limit_seconds)
-    inliers = [row for row in group if abs(int(row["rule_error_seconds"]) - median_error) <= inlier_limit_seconds]
-    assessment["inlier_count"] = len(inliers)
-    assessment["inlier_rows"] = [{"id": row["id"], "error_seconds": row["rule_error_seconds"]} for row in inliers]
-    if len(inliers) < minimum_inliers:
-        assessment["reason"] = "insufficient_inliers"
-        return assessment
-    inlier_errors = [int(row["rule_error_seconds"]) for row in inliers]
-    spread = max(inlier_errors) - min(inlier_errors)
-    assessment["spread_seconds"] = spread
-    if spread > spread_limit_seconds:
-        assessment["reason"] = "spread_too_wide"
-        return assessment
-    assessment["offset_seconds"] = int(round(-float(median(inlier_errors))))
-    assessment["ready"] = True
-    assessment["reason"] = "ready"
-    return assessment
-
-
-def build_rule_candidate(group: list[dict[str, Any]], *, spread_limit_seconds: int, minimum_inliers: int) -> dict[str, Any] | None:
-    assessment = evaluate_rule_candidate(group, spread_limit_seconds=spread_limit_seconds, minimum_inliers=minimum_inliers)
-    if not assessment["ready"]:
-        return None
-    return {
-        "offset_seconds": assessment["offset_seconds"],
-        "count": assessment["count"],
-        "inlier_count": assessment["inlier_count"],
-        "median_error_seconds": assessment["median_error_seconds"],
-        "spread_seconds": assessment["spread_seconds"],
-        "inlier_rows": assessment["inlier_rows"],
-    }
-
-
-def build_liveboard_index(liveboards: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    index: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for liveboard in liveboards:
-        train_no = str(liveboard.get("TrainNo") or "").strip()
-        if not train_no:
-            continue
-        index[train_no].append(liveboard)
-    return index
-
-
-def select_liveboard_record(liveboards: list[dict[str, Any]]) -> dict[str, Any] | None:
-    if not liveboards:
-        return None
-    return max(liveboards, key=lambda item: parse_update_time(item.get("UpdateTime")))
-
-
-def resolve_benchmark_delay(
-    train_no: str,
-    *,
-    train_info_by_train_no: dict[str, dict[str, Any]],
-    liveboard: dict[str, Any] | None,
-    liveboard_context: Any | None = None,
-) -> tuple[int, int, str]:
-    if liveboard_context is not None:
-        return (
-            liveboard_context.delay_estimate.minutes,
-            liveboard_context.delay_estimate.seconds,
-            liveboard_context.delay_estimate.source,
-        )
-    if liveboard is not None and liveboard.get("DelayTime") is not None:
-        delay_minutes = int(liveboard.get("DelayTime") or 0)
-        return (delay_minutes, delay_minutes * 60, "liveboard")
-    train_info = train_info_by_train_no.get(train_no)
-    if train_info is not None and train_info.get("DelayTime") is not None:
-        delay_minutes = int(train_info.get("DelayTime") or 0)
-        return (delay_minutes, delay_minutes * 60, "train_info")
-    return (0, 0, "none")
-
-
-def parse_update_time(value: Any) -> datetime:
-    if isinstance(value, str):
-        try:
-            return datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            pass
-    return datetime.min
+    print(json.dumps({"family_ready_count": payload["readiness"]["family_ready_count"], "segment_ready_count": payload["readiness"]["segment_ready_count"]}, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

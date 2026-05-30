@@ -74,27 +74,12 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   const SizedBox(height: 16),
                   _CrossingStrip(crossing: widget.crossing),
                   const SizedBox(height: 24),
-                  if (_loading)
-                    const _PredictionSkeleton(key: ValueKey('loading'))
-                  else if (_error != null)
-                    _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!)
-                  else if (_envelope?.available == false)
-                    _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '')
-                  else
-                    _PredictionCarousel(
-                      predictions: _carouselPredictions,
-                      now: DateTime.now(),
-                    ),
+                  if (_loading) const _PredictionSkeleton(key: ValueKey('loading')) else if (_error != null) _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!) else if (_envelope?.available == false) _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '') else _PredictionCarousel(predictions: _carouselPredictions, now: DateTime.now()),
                 ],
               ),
             ),
           ),
-          if (_envelope?.dataSnapshot != null)
-            Positioned(
-              top: 8,
-              right: 16,
-              child: _SnapshotDot(snapshot: _envelope!.dataSnapshot!),
-            ),
+          if (_envelope?.dataSnapshot != null) Positioned(top: 8, right: 16, child: _SnapshotDot(snapshot: _envelope!.dataSnapshot!)),
         ],
       ),
     );
@@ -134,7 +119,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
           trainInfos.toSnapshotSource(source: 'train_info', delayed: (item) => (item.delayTime ?? 0) != 0),
         ],
       );
-      final envelope = _predictionService.predictForCrossing(crossing: widget.crossing, liveboards: liveboards.items, timetables: timetables.items, trainInfos: trainInfos.items, stationLookupById: widget.bundle.stationById, calibrationRules: widget.bundle.calibrationRules, stationPairProjections: widget.bundle.stationPairProjections, dataSnapshot: snapshot, horizonMinutes: null);
+      final envelope = _predictionService.predictForCrossing(crossing: widget.crossing, liveboards: liveboards.items, timetables: timetables.items, trainInfos: trainInfos.items, stationLookupById: widget.bundle.stationById, calibrationRules: widget.bundle.calibrationRules, stationPairProjections: widget.bundle.stationPairProjections, stationPairProjectionRejections: widget.bundle.stationPairProjectionRejections, dataSnapshot: snapshot, horizonMinutes: null);
       if (!mounted) return;
       setState(() {
         _envelope = envelope;
@@ -171,10 +156,10 @@ class _PredictionScreenState extends State<PredictionScreen> {
   List<PredictionRecord?> get _carouselPredictions {
     final upcoming = _envelope?.upcomingPredictions ?? [];
     final actualUpcoming = upcoming.where((p) => p.eta.isAfter(DateTime.now())).toList();
-    
+
     final list = <PredictionRecord?>[];
     list.add(_runtime.previous); // Slot 0: Previous (can be null)
-    
+
     if (actualUpcoming.isEmpty) {
       list.add(null); // Slot 1: Current
       list.add(null); // Slot 2: Next
@@ -219,7 +204,12 @@ class _MiniMap extends StatelessWidget {
                     if (crossing.stationB.position != null) _stationMarker(crossing.stationB),
                     Marker(point: LatLng(crossing.geometry.lat, crossing.geometry.lon), width: 44, height: 44, child: const _CrossingMarker()),
                     if (userLocation != null)
-                      Marker(point: LatLng(userLocation!.lat, userLocation!.lon), width: 28, height: 28, child: const Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep)),
+                      Marker(
+                        point: LatLng(userLocation!.lat, userLocation!.lon),
+                        width: 28,
+                        height: 28,
+                        child: const Icon(Icons.my_location_rounded, color: AppColors.pastelBlueDeep),
+                      ),
                   ],
                 ),
               ],
@@ -261,13 +251,24 @@ class _MiniMap extends StatelessWidget {
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 4)]),
+          decoration: BoxDecoration(
+            color: AppColors.pastelBlueSoft,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 4)],
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.train_rounded, color: AppColors.pastelBlueDeep, size: 14),
               const SizedBox(width: 4),
-              Flexible(child: Text(station.name ?? '未知車站', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep))),
+              Flexible(
+                child: Text(
+                  station.name ?? '未知車站',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep),
+                ),
+              ),
             ],
           ),
         ),
@@ -279,7 +280,9 @@ class _MiniMap extends StatelessWidget {
     final stationA = crossing.stationA.position;
     final stationB = crossing.stationB.position;
     if (stationA == null || stationB == null) return const [];
-    return [Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.pastelBlueDeep.withValues(alpha: 0.6), strokeWidth: 4)];
+    return [
+      Polyline(points: [LatLng(stationA.lat, stationA.lon), LatLng(crossing.geometry.lat, crossing.geometry.lon), LatLng(stationB.lat, stationB.lon)], color: AppColors.pastelBlueDeep.withValues(alpha: 0.6), strokeWidth: 4),
+    ];
   }
 }
 
@@ -289,7 +292,12 @@ class _CrossingMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: AppColors.pastelPinkDeep, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3), boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]),
+      decoration: BoxDecoration(
+        color: AppColors.pastelPinkDeep,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [BoxShadow(color: AppColors.pastelPinkDeep.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
       child: const Icon(Icons.railway_alert_rounded, color: Colors.white, size: 20),
     );
   }
@@ -308,9 +316,18 @@ class _CrossingStrip extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(crossing.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.ink)),
+              Text(
+                crossing.name,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.ink),
+              ),
               const SizedBox(height: 4),
-              if (crossing.subtitle.isNotEmpty) Text(crossing.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
+              if (crossing.subtitle.isNotEmpty)
+                Text(
+                  crossing.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.muted),
+                ),
             ],
           ),
         ),
@@ -318,7 +335,10 @@ class _CrossingStrip extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(20)),
-          child: Text(crossing.stationPairLabel, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep)),
+          child: Text(
+            crossing.stationPairLabel,
+            style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep),
+          ),
         ),
       ],
     );
@@ -336,7 +356,7 @@ class _MainPredictionPanel extends StatelessWidget {
     final remaining = prediction.eta.difference(now);
     final isWarning = remaining.inSeconds <= prediction.warningWindowMinutes * 60;
     final progressValue = _progress(remaining, prediction.warningWindowMinutes);
-    
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(24),
@@ -354,7 +374,10 @@ class _MainPredictionPanel extends StatelessWidget {
             children: [
               Icon(prediction.dataBasis == 'liveboard' ? Icons.bolt_rounded : Icons.schedule_rounded, color: isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep),
               const SizedBox(width: 8),
-              Text('${prediction.trainNo}次', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
+              Text(
+                '${prediction.trainNo}次',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink),
+              ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -363,7 +386,10 @@ class _MainPredictionPanel extends StatelessWidget {
                   children: [
                     Icon(prediction.direction == 1 ? Icons.south_rounded : Icons.north_rounded, size: 16, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
                     const SizedBox(width: 4),
-                    Text(prediction.direction == 1 ? '南下' : '北上', style: TextStyle(fontWeight: FontWeight.w900, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep)),
+                    Text(
+                      prediction.direction == 1 ? '南下' : '北上',
+                      style: TextStyle(fontWeight: FontWeight.w900, color: prediction.direction == 1 ? AppColors.pastelBlueDeep : AppColors.pastelPinkDeep),
+                    ),
                   ],
                 ),
               ),
@@ -373,13 +399,7 @@ class _MainPredictionPanel extends StatelessWidget {
           Center(
             child: Text(
               _formatCountdown(remaining),
-              style: TextStyle(
-                fontSize: 64,
-                height: 1.0,
-                letterSpacing: -2,
-                fontWeight: FontWeight.w900,
-                color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep,
-              ),
+              style: TextStyle(fontSize: 64, height: 1.0, letterSpacing: -2, fontWeight: FontWeight.w900, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
             ),
           ),
           const SizedBox(height: 24),
@@ -393,7 +413,10 @@ class _MainPredictionPanel extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Container(height: 4, decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2))),
+                      Container(
+                        height: 4,
+                        decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2)),
+                      ),
                       LinearProgressIndicator(value: progressValue, minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
                       Align(
                         alignment: Alignment(-1.0 + (progressValue * 2), 0.0),
@@ -440,9 +463,15 @@ class _TimelineNode extends StatelessWidget {
     return Column(
       crossAxisAlignment: alignStart ? CrossAxisAlignment.start : CrossAxisAlignment.end,
       children: [
-        Text(name, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink)),
+        Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink),
+        ),
         const SizedBox(height: 4),
-        Text(_formatClockMinute(time), style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12)),
+        Text(
+          _formatClockMinute(time),
+          style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12),
+        ),
       ],
     );
   }
@@ -460,7 +489,10 @@ class _IconStat extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: color),
         const SizedBox(width: 6),
-        Text(value, style: TextStyle(fontWeight: FontWeight.w700, color: color)),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.w700, color: color),
+        ),
       ],
     );
   }
@@ -517,7 +549,7 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
   @override
   void didUpdateWidget(covariant _PredictionCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     bool changed = false;
     for (int i = 0; i < widget.predictions.length || i < oldWidget.predictions.length; i++) {
       if (_getKey(oldWidget.predictions, i) != _getKey(widget.predictions, i)) {
@@ -527,27 +559,27 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
     }
 
     if (changed) {
-       int currentPage = _pageController.page?.round() ?? 1;
-       String? oldKey = _getKey(oldWidget.predictions, currentPage);
-       
-       int newIndex = -1;
-       if (oldKey != null) {
-         newIndex = widget.predictions.indexWhere((p) => p?.identityKey == oldKey);
-       }
-       
-       if (newIndex != -1 && newIndex != currentPage) {
-         _pageController.jumpToPage(newIndex);
-         currentPage = newIndex;
-       }
-       
-       int oldIndex = oldWidget.predictions.indexWhere((p) => p?.identityKey == oldKey);
-       if (oldIndex == 1 && newIndex == 0 && widget.predictions.length > 1 && widget.predictions[1] != null) {
-         WidgetsBinding.instance.addPostFrameCallback((_) {
-           if (mounted) {
-             _pageController.animateToPage(1, duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic);
-           }
-         });
-       }
+      int currentPage = _pageController.page?.round() ?? 1;
+      String? oldKey = _getKey(oldWidget.predictions, currentPage);
+
+      int newIndex = -1;
+      if (oldKey != null) {
+        newIndex = widget.predictions.indexWhere((p) => p?.identityKey == oldKey);
+      }
+
+      if (newIndex != -1 && newIndex != currentPage) {
+        _pageController.jumpToPage(newIndex);
+        currentPage = newIndex;
+      }
+
+      int oldIndex = oldWidget.predictions.indexWhere((p) => p?.identityKey == oldKey);
+      if (oldIndex == 1 && newIndex == 0 && widget.predictions.length > 1 && widget.predictions[1] != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _pageController.animateToPage(1, duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic);
+          }
+        });
+      }
     }
   }
 
@@ -570,10 +602,7 @@ class _PredictionCarouselState extends State<_PredictionCarousel> {
           if (prediction == null) {
             return const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.0),
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: _EmptyPredictionPanel(),
-              ),
+              child: Align(alignment: Alignment.topCenter, child: _EmptyPredictionPanel()),
             );
           }
           return Padding(
@@ -609,7 +638,10 @@ class _EmptyPredictionPanel extends StatelessWidget {
           children: [
             Icon(Icons.train_rounded, size: 48, color: AppColors.pastelBlueSoft),
             SizedBox(height: 16),
-            Text('無班次資訊', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.muted)),
+            Text(
+              '無班次資訊',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.muted),
+            ),
           ],
         ),
       ),
@@ -617,12 +649,15 @@ class _EmptyPredictionPanel extends StatelessWidget {
   }
 }
 
-
 class _PredictionSkeleton extends StatelessWidget {
   const _PredictionSkeleton({super.key});
   @override
   Widget build(BuildContext context) {
-    return Container(height: 320, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)), child: const Center(child: CircularProgressIndicator()));
+    return Container(
+      height: 320,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
+      child: const Center(child: CircularProgressIndicator()),
+    );
   }
 }
 
@@ -642,9 +677,17 @@ class _UnavailablePanel extends StatelessWidget {
         children: [
           const Icon(Icons.info_outline_rounded, color: AppColors.pastelBlueDeep, size: 32),
           const Spacer(),
-          Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.ink)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.ink),
+          ),
           const SizedBox(height: 8),
-          Text(detail, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
+          Text(
+            detail,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.muted),
+          ),
         ],
       ),
     );

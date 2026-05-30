@@ -272,6 +272,120 @@ def test_build_predictions_from_timetables_applies_train_info_delay() -> None:
     assert predictions[0].next_stop_arrival == parse_time_on_date(date.today(), "10:14")
 
 
+def test_timetable_predictions_can_use_liveboard_delay_only_fallback() -> None:
+    predictor = PredictorService.__new__(PredictorService)
+
+    class _StubStationGraphService:
+        def resolve_runtime_ratio_for_station_pair(self, crossing, **kwargs):  # noqa: ANN001
+            return (None, "unavailable", "low", "no projection")
+
+    predictor.station_graph_service = _StubStationGraphService()
+    now = parse_time_on_date(date.today(), "09:30")
+    assert now is not None
+
+    crossing = {
+        "station_a_id": "A",
+        "station_b_id": "B",
+        "segment_ratio": 0.5,
+        "ratio_source": "osm_path",
+        "geolocation_confidence": "high",
+        "segment_confidence": "high",
+    }
+    station_lookup_by_id = {
+        "A": {"StationPosition": {"PositionLat": 23.0, "PositionLon": 120.0}},
+        "B": {"StationPosition": {"PositionLat": 22.9, "PositionLon": 120.1}},
+    }
+    timetables = [
+        {
+            "TrainInfo": {
+                "TrainNo": "3001",
+                "TrainTypeName": {"Zh_tw": "區間"},
+                "StartingStationID": "A",
+                "StartingStationName": {"Zh_tw": "甲站"},
+                "EndingStationID": "B",
+                "EndingStationName": {"Zh_tw": "乙站"},
+            },
+            "StopTimes": [
+                {
+                    "StopSequence": 1,
+                    "StationID": "A",
+                    "StationName": {"Zh_tw": "甲站"},
+                    "ArrivalTime": "10:00",
+                    "DepartureTime": "10:00",
+                },
+                {
+                    "StopSequence": 2,
+                    "StationID": "B",
+                    "StationName": {"Zh_tw": "乙站"},
+                    "ArrivalTime": "10:10",
+                    "DepartureTime": "10:10",
+                },
+            ],
+        }
+    ]
+    liveboards = [
+        {
+            "TrainNo": "3001",
+            "StationID": "B",
+            "StationName": {"Zh_tw": "乙站"},
+            "TrainTypeName": {"Zh_tw": "區間"},
+            "UpdateTime": f"{date.today().isoformat()}T10:10:00+08:00",
+            "DelayTime": 1,
+        }
+    ]
+    prepared = predictor._prepare_timetables_for_crossing(
+        timetables,
+        "A",
+        "B",
+        station_lookup_by_id=station_lookup_by_id,
+    )
+    fallback_reasons: dict[str, str] = {}
+    fallback_delays = {}
+    fallback_liveboards = {}
+
+    live_predictions = predictor._build_predictions_from_liveboards(
+        crossing,
+        liveboards,
+        timetables,
+        prepared_timetables=prepared,
+        train_info_by_train_no={},
+        station_lookup_by_id=station_lookup_by_id,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+        warning_minutes=5,
+        fallback_reasons_by_train_no=fallback_reasons,
+        fallback_delays_by_train_no=fallback_delays,
+        fallback_liveboards_by_train_no=fallback_liveboards,
+    )
+
+    assert live_predictions == []
+    assert fallback_delays["3001"].source == "liveboard"
+    assert fallback_delays["3001"].minutes == 1
+    assert "3001" in fallback_reasons
+
+    predictions = predictor._build_predictions_from_timetables(
+        crossing,
+        timetables,
+        prepared_timetables=prepared,
+        train_info_by_train_no={},
+        station_lookup_by_id=station_lookup_by_id,
+        now=now,
+        horizon_minutes=None,
+        recent_minutes=10,
+        warning_minutes=5,
+        liveboard_fallback_reasons_by_train_no=fallback_reasons,
+        liveboard_fallback_delays_by_train_no=fallback_delays,
+        liveboard_fallback_liveboards_by_train_no=fallback_liveboards,
+    )
+
+    assert len(predictions) == 1
+    assert predictions[0].delay_source == "liveboard"
+    assert predictions[0].delay_minutes == 1
+    assert predictions[0].source_station_id == "B"
+    assert "liveboard delay fallback" in predictions[0].reason
+
+
 def test_build_predictions_from_liveboards_uses_observed_stop_delay_before_crossing() -> None:
     predictor = PredictorService.__new__(PredictorService)
     now = parse_time_on_date(date.today(), "09:50")

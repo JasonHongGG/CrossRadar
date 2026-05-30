@@ -22,15 +22,16 @@ class PreparedTimetableSet {
 }
 
 class DelayEstimate {
-  const DelayEstimate({required this.seconds, required this.minutes, required this.source});
+  const DelayEstimate({required this.seconds, required this.minutes, required this.source, this.reason});
 
   final int seconds;
   final int minutes;
   final String source;
+  final String? reason;
 }
 
 class _LiveContext {
-  const _LiveContext({required this.candidate, required this.liveboard, required this.observedStop, required this.observedIndex, required this.delayEstimate, this.observedRatio});
+  const _LiveContext({required this.candidate, required this.liveboard, required this.observedStop, required this.observedIndex, required this.delayEstimate, this.observedRatio, this.projectionReason});
 
   final PreparedTimetableCandidate candidate;
   final TrainLiveBoard liveboard;
@@ -38,6 +39,30 @@ class _LiveContext {
   final int? observedIndex;
   final DelayEstimate delayEstimate;
   final double? observedRatio;
+  final String? projectionReason;
+}
+
+class _LiveSelection {
+  const _LiveSelection({this.context, this.fallbackReason});
+
+  final _LiveContext? context;
+  final String? fallbackReason;
+}
+
+class _LivePredictionBuildResult {
+  const _LivePredictionBuildResult({required this.predictions, required this.fallbackReasons, required this.fallbackDelays, required this.fallbackLiveboards});
+
+  final List<PredictionRecord> predictions;
+  final Map<String, String> fallbackReasons;
+  final Map<String, DelayEstimate> fallbackDelays;
+  final Map<String, TrainLiveBoard> fallbackLiveboards;
+}
+
+class _StationProjectionResolution {
+  const _StationProjectionResolution({required this.reason, this.ratio});
+
+  final String reason;
+  final double? ratio;
 }
 
 class _SegmentContext {
@@ -92,7 +117,21 @@ class PredictionService {
 
   final TravelProfileService travelProfileService;
 
-  PredictionEnvelope predictForCrossing({required Crossing crossing, required List<TrainTimetable> timetables, required List<TrainLiveBoard> liveboards, required List<TrainInfo> trainInfos, required Map<String, Station> stationLookupById, required List<CalibrationRule> calibrationRules, Map<String, StationPairProjection> stationPairProjections = const {}, PredictionDataSnapshot? dataSnapshot, DateTime? now, int? horizonMinutes, int recentMinutes = 10, int warningMinutes = 5}) {
+  PredictionEnvelope predictForCrossing({
+    required Crossing crossing,
+    required List<TrainTimetable> timetables,
+    required List<TrainLiveBoard> liveboards,
+    required List<TrainInfo> trainInfos,
+    required Map<String, Station> stationLookupById,
+    required List<CalibrationRule> calibrationRules,
+    Map<String, StationPairProjection> stationPairProjections = const {},
+    Map<String, StationPairProjectionRejection> stationPairProjectionRejections = const {},
+    PredictionDataSnapshot? dataSnapshot,
+    DateTime? now,
+    int? horizonMinutes,
+    int recentMinutes = 10,
+    int warningMinutes = 5,
+  }) {
     final started = Stopwatch()..start();
     now ??= DateTime.now();
     dataSnapshot ??= PredictionDataSnapshot(liveboardCount: liveboards.length, delayedLiveboardCount: liveboards.where((item) => (item.delayTime ?? 0) != 0).length, timetableCount: timetables.length, trainInfoCount: trainInfos.length, delayedTrainInfoCount: trainInfos.where((item) => (item.delayTime ?? 0) != 0).length);
@@ -107,11 +146,14 @@ class PredictionService {
 
     final prepared = prepareTimetablesForCrossing(timetables, stationAId, stationBId, stationLookupById);
     final trainInfoByNo = {for (final info in trainInfos) info.trainNo: info};
-    final livePredictions = _buildPredictionsFromLiveboards(crossing, liveboards, prepared, trainInfoByNo, stationLookupById, stationPairProjections, calibrationRules, now, horizonMinutes, recentMinutes, warningMinutes);
-    final timetablePredictions = _buildPredictionsFromTimetables(crossing, prepared, trainInfoByNo, stationLookupById, calibrationRules, now, horizonMinutes, recentMinutes, warningMinutes);
-    final predictions = _dedupePredictions(_mergePredictions(livePredictions, timetablePredictions));
-    final partition = _partitionPredictions(predictions, now, recentMinutes);
+    final liveResult = _buildPredictionsFromLiveboards(crossing, liveboards, prepared, trainInfoByNo, stationLookupById, stationPairProjections, stationPairProjectionRejections, calibrationRules, now, horizonMinutes, recentMinutes, warningMinutes);
+    final timetablePredictions = _buildPredictionsFromTimetables(crossing, prepared, trainInfoByNo, stationLookupById, calibrationRules, now, horizonMinutes, recentMinutes, warningMinutes, liveboardFallbackReasons: liveResult.fallbackReasons, liveboardFallbackDelays: liveResult.fallbackDelays, liveboardFallbackLiveboards: liveResult.fallbackLiveboards);
+    final predictions = _dedupePredictions(_mergePredictions(liveResult.predictions, timetablePredictions));
     final snapshot = _snapshotWithTiming(dataSnapshot, 'prediction_total', started.elapsedMilliseconds);
+    if (predictions.isEmpty) {
+      return _unavailable(crossing, now, warningMinutes, horizonMinutes, recentMinutes, 'no_prediction_candidates', liveResult.fallbackReasons.values.firstOrNull ?? 'No timetable or liveboard candidates matched this crossing.', dataSnapshot: snapshot);
+    }
+    final partition = _partitionPredictions(predictions, now, recentMinutes);
     return PredictionEnvelope(crossingId: crossing.id, generatedAt: now, warningWindowMinutes: warningMinutes, horizonMinutes: horizonMinutes, recentWindowMinutes: recentMinutes, available: true, dataSnapshot: snapshot, recentPrediction: partition.$1, upcomingPredictions: partition.$2, predictions: partition.$3);
   }
 
@@ -154,7 +196,7 @@ class PredictionService {
     return seqA < seqB ? (stopA, stopB, direction) : (stopB, stopA, direction);
   }
 
-  List<PredictionRecord> _buildPredictionsFromTimetables(Crossing crossing, PreparedTimetableSet prepared, Map<String, TrainInfo> trainInfoByNo, Map<String, Station> stationLookupById, List<CalibrationRule> calibrationRules, DateTime now, int? horizonMinutes, int recentMinutes, int warningMinutes) {
+  List<PredictionRecord> _buildPredictionsFromTimetables(Crossing crossing, PreparedTimetableSet prepared, Map<String, TrainInfo> trainInfoByNo, Map<String, Station> stationLookupById, List<CalibrationRule> calibrationRules, DateTime now, int? horizonMinutes, int recentMinutes, int warningMinutes, {Map<String, String> liveboardFallbackReasons = const {}, Map<String, DelayEstimate> liveboardFallbackDelays = const {}, Map<String, TrainLiveBoard> liveboardFallbackLiveboards = const {}}) {
     final predictions = <PredictionRecord>[];
     for (final candidate in prepared.allCandidates) {
       final timetable = candidate.timetable;
@@ -163,7 +205,7 @@ class PredictionService {
       if (upstreamDeparture == null || downstreamArrival == null || !downstreamArrival.isAfter(upstreamDeparture)) {
         continue;
       }
-      final delay = _resolveDelayMinutes(timetable.trainNo, trainInfoByNo: trainInfoByNo);
+      final delay = liveboardFallbackDelays[timetable.trainNo] ?? _resolveDelayMinutes(timetable.trainNo, trainInfoByNo: trainInfoByNo);
       final timing = _estimatePredictionTiming(
         crossing,
         trainNo: timetable.trainNo,
@@ -184,18 +226,34 @@ class PredictionService {
       if (timing == null || !_isPredictionInWindow(timing.eta, now, horizonMinutes, recentMinutes)) {
         continue;
       }
-      predictions.add(_buildRecord(crossing, timetable, candidate, timing, warningMinutes, hasLiveboard: false, delay: delay, liveboard: null));
+      predictions.add(_buildRecord(crossing, timetable, candidate, timing, warningMinutes, hasLiveboard: false, delay: delay, liveboard: liveboardFallbackLiveboards[timetable.trainNo], fallbackReason: liveboardFallbackReasons[timetable.trainNo]));
     }
     predictions.sort((a, b) => a.eta.compareTo(b.eta));
     return predictions;
   }
 
-  List<PredictionRecord> _buildPredictionsFromLiveboards(Crossing crossing, List<TrainLiveBoard> liveboards, PreparedTimetableSet prepared, Map<String, TrainInfo> trainInfoByNo, Map<String, Station> stationLookupById, Map<String, StationPairProjection> stationPairProjections, List<CalibrationRule> calibrationRules, DateTime now, int? horizonMinutes, int recentMinutes, int warningMinutes) {
+  _LivePredictionBuildResult _buildPredictionsFromLiveboards(Crossing crossing, List<TrainLiveBoard> liveboards, PreparedTimetableSet prepared, Map<String, TrainInfo> trainInfoByNo, Map<String, Station> stationLookupById, Map<String, StationPairProjection> stationPairProjections, Map<String, StationPairProjectionRejection> stationPairProjectionRejections, List<CalibrationRule> calibrationRules, DateTime now, int? horizonMinutes, int recentMinutes, int warningMinutes) {
     final predictions = <PredictionRecord>[];
+    final fallbackReasons = <String, String>{};
+    final fallbackDelays = <String, DelayEstimate>{};
+    final fallbackLiveboards = <String, TrainLiveBoard>{};
     final index = _buildLiveboardIndex(liveboards);
     for (final entry in prepared.byTrainNo.entries) {
-      final context = _selectLiveboardCandidateContext(crossing, index[entry.key] ?? const [], entry.value, trainInfoByNo, stationPairProjections, now);
-      if (context == null) continue;
+      final trainLiveboards = index[entry.key] ?? const <TrainLiveBoard>[];
+      final selection = _selectLiveboardCandidateContext(crossing, trainLiveboards, entry.value, trainInfoByNo, stationPairProjections, stationPairProjectionRejections, now);
+      final context = selection.context;
+      if (context == null) {
+        final fallbackReason = selection.fallbackReason;
+        if (fallbackReason != null) {
+          fallbackReasons[entry.key] = fallbackReason;
+        }
+        final delayFallback = _resolveLiveboardDelayFallback(trainLiveboards);
+        if (delayFallback != null) {
+          fallbackDelays[entry.key] = delayFallback.$1;
+          fallbackLiveboards[entry.key] = delayFallback.$2;
+        }
+        continue;
+      }
       final candidate = context.candidate;
       final timetable = candidate.timetable;
       final upstreamDeparture = parseTimeOnDate(now, candidate.upstream.departureTime ?? candidate.upstream.arrivalTime);
@@ -224,12 +282,12 @@ class PredictionService {
       if (timing == null || !_isPredictionInWindow(timing.eta, now, horizonMinutes, recentMinutes)) {
         continue;
       }
-      predictions.add(_buildRecord(crossing, timetable, candidate, timing, warningMinutes, hasLiveboard: true, delay: context.delayEstimate, liveboard: context.liveboard, observedRatio: context.observedRatio));
+      predictions.add(_buildRecord(crossing, timetable, candidate, timing, warningMinutes, hasLiveboard: true, delay: context.delayEstimate, liveboard: context.liveboard, observedRatio: context.observedRatio, projectionReason: context.projectionReason));
     }
-    return predictions;
+    return _LivePredictionBuildResult(predictions: predictions, fallbackReasons: fallbackReasons, fallbackDelays: fallbackDelays, fallbackLiveboards: fallbackLiveboards);
   }
 
-  PredictionRecord _buildRecord(Crossing crossing, TrainTimetable timetable, PreparedTimetableCandidate candidate, _TimingEstimate timing, int warningMinutes, {required bool hasLiveboard, required DelayEstimate delay, required TrainLiveBoard? liveboard, double? observedRatio}) {
+  PredictionRecord _buildRecord(Crossing crossing, TrainTimetable timetable, PreparedTimetableCandidate candidate, _TimingEstimate timing, int warningMinutes, {required bool hasLiveboard, required DelayEstimate delay, required TrainLiveBoard? liveboard, double? observedRatio, String? projectionReason, String? fallbackReason}) {
     final now = DateTime.now();
     final predictionMethod = hasLiveboard
         ? timing.anchorTimeSource != null
@@ -238,6 +296,17 @@ class PredictionService {
         : delay.source == 'train_info'
         ? 'travel-profile+delay-segment${timing.calibrationOffsetSeconds == 0 ? '' : '+calibrated'}'
         : 'travel-profile${timing.calibrationOffsetSeconds == 0 ? '' : '+calibrated'}';
+    final delayReason = delay.reason;
+    final baseReason = hasLiveboard
+        ? observedRatio == null
+              ? 'Used TrainLiveBoard delay correction at a timetable stop.'
+              : projectionReason ?? 'Projected a liveboard station observation onto the active OSM stop-pair.'
+        : delay.source == 'liveboard'
+        ? 'Used timetable with liveboard delay fallback.'
+        : delay.source == 'train_info'
+        ? 'Used timetable with train-info delay fallback.'
+        : 'Used timetable without runtime delay evidence.';
+    final reasonDetails = [fallbackReason, delayReason].whereType<String>().where((value) => value.trim().isNotEmpty).join(' ');
     return PredictionRecord(
       trainNo: timetable.trainNo,
       trainType: timetable.trainTypeName ?? liveboard?.trainTypeName,
@@ -274,11 +343,7 @@ class PredictionService {
       calibrationOffsetSeconds: timing.calibrationOffsetSeconds,
       etaUncertaintySeconds: timing.etaUncertaintySeconds,
       accuracyTier: timing.accuracyTier,
-      reason: hasLiveboard
-          ? observedRatio == null
-                ? 'Used TrainLiveBoard delay correction.'
-                : 'Projected a liveboard station observation onto the active OSM stop-pair.'
-          : 'Used timetable with train-info delay fallback.',
+      reason: reasonDetails.isEmpty ? baseReason : '$baseReason $reasonDetails',
       ratioSource: timing.ratioSource,
       segmentConfidence: timing.segmentConfidence,
       segmentRatio: timing.ratio,
@@ -357,24 +422,51 @@ class PredictionService {
     return ratioSource == 'osm_path' && ratio > 0.0 && ratio < 1.0;
   }
 
-  _LiveContext? _selectLiveboardCandidateContext(Crossing crossing, List<TrainLiveBoard> liveboards, List<PreparedTimetableCandidate> candidates, Map<String, TrainInfo> trainInfoByNo, Map<String, StationPairProjection> stationPairProjections, DateTime referenceDate) {
+  _LiveSelection _selectLiveboardCandidateContext(Crossing crossing, List<TrainLiveBoard> liveboards, List<PreparedTimetableCandidate> candidates, Map<String, TrainInfo> trainInfoByNo, Map<String, StationPairProjection> stationPairProjections, Map<String, StationPairProjectionRejection> stationPairProjectionRejections, DateTime referenceDate) {
     _LiveContext? best;
     (int, int, int, int)? bestScore;
+    String? fallbackReason;
+    (int, int, int, int)? fallbackScore;
     for (final liveboard in liveboards) {
       for (final candidate in candidates) {
         final observedIndex = _findTimetableStopIndex(candidate.timetable.stopTimes, liveboard.stationId, candidate);
         StopTime? observedStop;
         double? observedRatio;
+        String? projectionReason;
         late DelayEstimate delay;
         late int phaseRank;
         late int stopGap;
+        final pairSpan = math.max(candidate.downstreamIndex - candidate.upstreamIndex, 0);
+        final liveRank = -(liveboard.updateTime?.millisecondsSinceEpoch ?? 0);
         if (observedIndex == null) {
-          observedRatio = _projectLiveboardStationRatio(liveboard.stationId, candidate, stationPairProjections);
-          final crossingRatio = _predictionSegmentContext(crossing, candidate.upstream.stationId, candidate.downstream.stationId).ratio;
-          if (observedRatio == null || crossingRatio == null || observedRatio >= crossingRatio) {
+          final projection = _projectLiveboardStationRatio(liveboard, candidate, stationPairProjections, stationPairProjectionRejections);
+          final failureScore = (1, 0, pairSpan, liveRank);
+          if (projection.ratio == null) {
+            if (fallbackScore == null || _compareScore(failureScore, fallbackScore) < 0) {
+              fallbackScore = failureScore;
+              fallbackReason = projection.reason;
+            }
             continue;
           }
-          delay = _resolveProjectedLiveboardDelayEstimate(candidate, liveboard, observedRatio, trainInfoByNo, referenceDate);
+          final projectedRatio = projection.ratio!;
+          observedRatio = projectedRatio;
+          final crossingRatio = _predictionSegmentContext(crossing, candidate.upstream.stationId, candidate.downstream.stationId).ratio;
+          if (crossingRatio == null) {
+            if (fallbackScore == null || _compareScore(failureScore, fallbackScore) < 0) {
+              fallbackScore = failureScore;
+              fallbackReason = _formatLiveboardFallbackReason(liveboard, candidate, 'No OSM stop-pair ratio is available for this station pair.');
+            }
+            continue;
+          }
+          if (projectedRatio >= crossingRatio) {
+            if (fallbackScore == null || _compareScore(failureScore, fallbackScore) < 0) {
+              fallbackScore = failureScore;
+              fallbackReason = _formatLiveboardFallbackReason(liveboard, candidate, 'The projected station lies beyond the crossing on this stop pair.');
+            }
+            continue;
+          }
+          projectionReason = projection.reason;
+          delay = _resolveProjectedLiveboardDelayEstimate(candidate, liveboard, projectedRatio, trainInfoByNo, referenceDate);
           phaseRank = 1;
           stopGap = 0;
         } else {
@@ -383,23 +475,37 @@ class PredictionService {
           phaseRank = observedIndex == candidate.upstreamIndex ? 0 : 2;
           stopGap = math.max(candidate.upstreamIndex - observedIndex, 0);
         }
-        final pairSpan = math.max(candidate.downstreamIndex - candidate.upstreamIndex, 0);
-        final liveRank = -(liveboard.updateTime?.millisecondsSinceEpoch ?? 0);
         final score = (phaseRank, stopGap, pairSpan, liveRank);
         if (bestScore == null || _compareScore(score, bestScore) < 0) {
           bestScore = score;
-          best = _LiveContext(candidate: candidate, liveboard: liveboard, observedStop: observedStop, observedIndex: observedIndex, observedRatio: observedRatio, delayEstimate: delay);
+          best = _LiveContext(candidate: candidate, liveboard: liveboard, observedStop: observedStop, observedIndex: observedIndex, observedRatio: observedRatio, delayEstimate: delay, projectionReason: projectionReason);
         }
       }
     }
-    return best;
+    return _LiveSelection(context: best, fallbackReason: best == null ? fallbackReason : null);
   }
 
-  double? _projectLiveboardStationRatio(String stationId, PreparedTimetableCandidate candidate, Map<String, StationPairProjection> stationPairProjections) {
-    final projection = stationPairProjections['$stationId|${candidate.upstream.stationId}|${candidate.downstream.stationId}'];
-    if (projection == null || projection.source != 'osm_path') return null;
-    if (projection.ratio <= 0.0 || projection.ratio >= 1.0) return null;
-    return projection.ratio;
+  _StationProjectionResolution _projectLiveboardStationRatio(TrainLiveBoard liveboard, PreparedTimetableCandidate candidate, Map<String, StationPairProjection> stationPairProjections, Map<String, StationPairProjectionRejection> stationPairProjectionRejections) {
+    final key = '${liveboard.stationId}|${candidate.upstream.stationId}|${candidate.downstream.stationId}';
+    final projection = stationPairProjections[key];
+    final stationLabel = liveboard.stationName ?? liveboard.stationId;
+    final pairLabel = '${candidate.upstream.stationName}-${candidate.downstream.stationName}';
+    if (projection != null) {
+      if (projection.source != 'osm_path') {
+        return _StationProjectionResolution(reason: '$stationLabel could not use the exported projection for $pairLabel: ${projection.note ?? 'projection source is not OSM-backed.'}');
+      }
+      if (projection.ratio <= 0.0 || projection.ratio >= 1.0) {
+        return _StationProjectionResolution(reason: '$stationLabel could not use the exported projection for $pairLabel: ${projection.note ?? 'projection ratio is outside the usable range.'}');
+      }
+      return _StationProjectionResolution(ratio: projection.ratio, reason: 'Projected $stationLabel onto $pairLabel via the mobile OSM stop-pair map.');
+    }
+    final rejection = stationPairProjectionRejections[key];
+    return _StationProjectionResolution(reason: _formatLiveboardFallbackReason(liveboard, candidate, rejection?.note ?? 'No usable station-pair projection was exported for this liveboard station.'));
+  }
+
+  String _formatLiveboardFallbackReason(TrainLiveBoard liveboard, PreparedTimetableCandidate candidate, String detail) {
+    final stationLabel = liveboard.stationName ?? liveboard.stationId;
+    return '$stationLabel could not be projected onto ${candidate.upstream.stationName}-${candidate.downstream.stationName}: $detail';
   }
 
   int? _findTimetableStopIndex(List<StopTime> stops, String stationId, PreparedTimetableCandidate candidate) {
@@ -425,17 +531,17 @@ class PredictionService {
     if (scheduled != null && observedAt != null) {
       final delta = observedAt.difference(scheduled).inSeconds;
       if (delta >= -300 && delta <= 7200) {
-        return DelayEstimate(seconds: delta, minutes: (delta / 60).round(), source: 'liveboard');
+        return DelayEstimate(seconds: delta, minutes: (delta / 60).round(), source: 'liveboard', reason: 'Accepted the liveboard update-time delta against the matched timetable stop.');
       }
     }
     if (liveboard.delayTime != null) {
-      return DelayEstimate(seconds: liveboard.delayTime! * 60, minutes: liveboard.delayTime!, source: 'liveboard');
+      return DelayEstimate(seconds: liveboard.delayTime! * 60, minutes: liveboard.delayTime!, source: 'liveboard', reason: 'Accepted the train-level TrainLiveBoard DelayTime because the stop-time delta was outside the usable window.');
     }
     final info = trainInfoByNo[trainNo];
     if (info?.delayTime != null) {
-      return DelayEstimate(seconds: info!.delayTime! * 60, minutes: info.delayTime!, source: 'train_info');
+      return DelayEstimate(seconds: info!.delayTime! * 60, minutes: info.delayTime!, source: 'train_info', reason: 'Fell back to TrainInfo DelayTime because TrainLiveBoard did not provide a usable delay signal.');
     }
-    return const DelayEstimate(seconds: 0, minutes: 0, source: 'none');
+    return const DelayEstimate(seconds: 0, minutes: 0, source: 'none', reason: 'No usable TrainLiveBoard or TrainInfo delay signal was available for this matched station context.');
   }
 
   DelayEstimate _resolveProjectedLiveboardDelayEstimate(PreparedTimetableCandidate candidate, TrainLiveBoard liveboard, double observedRatio, Map<String, TrainInfo> trainInfoByNo, DateTime referenceDate) {
@@ -447,7 +553,7 @@ class PredictionService {
       final scheduledObserved = upstreamDeparture.add(_scaleDuration(downstreamArrival.difference(upstreamDeparture), profile.timeFraction));
       final delta = observedAt.difference(scheduledObserved).inSeconds;
       if (delta >= -300 && delta <= 7200) {
-        return DelayEstimate(seconds: delta, minutes: (delta / 60).round(), source: 'liveboard');
+        return DelayEstimate(seconds: delta, minutes: (delta / 60).round(), source: 'liveboard', reason: 'Accepted the projected TrainLiveBoard update-time delta on the active OSM stop-pair.');
       }
     }
     return _resolveLiveboardDelayEstimate(candidate.timetable.trainNo, liveboard, candidate.upstream, trainInfoByNo, referenceDate);
@@ -456,9 +562,17 @@ class PredictionService {
   DelayEstimate _resolveDelayMinutes(String trainNo, {Map<String, TrainInfo>? trainInfoByNo}) {
     final info = trainInfoByNo?[trainNo];
     if (info?.delayTime != null) {
-      return DelayEstimate(seconds: info!.delayTime! * 60, minutes: info.delayTime!, source: 'train_info');
+      return DelayEstimate(seconds: info!.delayTime! * 60, minutes: info.delayTime!, source: 'train_info', reason: 'Used TrainInfo DelayTime because no liveboard evidence was selected for this train.');
     }
-    return const DelayEstimate(seconds: 0, minutes: 0, source: 'none');
+    return const DelayEstimate(seconds: 0, minutes: 0, source: 'none', reason: 'No liveboard or train-info delay evidence was available for this train.');
+  }
+
+  (DelayEstimate, TrainLiveBoard)? _resolveLiveboardDelayFallback(List<TrainLiveBoard> liveboards) {
+    for (final liveboard in liveboards) {
+      if (liveboard.delayTime == null) continue;
+      return (DelayEstimate(seconds: liveboard.delayTime! * 60, minutes: liveboard.delayTime!, source: 'liveboard', reason: 'Used TrainLiveBoard DelayTime even though no crossing-valid liveboard station context was available.'), liveboard);
+    }
+    return null;
   }
 
   Map<String, List<TrainLiveBoard>> _buildLiveboardIndex(List<TrainLiveBoard> liveboards) {

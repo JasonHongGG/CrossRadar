@@ -75,6 +75,88 @@ void main() {
     expect(envelope.dataSnapshot?.hasStaleSource, isTrue);
     expect(envelope.dataSnapshot?.timingsMs, contains('prediction_total'));
   });
+
+  test('timetable fallback keeps liveboard projection rejection detail', () {
+    final service = PredictionService();
+    final now = DateTime(2026, 5, 28, 9, 45);
+
+    final envelope = service.predictForCrossing(
+      crossing: _crossing('demo', 0.6),
+      timetables: [_timetable()],
+      liveboards: [TrainLiveBoard(trainNo: '3001', stationId: 'C', stationName: '中間站', updateTime: DateTime(2026, 5, 28, 10, 6))],
+      trainInfos: const [],
+      stationLookupById: _stations,
+      calibrationRules: const [],
+      stationPairProjectionRejections: const {'C|A|B': StationPairProjectionRejection(stationId: 'C', upstreamStationId: 'A', downstreamStationId: 'B', source: 'unavailable', confidence: 'low', note: 'No usable station-pair projection was exported for this liveboard station.')},
+      now: now,
+    );
+
+    final prediction = envelope.predictions.single;
+    expect(prediction.dataBasis, 'timetable');
+    expect(prediction.delaySource, 'none');
+    expect(prediction.reason, contains('中間站'));
+    expect(prediction.reason, contains('No usable station-pair projection was exported for this liveboard station.'));
+  });
+
+  test('timetable fallback uses liveboard delay when only a downstream stop record exists', () {
+    final service = PredictionService();
+    final now = DateTime(2026, 5, 28, 9, 45);
+
+    final envelope = service.predictForCrossing(
+      crossing: _crossing('demo', 0.6),
+      timetables: [_timetable()],
+      liveboards: [TrainLiveBoard(trainNo: '3001', stationId: 'B', stationName: '臺南', delayTime: 1, updateTime: DateTime(2026, 5, 28, 10, 10))],
+      trainInfos: const [],
+      stationLookupById: _stations,
+      calibrationRules: const [],
+      now: now,
+    );
+
+    final prediction = envelope.predictions.single;
+    expect(prediction.dataBasis, 'timetable');
+    expect(prediction.delaySource, 'liveboard');
+    expect(prediction.delayMinutes, 1);
+    expect(prediction.reason, contains('liveboard delay fallback'));
+    expect(prediction.reason, contains('no crossing-valid liveboard station context'));
+  });
+
+  test('timetable fallback preserves zero-minute liveboard delay when projection is rejected', () {
+    final service = PredictionService();
+    final now = DateTime(2026, 5, 28, 9, 45);
+
+    final envelope = service.predictForCrossing(
+      crossing: _crossing('demo', 0.6),
+      timetables: [_timetable()],
+      liveboards: [TrainLiveBoard(trainNo: '3001', stationId: 'C', stationName: '中間站', delayTime: 0, updateTime: DateTime(2026, 5, 28, 10, 6))],
+      trainInfos: const [],
+      stationLookupById: _stations,
+      calibrationRules: const [],
+      stationPairProjectionRejections: const {'C|A|B': StationPairProjectionRejection(stationId: 'C', upstreamStationId: 'A', downstreamStationId: 'B', source: 'unavailable', confidence: 'low', note: 'No usable station-pair projection was exported for this liveboard station.')},
+      now: now,
+    );
+
+    final prediction = envelope.predictions.single;
+    expect(prediction.dataBasis, 'timetable');
+    expect(prediction.delaySource, 'liveboard');
+    expect(prediction.delayMinutes, 0);
+    expect(prediction.reason, contains('No usable station-pair projection was exported for this liveboard station.'));
+    expect(prediction.reason, contains('liveboard delay fallback'));
+  });
+
+  test('mobile bundle decodes station pair projection rejections', () {
+    final bundle = MobileBundle.fromJson({
+      'metadata': {'schema_version': 2},
+      'crossings': [],
+      'stations': [],
+      'station_pair_projections': {},
+      'station_pair_projection_rejections': {
+        'C|A|B': {'station_id': 'C', 'upstream_station_id': 'A', 'downstream_station_id': 'B', 'source': 'unavailable', 'confidence': 'low', 'note': 'No usable station-pair projection was exported for this liveboard station.'},
+      },
+      'calibration': {'rules': []},
+    });
+
+    expect(bundle.stationPairProjectionRejections['C|A|B']?.note, 'No usable station-pair projection was exported for this liveboard station.');
+  });
 }
 
 Crossing _crossing(String id, double ratio) => Crossing(

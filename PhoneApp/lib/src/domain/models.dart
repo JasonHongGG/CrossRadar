@@ -95,6 +95,23 @@ class StationPairProjection {
   }
 }
 
+class StationPairProjectionRejection {
+  const StationPairProjectionRejection({required this.stationId, required this.upstreamStationId, required this.downstreamStationId, required this.source, required this.confidence, this.note});
+
+  final String stationId;
+  final String upstreamStationId;
+  final String downstreamStationId;
+  final String source;
+  final String confidence;
+  final String? note;
+
+  String get key => '$stationId|$upstreamStationId|$downstreamStationId';
+
+  factory StationPairProjectionRejection.fromJson(Map<String, dynamic> json) {
+    return StationPairProjectionRejection(stationId: textValue(json['station_id']) ?? '', upstreamStationId: textValue(json['upstream_station_id']) ?? '', downstreamStationId: textValue(json['downstream_station_id']) ?? '', source: textValue(json['source']) ?? 'unavailable', confidence: textValue(json['confidence']) ?? 'low', note: textValue(json['note']));
+  }
+}
+
 class Crossing {
   const Crossing({required this.id, required this.name, required this.geometry, required this.stationA, required this.stationB, required this.runtimeRatios, this.runtimeRatioRejections = const {}, this.line, this.county, this.roadType, this.kmMarker, this.stationPairText, this.stationPairSource, this.geolocationConfidence, this.segmentRatio, this.ratioSource, this.segmentConfidence, this.segmentConfidenceReason});
 
@@ -190,13 +207,14 @@ class CalibrationRule {
 }
 
 class MobileBundle {
-  const MobileBundle({required this.metadata, required this.crossings, required this.stations, required this.calibrationRules, this.stationPairProjections = const {}});
+  const MobileBundle({required this.metadata, required this.crossings, required this.stations, required this.calibrationRules, this.stationPairProjections = const {}, this.stationPairProjectionRejections = const {}});
 
   final Map<String, dynamic> metadata;
   final List<Crossing> crossings;
   final List<Station> stations;
   final List<CalibrationRule> calibrationRules;
   final Map<String, StationPairProjection> stationPairProjections;
+  final Map<String, StationPairProjectionRejection> stationPairProjectionRejections;
 
   int get schemaVersion => intValue(metadata['schema_version']);
 
@@ -206,13 +224,20 @@ class MobileBundle {
   factory MobileBundle.fromJson(Map<String, dynamic> json) {
     final calibration = mapValue(json['calibration']);
     final projections = <String, StationPairProjection>{};
+    final projectionRejections = <String, StationPairProjectionRejection>{};
     for (final entry in mapValue(json['station_pair_projections']).entries) {
       final projection = StationPairProjection.fromJson(mapValue(entry.value));
       if (projection.stationId.isNotEmpty && projection.upstreamStationId.isNotEmpty && projection.downstreamStationId.isNotEmpty) {
         projections[entry.key] = projection;
       }
     }
-    return MobileBundle(metadata: mapValue(json['metadata']), crossings: mapList(json['crossings']).map(Crossing.fromJson).toList(growable: false), stations: mapList(json['stations']).map(Station.fromJson).toList(growable: false), calibrationRules: mapList(calibration['rules']).map(CalibrationRule.fromJson).toList(growable: false), stationPairProjections: projections);
+    for (final entry in mapValue(json['station_pair_projection_rejections']).entries) {
+      final rejection = StationPairProjectionRejection.fromJson(mapValue(entry.value));
+      if (rejection.stationId.isNotEmpty && rejection.upstreamStationId.isNotEmpty && rejection.downstreamStationId.isNotEmpty) {
+        projectionRejections[entry.key] = rejection;
+      }
+    }
+    return MobileBundle(metadata: mapValue(json['metadata']), crossings: mapList(json['crossings']).map(Crossing.fromJson).toList(growable: false), stations: mapList(json['stations']).map(Station.fromJson).toList(growable: false), calibrationRules: mapList(calibration['rules']).map(CalibrationRule.fromJson).toList(growable: false), stationPairProjections: projections, stationPairProjectionRejections: projectionRejections);
   }
 
   factory MobileBundle.decode(String source) => MobileBundle.fromJson(jsonDecode(source) as Map<String, dynamic>);

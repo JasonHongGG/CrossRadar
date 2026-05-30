@@ -2,21 +2,45 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from collections import defaultdict
 from datetime import UTC, datetime
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 from backend.app.dependencies import get_predictor_service, get_settings, get_station_graph_service, get_tdx_client
-from backend.app.utils import project_point_onto_station_line
 
-MAX_STATION_PROJECTION_OFFSET_METERS = 1500.0
-MAX_STATION_PROJECTIONS_PER_PAIR = 3
-MAX_TIMETABLE_RUNTIME_PAIRS_PER_CROSSING = 8
 
+_UK_PRIMARY_PATTERN = re.compile(r"^(?P<line>.+?)\s+K\s*(?P<km>\d+)\s*\+\s*(?P<meter>\d+)$")
+_RAIL_PATH_STATION_MAX_SNAP_DISTANCE_METERS = 1_500.0
+_RAIL_PATH_STATION_MAX_SNAP_CANDIDATES = 8
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_bundle_calibration(*, prediction_calibration_path: Path) -> dict[str, Any]:
+    calibration = _read_json(prediction_calibration_path) if prediction_calibration_path.exists() else {"rules": []}
+    replay_path = prediction_calibration_path.parent / "prediction_observation_replay.json"
+    if not replay_path.exists():
+        return calibration
+
+    replay_payload = _read_json(replay_path)
+    merged = dict(calibration)
+    for key in ("metadata", "baseline", "readiness", "observations"):
+        if key in replay_payload:
+            merged[key] = replay_payload[key]
+
+    metadata = dict(merged.get("metadata") or {})
+    replay_metadata = replay_payload.get("metadata") or {}
+    metadata["observation_mode"] = replay_metadata.get("mode") or metadata.get("observation_mode")
+    metadata["replay_generated_on"] = replay_metadata.get("generated_on")
+    replayed_dates = replay_metadata.get("replayed_service_dates")
+    if replayed_dates is not None:
+        metadata["replayed_service_dates"] = replayed_dates
+    merged["metadata"] = metadata
+    return merged
 
 
 def _compact_position(position: dict[str, Any] | None) -> dict[str, float] | None:
@@ -109,38 +133,178 @@ def _station_position(station: dict[str, Any] | None) -> dict[str, float] | None
     return {"PositionLat": float(lat), "PositionLon": float(lon)}
 
 
-def _candidate_station_projection_ids(
+def _station_chainage(station: dict[str, Any] | None) -> tuple[str, int] | None:
+    uk_primary = str((station or {}).get("UK_primary") or "").strip()
+    if not uk_primary:
+        return None
+    normalized = " ".join(uk_primary.split())
+    match = _UK_PRIMARY_PATTERN.match(normalized)
+    if match is None:
+        return None
+    return (match.group("line").strip(), int(match.group("km")) * 1000 + int(match.group("meter")))
+
+
+def _corridor_station_projection_ids(
     *,
     upstream_station_id: str,
     downstream_station_id: str,
     station_lookup_by_id: dict[str, dict[str, Any]],
-    max_offset_meters: float = MAX_STATION_PROJECTION_OFFSET_METERS,
-    max_candidates: int = MAX_STATION_PROJECTIONS_PER_PAIR,
 ) -> list[str]:
-    upstream = _station_position(station_lookup_by_id.get(upstream_station_id))
-    downstream = _station_position(station_lookup_by_id.get(downstream_station_id))
-    if upstream is None or downstream is None:
+    upstream_chainage = _station_chainage(station_lookup_by_id.get(upstream_station_id))
+    downstream_chainage = _station_chainage(station_lookup_by_id.get(downstream_station_id))
+    if upstream_chainage is None or downstream_chainage is None:
+        return []
+    if upstream_chainage[0] != downstream_chainage[0]:
         return []
 
-    station_ids: list[tuple[float, str]] = []
+    line_name = upstream_chainage[0]
+    lower_bound = min(upstream_chainage[1], downstream_chainage[1])
+    upper_bound = max(upstream_chainage[1], downstream_chainage[1])
+    midpoint = (lower_bound + upper_bound) / 2.0
+    station_ids: list[tuple[int, str]] = []
     for station_id, station in station_lookup_by_id.items():
         if station_id in {upstream_station_id, downstream_station_id}:
             continue
-        position = _station_position(station)
-        if position is None:
+        station_chainage = _station_chainage(station)
+        if station_chainage is None or station_chainage[0] != line_name:
             continue
-        projection = project_point_onto_station_line(
-            upstream["PositionLon"],
-            upstream["PositionLat"],
-            downstream["PositionLon"],
-            downstream["PositionLat"],
-            position["PositionLon"],
-            position["PositionLat"],
+        station_meters = station_chainage[1]
+        if not (lower_bound < station_meters < upper_bound):
+            continue
+        station_ids.append((abs(int(round(station_meters - midpoint))), str(station_id)))
+    station_ids.sort(key=lambda item: (item[0], item[1]))
+    return [station_id for _, station_id in station_ids]
+
+
+def _station_snap_candidates(*, rail_path_service: Any, station: dict[str, Any] | None) -> list[Any]:
+    if rail_path_service is None:
+        return []
+    position = _station_position(station)
+    if position is None:
+        return []
+    return rail_path_service._snap_point_candidates(
+        position.get("PositionLon"),
+        position.get("PositionLat"),
+        max_snap_distance_meters=_RAIL_PATH_STATION_MAX_SNAP_DISTANCE_METERS,
+        max_candidates=_RAIL_PATH_STATION_MAX_SNAP_CANDIDATES,
+    )
+
+
+def _pair_path_spec(
+    *,
+    rail_path_service: Any,
+    rail_graph: Any,
+    segments_by_nodes: dict[frozenset[int], set[int]],
+    upstream_snaps: list[Any],
+    downstream_snaps: list[Any],
+) -> dict[str, Any] | None:
+    best_score: float | None = None
+    best_spec: dict[str, Any] | None = None
+    for upstream_snap in upstream_snaps:
+        for downstream_snap in downstream_snaps:
+            direct_distance: float | None = None
+            direct_spec: dict[str, Any] | None = None
+            if upstream_snap.segment_id == downstream_snap.segment_id:
+                direct_distance = abs(
+                    upstream_snap.distance_from_start_meters - downstream_snap.distance_from_start_meters
+                )
+                direct_spec = {
+                    "distance": direct_distance,
+                    "segment_ids": {upstream_snap.segment_id},
+                    "way_ids": {rail_graph.segments[upstream_snap.segment_id].way_id},
+                }
+
+            graph_result = rail_path_service._dijkstra_path(
+                [
+                    (upstream_snap.start_node, upstream_snap.distance_from_start_meters),
+                    (upstream_snap.end_node, upstream_snap.distance_to_end_meters),
+                ],
+                {
+                    downstream_snap.start_node: downstream_snap.distance_from_start_meters,
+                    downstream_snap.end_node: downstream_snap.distance_to_end_meters,
+                },
+            )
+            spec = direct_spec
+            if graph_result is not None:
+                graph_distance, node_path = graph_result
+                if direct_spec is None or direct_distance is None or direct_distance > graph_distance:
+                    segment_ids = {upstream_snap.segment_id, downstream_snap.segment_id}
+                    for start_node, end_node in zip(node_path, node_path[1:]):
+                        segment_ids.update(segments_by_nodes.get(frozenset((start_node, end_node)), set()))
+                    spec = {
+                        "distance": graph_distance,
+                        "segment_ids": segment_ids,
+                        "way_ids": {rail_graph.segments[segment_id].way_id for segment_id in segment_ids},
+                    }
+
+            if spec is None:
+                continue
+            score = (
+                float(upstream_snap.snap_distance_meters)
+                + float(downstream_snap.snap_distance_meters)
+                + float(spec["distance"]) * 0.25
+            )
+            if best_score is None or score < best_score:
+                best_score = score
+                best_spec = spec
+    return best_spec
+
+
+def _path_segment_station_projection_ids(
+    *,
+    upstream_station_id: str,
+    downstream_station_id: str,
+    rail_path_service: Any,
+    rail_graph: Any,
+    segments_by_nodes: dict[frozenset[int], set[int]],
+    pair_path_spec_cache: dict[tuple[str, str], dict[str, Any] | None],
+    station_snap_candidates_by_id: dict[str, list[Any]],
+) -> list[str]:
+    if rail_path_service is None or rail_graph is None:
+        return []
+
+    pair_key = (upstream_station_id, downstream_station_id)
+    pair_spec = pair_path_spec_cache.get(pair_key)
+    if pair_spec is None and pair_key not in pair_path_spec_cache:
+        pair_spec = _pair_path_spec(
+            rail_path_service=rail_path_service,
+            rail_graph=rail_graph,
+            segments_by_nodes=segments_by_nodes,
+            upstream_snaps=station_snap_candidates_by_id.get(upstream_station_id, []),
+            downstream_snaps=station_snap_candidates_by_id.get(downstream_station_id, []),
         )
-        if 0.0 < projection["ratio"] < 1.0 and projection["offset_meters"] <= max_offset_meters:
-            station_ids.append((float(projection["offset_meters"]), str(station_id)))
-    station_ids.sort(key=lambda item: item[0])
-    return [station_id for _, station_id in station_ids[:max_candidates]]
+        pair_path_spec_cache[pair_key] = pair_spec
+    if not pair_spec:
+        return []
+
+    path_segment_ids = pair_spec["segment_ids"]
+    path_way_ids = pair_spec.get("way_ids") or set()
+    candidate_station_ids: list[str] = []
+    for station_id, station_snaps in station_snap_candidates_by_id.items():
+        if station_id in {upstream_station_id, downstream_station_id}:
+            continue
+        if any(
+            station_snap.segment_id in path_segment_ids or station_snap.way_id in path_way_ids
+            for station_snap in station_snaps
+        ):
+            candidate_station_ids.append(station_id)
+    return candidate_station_ids
+
+
+def _calibration_projection_requests(calibration: dict[str, Any]) -> dict[tuple[str, str], list[str]]:
+    requests: dict[tuple[str, str], set[str]] = defaultdict(set)
+    for observation in calibration.get("observations", []):
+        if observation.get("status") != "ok":
+            continue
+        station_id = str(observation.get("tdx_liveboard_station_id") or "").strip()
+        upstream_station_id = str(observation.get("upstream_station_id") or "").strip()
+        downstream_station_id = str(observation.get("downstream_station_id") or "").strip()
+        if not station_id or not upstream_station_id or not downstream_station_id:
+            continue
+        if station_id in {upstream_station_id, downstream_station_id}:
+            continue
+        requests[(upstream_station_id, downstream_station_id)].add(station_id)
+    return {key: sorted(station_ids) for key, station_ids in requests.items()}
 
 
 async def _load_timetable_snapshot(*, enabled: bool = True) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -162,10 +326,22 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
     print("export_mobile_bundle_stage init", flush=True)
     settings = get_settings()
     dataset = _read_json(settings.curated_crossings_geojson_path)
+    calibration = _load_bundle_calibration(prediction_calibration_path=settings.prediction_calibration_path)
+    calibration_projection_requests = _calibration_projection_requests(calibration)
     station_graph = get_station_graph_service()
     predictor = get_predictor_service()
     print("export_mobile_bundle_stage station_lookup", flush=True)
     station_lookup_by_id = await station_graph.get_station_lookup_by_id()
+    rail_path_service = station_graph.rail_path_service
+    rail_graph = rail_path_service._graph if rail_path_service is not None else None
+    path_segments_by_nodes: dict[frozenset[int], set[int]] = defaultdict(set)
+    if rail_graph is not None:
+        for segment in rail_graph.segments:
+            path_segments_by_nodes[frozenset((segment.start_node, segment.end_node))].add(segment.segment_id)
+    station_snap_candidates_by_id = {
+        str(station_id): _station_snap_candidates(rail_path_service=rail_path_service, station=station)
+        for station_id, station in station_lookup_by_id.items()
+    }
     print("export_mobile_bundle_stage timetable_snapshot", flush=True)
     timetables, timetable_snapshot = await _load_timetable_snapshot(enabled=use_timetable_snapshot)
     print(f"export_mobile_bundle_stage crossings features={len(dataset.get('features', []))} timetables={len(timetables)}", flush=True)
@@ -177,6 +353,7 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
     station_pair_projections: dict[str, dict[str, Any]] = {}
     station_pair_projection_rejections: dict[str, dict[str, Any]] = {}
     station_projection_candidate_cache: dict[tuple[str, str], list[str]] = {}
+    pair_path_spec_cache: dict[tuple[str, str], dict[str, Any] | None] = {}
 
     def add_station_projection(*, station_id: str, upstream_station_id: str, downstream_station_id: str) -> None:
         key = f"{station_id}|{upstream_station_id}|{downstream_station_id}"
@@ -277,6 +454,7 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
                 station_lookup_by_id=station_lookup_by_id,
             )
             pair_stats: dict[tuple[str, str], dict[str, int]] = {}
+            pair_station_ids: dict[tuple[str, str], set[str]] = defaultdict(set)
             for candidate in prepared.all_candidates:
                 upstream_id = str(candidate.upstream.get("StationID") or "").strip()
                 downstream_id = str(candidate.downstream.get("StationID") or "").strip()
@@ -287,7 +465,11 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
                 stats = pair_stats.setdefault(key, {"count": 0, "span": span})
                 stats["count"] += 1
                 stats["span"] = min(stats["span"], span)
-            pair_keys = sorted(pair_stats, key=lambda key: (pair_stats[key]["span"], -pair_stats[key]["count"], key[0], key[1]))[:MAX_TIMETABLE_RUNTIME_PAIRS_PER_CROSSING]
+                for stop in (candidate.timetable.get("StopTimes") or [])[int(candidate.upstream_index) + 1 : int(candidate.downstream_index)]:
+                    station_id = str(stop.get("StationID") or "").strip()
+                    if station_id and station_id not in {upstream_id, downstream_id}:
+                        pair_station_ids[key].add(station_id)
+            pair_keys = sorted(pair_stats, key=lambda key: (pair_stats[key]["span"], -pair_stats[key]["count"], key[0], key[1]))
             for upstream_id, downstream_id in pair_keys:
                 if _ratio_key(upstream_id, downstream_id) not in ratios:
                     ratio, source, confidence, note = station_graph.resolve_runtime_ratio_for_station_pair(
@@ -318,10 +500,25 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
                 candidate_cache_key = (upstream_id, downstream_id)
                 candidate_station_ids = station_projection_candidate_cache.get(candidate_cache_key)
                 if candidate_station_ids is None:
-                    candidate_station_ids = _candidate_station_projection_ids(
-                        upstream_station_id=upstream_id,
-                        downstream_station_id=downstream_id,
-                        station_lookup_by_id=station_lookup_by_id,
+                    candidate_station_ids = sorted(
+                        {
+                            *_path_segment_station_projection_ids(
+                                upstream_station_id=upstream_id,
+                                downstream_station_id=downstream_id,
+                                rail_path_service=rail_path_service,
+                                rail_graph=rail_graph,
+                                segments_by_nodes=path_segments_by_nodes,
+                                pair_path_spec_cache=pair_path_spec_cache,
+                                station_snap_candidates_by_id=station_snap_candidates_by_id,
+                            ),
+                            *_corridor_station_projection_ids(
+                                upstream_station_id=upstream_id,
+                                downstream_station_id=downstream_id,
+                                station_lookup_by_id=station_lookup_by_id,
+                            ),
+                            *pair_station_ids.get(candidate_cache_key, set()),
+                            *calibration_projection_requests.get(candidate_cache_key, []),
+                        }
                     )
                     station_projection_candidate_cache[candidate_cache_key] = candidate_station_ids
                 for station_id in candidate_station_ids:
@@ -377,7 +574,6 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
             )
 
     stations = await station_graph.list_station_summaries()
-    calibration = _read_json(settings.prediction_calibration_path) if settings.prediction_calibration_path.exists() else {"rules": []}
     payload = {
         "metadata": {
             "schema_version": 2,
@@ -391,12 +587,13 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
             "station_pair_projection_count": len(station_pair_projections),
             "station_pair_projection_rejection_count": len(station_pair_projection_rejections),
             "tdx_timetable_snapshot": timetable_snapshot,
-            "runtime_ratio_scope": "anchor_and_timetable_stop_pairs_with_station_projection_ratios",
+            "runtime_ratio_scope": "anchor_and_all_timetable_stop_pairs_with_full_station_projection_ratios",
             "osm_attribution": "Contains OpenStreetMap-derived level-crossing and rail-path data. OpenStreetMap contributors, ODbL.",
         },
         "crossings": crossings,
         "stations": stations,
         "station_pair_projections": station_pair_projections,
+        "station_pair_projection_rejections": station_pair_projection_rejections,
         "calibration": calibration,
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -405,7 +602,7 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Export the compact CrossRadar mobile asset bundle.")
+    parser = argparse.ArgumentParser(description="Export the full CrossRadar mobile asset bundle.")
     parser.add_argument(
         "--output",
         type=Path,
