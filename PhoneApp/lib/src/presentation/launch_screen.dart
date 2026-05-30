@@ -96,28 +96,21 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with TickerProvider
                         child: Container(
                           width: 140,
                           height: 140,
-                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [AppColors.pastelBlueDeep, Color(0xFF5A8DBE)],
-                            ),
+                            color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
-                              BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.3), blurRadius: 40, offset: const Offset(0, 20)),
-                              BoxShadow(color: Colors.white, blurRadius: 2, spreadRadius: 2),
+                              BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.15), blurRadius: 40, spreadRadius: 10, offset: const Offset(0, 16)),
+                              BoxShadow(color: AppColors.pastelBlueSoft.withValues(alpha: 0.8), blurRadius: 12, spreadRadius: 2, offset: const Offset(0, 4)),
                             ],
+                            border: Border.all(color: Colors.white, width: 4),
                           ),
-                          child: DecoratedBox(
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Image.asset(
-                                'logo/logo.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.radar_rounded, color: AppColors.pastelBlueDeep, size: 64),
-                              ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Image.asset(
+                              'logo/logo.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => const Icon(Icons.radar_rounded, color: AppColors.pastelBlueDeep, size: 64),
                             ),
                           ),
                         ),
