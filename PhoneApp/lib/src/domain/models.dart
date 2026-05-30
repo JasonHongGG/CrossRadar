@@ -233,7 +233,7 @@ class StopTime {
 }
 
 class TrainTimetable {
-  const TrainTimetable({required this.trainNo, required this.trainTypeName, required this.originStationId, required this.originStationName, required this.destinationStationId, required this.destinationStationName, required this.stopTimes, this.headsign});
+  const TrainTimetable({required this.trainNo, required this.trainTypeName, required this.originStationId, required this.originStationName, required this.destinationStationId, required this.destinationStationName, required this.stopTimes, this.headsign, this.direction});
 
   final String trainNo;
   final String? trainTypeName;
@@ -242,6 +242,7 @@ class TrainTimetable {
   final String? destinationStationId;
   final String? destinationStationName;
   final String? headsign;
+  final int? direction;
   final List<StopTime> stopTimes;
 
   factory TrainTimetable.fromJson(Map<String, dynamic> json) {
@@ -255,6 +256,7 @@ class TrainTimetable {
       destinationStationId: textValue(info['EndingStationID']) ?? (stops.isEmpty ? null : stops.last.stationId),
       destinationStationName: textValue(info['EndingStationName']) ?? (stops.isEmpty ? null : stops.last.stationName),
       headsign: textValue(info['TripHeadSign']),
+      direction: info['Direction'] != null ? intValue(info['Direction']) : null,
       stopTimes: stops,
     );
   }

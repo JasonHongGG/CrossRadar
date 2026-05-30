@@ -63,43 +63,31 @@ class _PredictionScreenState extends State<PredictionScreen> {
       ),
       body: Stack(
         children: [
-          ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              _MiniMap(crossing: widget.crossing, userLocation: _userLocation, controller: _mapController),
-              const SizedBox(height: 16),
-              _CrossingStrip(crossing: widget.crossing),
-              const SizedBox(height: 24),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeOutCubic,
-                child: _loading
-                    ? const _PredictionSkeleton(key: ValueKey('loading'))
-                    : _error != null
-                    ? _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!)
-                    : _envelope?.available == false
-                    ? _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '')
-                    : mainPrediction == null
-                    ? const _UnavailablePanel(key: ValueKey('empty'), title: '尚無班次', detail: '目前快照沒有可用的下一班資料。')
-                    : Column(
-                        key: ValueKey(mainPrediction.identityKey),
-                        children: [
-                          _MainPredictionPanel(prediction: mainPrediction, now: DateTime.now()),
-                        ],
-                      ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: _MiniMap(crossing: widget.crossing, userLocation: _userLocation, controller: _mapController),
+                  ),
+                  const SizedBox(height: 16),
+                  _CrossingStrip(crossing: widget.crossing),
+                  const SizedBox(height: 24),
+                  if (_loading)
+                    const _PredictionSkeleton(key: ValueKey('loading'))
+                  else if (_error != null)
+                    _UnavailablePanel(key: const ValueKey('error'), title: '無法更新', detail: _error!)
+                  else if (_envelope?.available == false)
+                    _UnavailablePanel(key: const ValueKey('unavailable'), title: '暫無預測', detail: _envelope?.unavailableDetail ?? _envelope?.unavailableReason ?? '')
+                  else
+                    _PredictionCarousel(
+                      predictions: _carouselPredictions,
+                      now: DateTime.now(),
+                    ),
+                ],
               ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 140,
-                child: PageView(
-                  controller: PageController(viewportFraction: 0.92),
-                  children: [
-                    _CompactPredictionCard(icon: Icons.skip_previous_rounded, prediction: _runtime.previous),
-                    _CompactPredictionCard(icon: Icons.skip_next_rounded, prediction: following),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
           if (_envelope?.dataSnapshot != null)
             Positioned(
@@ -179,6 +167,25 @@ class _PredictionScreenState extends State<PredictionScreen> {
     if (!ok) return;
     await _notificationService.schedulePredictionAlert(prediction, widget.crossing);
   }
+
+  List<PredictionRecord?> get _carouselPredictions {
+    final upcoming = _envelope?.upcomingPredictions ?? [];
+    final actualUpcoming = upcoming.where((p) => p.eta.isAfter(DateTime.now())).toList();
+    
+    final list = <PredictionRecord?>[];
+    list.add(_runtime.previous); // Slot 0: Previous (can be null)
+    
+    if (actualUpcoming.isEmpty) {
+      list.add(null); // Slot 1: Current
+      list.add(null); // Slot 2: Next
+    } else if (actualUpcoming.length == 1) {
+      list.add(actualUpcoming[0]);
+      list.add(null);
+    } else {
+      list.addAll(actualUpcoming);
+    }
+    return list;
+  }
 }
 
 class _MiniMap extends StatelessWidget {
@@ -191,7 +198,7 @@ class _MiniMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 188,
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 8))],
@@ -220,13 +227,22 @@ class _MiniMap extends StatelessWidget {
             Positioned(
               right: 8,
               bottom: 8,
-              child: FloatingActionButton.small(
-                heroTag: 'prediction_compass',
-                onPressed: () => controller.rotate(0),
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.pastelBlueDeep,
-                elevation: 4,
-                child: const Icon(Icons.explore_rounded),
+              child: StreamBuilder<MapEvent>(
+                stream: controller.mapEventStream,
+                builder: (context, snapshot) {
+                  final rotation = controller.camera.rotation;
+                  return FloatingActionButton.small(
+                    heroTag: 'prediction_compass',
+                    onPressed: () => controller.rotate(0),
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.pastelBlueDeep,
+                    elevation: 4,
+                    child: Transform.rotate(
+                      angle: -rotation * (3.1415926535897932 / 180.0),
+                      child: const Icon(Icons.navigation_rounded, color: AppColors.pastelPinkDeep, size: 20),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -319,6 +335,7 @@ class _MainPredictionPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final remaining = prediction.eta.difference(now);
     final isWarning = remaining.inSeconds <= prediction.warningWindowMinutes * 60;
+    final progressValue = _progress(remaining, prediction.warningWindowMinutes);
     
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -330,6 +347,7 @@ class _MainPredictionPanel extends StatelessWidget {
         boxShadow: [BoxShadow(color: (isWarning ? AppColors.pastelPinkDeep : AppColors.pastelBlueDeep).withValues(alpha: 0.12), blurRadius: 32, offset: const Offset(0, 16))],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -376,8 +394,11 @@ class _MainPredictionPanel extends StatelessWidget {
                     alignment: Alignment.center,
                     children: [
                       Container(height: 4, decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(2))),
-                      LinearProgressIndicator(value: _progress(remaining, prediction.warningWindowMinutes), minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
-                      Icon(Icons.directions_railway_rounded, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                      LinearProgressIndicator(value: progressValue, minHeight: 4, borderRadius: BorderRadius.circular(2), backgroundColor: Colors.transparent, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                      Align(
+                        alignment: Alignment(-1.0 + (progressValue * 2), 0.0),
+                        child: Icon(Icons.directions_railway_rounded, color: isWarning ? AppColors.danger : AppColors.pastelBlueDeep),
+                      ),
                     ],
                   ),
                 ),
@@ -421,7 +442,7 @@ class _TimelineNode extends StatelessWidget {
       children: [
         Text(name, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink)),
         const SizedBox(height: 4),
-        Text(_formatClock(time), style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12)),
+        Text(_formatClockMinute(time), style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12)),
       ],
     );
   }
@@ -466,49 +487,136 @@ class _SnapshotDot extends StatelessWidget {
   }
 }
 
-class _CompactPredictionCard extends StatelessWidget {
-  const _CompactPredictionCard({required this.icon, required this.prediction});
-  final IconData icon;
-  final PredictionRecord? prediction;
+class _PredictionCarousel extends StatefulWidget {
+  const _PredictionCarousel({required this.predictions, required this.now});
+  final List<PredictionRecord?> predictions;
+  final DateTime now;
+
+  @override
+  State<_PredictionCarousel> createState() => _PredictionCarouselState();
+}
+
+class _PredictionCarouselState extends State<_PredictionCarousel> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    int initial = 1;
+    if (widget.predictions.length > 1 && widget.predictions[1] == null && widget.predictions[0] != null) {
+      initial = 0;
+    }
+    _pageController = PageController(initialPage: initial);
+  }
+
+  String? _getKey(List<PredictionRecord?> list, int index) {
+    if (index >= 0 && index < list.length) return list[index]?.identityKey;
+    return null;
+  }
+
+  @override
+  void didUpdateWidget(covariant _PredictionCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    bool changed = false;
+    for (int i = 0; i < widget.predictions.length || i < oldWidget.predictions.length; i++) {
+      if (_getKey(oldWidget.predictions, i) != _getKey(widget.predictions, i)) {
+        changed = true;
+        break;
+      }
+    }
+
+    if (changed) {
+       int currentPage = _pageController.page?.round() ?? 1;
+       String? oldKey = _getKey(oldWidget.predictions, currentPage);
+       
+       int newIndex = -1;
+       if (oldKey != null) {
+         newIndex = widget.predictions.indexWhere((p) => p?.identityKey == oldKey);
+       }
+       
+       if (newIndex != -1 && newIndex != currentPage) {
+         _pageController.jumpToPage(newIndex);
+         currentPage = newIndex;
+       }
+       
+       int oldIndex = oldWidget.predictions.indexWhere((p) => p?.identityKey == oldKey);
+       if (oldIndex == 1 && newIndex == 0 && widget.predictions.length > 1 && widget.predictions[1] != null) {
+         WidgetsBinding.instance.addPostFrameCallback((_) {
+           if (mounted) {
+             _pageController.animateToPage(1, duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic);
+           }
+         });
+       }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(right: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      color: Colors.white,
-      shadowColor: AppColors.pastelBlueDeep.withValues(alpha: 0.1),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: prediction == null
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, color: AppColors.muted),
-                  const Spacer(),
-                  const Icon(Icons.hourglass_empty_rounded, color: AppColors.muted),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 18, color: AppColors.pastelBlueDeep)),
-                      const Spacer(),
-                      Text('${prediction!.trainNo}次', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.ink)),
-                    ],
-                  ),
-                  const Spacer(),
-                  Text('${prediction!.previousStopStationName ?? prediction!.upstreamStationName} → ${prediction!.nextStopStationName ?? prediction!.downstreamStationName}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted)),
-                  const SizedBox(height: 4),
-                  Text(_formatClock(prediction!.eta), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.pastelBlueDeep)),
-                ],
+    return SizedBox(
+      height: 310,
+      child: PageView.builder(
+        controller: _pageController,
+        clipBehavior: Clip.none,
+        itemCount: widget.predictions.length,
+        itemBuilder: (context, index) {
+          final prediction = widget.predictions[index];
+          if (prediction == null) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: _EmptyPredictionPanel(),
               ),
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: _MainPredictionPanel(prediction: prediction, now: widget.now),
+            ),
+          );
+        },
       ),
     );
   }
 }
+
+class _EmptyPredictionPanel extends StatelessWidget {
+  const _EmptyPredictionPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      constraints: const BoxConstraints(minHeight: 260),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: AppColors.pastelBlueSoft, width: 1.5),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 16))],
+      ),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.train_rounded, size: 48, color: AppColors.pastelBlueSoft),
+            SizedBox(height: 16),
+            Text('無班次資訊', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.muted)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
 class _PredictionSkeleton extends StatelessWidget {
   const _PredictionSkeleton({super.key});
@@ -544,6 +652,11 @@ class _UnavailablePanel extends StatelessWidget {
 }
 
 String _formatClock(DateTime? value) {
+  if (value == null) return '--:--:--';
+  return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}:${value.second.toString().padLeft(2, '0')}';
+}
+
+String _formatClockMinute(DateTime? value) {
   if (value == null) return '--:--';
   return '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 }

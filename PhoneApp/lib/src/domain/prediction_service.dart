@@ -140,17 +140,18 @@ class PredictionService {
     final stopB = timetable.stopTimes.where((stop) => stop.stationId == stationBId).firstOrNull;
     if (stopA == null || stopB == null) {
       if (stopA != null) {
-        return _resolveSingleAnchorStopPair(timetable.stopTimes, anchorStop: stopA, anchorStationId: stationAId, targetStationId: stationBId, stationLookupById: stationLookupById, anchorRole: 'a');
+        return _resolveSingleAnchorStopPair(timetable.stopTimes, anchorStop: stopA, anchorStationId: stationAId, targetStationId: stationBId, stationLookupById: stationLookupById, anchorRole: 'a', trainDirection: timetable.direction);
       }
       if (stopB != null) {
-        return _resolveSingleAnchorStopPair(timetable.stopTimes, anchorStop: stopB, anchorStationId: stationBId, targetStationId: stationAId, stationLookupById: stationLookupById, anchorRole: 'b');
+        return _resolveSingleAnchorStopPair(timetable.stopTimes, anchorStop: stopB, anchorStationId: stationBId, targetStationId: stationAId, stationLookupById: stationLookupById, anchorRole: 'b', trainDirection: timetable.direction);
       }
       return null;
     }
     final seqA = stopA.stopSequence;
     final seqB = stopB.stopSequence;
     if (seqA == seqB) return null;
-    return seqA < seqB ? (stopA, stopB, 0) : (stopB, stopA, 1);
+    final direction = timetable.direction ?? (seqA < seqB ? 0 : 1);
+    return seqA < seqB ? (stopA, stopB, direction) : (stopB, stopA, direction);
   }
 
   List<PredictionRecord> _buildPredictionsFromTimetables(Crossing crossing, PreparedTimetableSet prepared, Map<String, TrainInfo> trainInfoByNo, Map<String, Station> stationLookupById, List<CalibrationRule> calibrationRules, DateTime now, int? horizonMinutes, int recentMinutes, int warningMinutes) {
@@ -479,7 +480,7 @@ class PredictionService {
     return index;
   }
 
-  (StopTime, StopTime, int)? _resolveSingleAnchorStopPair(List<StopTime> stops, {required StopTime anchorStop, required String anchorStationId, required String targetStationId, required Map<String, Station> stationLookupById, required String anchorRole}) {
+  (StopTime, StopTime, int)? _resolveSingleAnchorStopPair(List<StopTime> stops, {required StopTime anchorStop, required String anchorStationId, required String targetStationId, required Map<String, Station> stationLookupById, required String anchorRole, required int? trainDirection}) {
     final anchorIndex = stops.indexOf(anchorStop);
     if (anchorIndex < 0) return null;
     final indexes = [anchorIndex - 1, anchorIndex + 1].where((index) => index >= 0 && index < stops.length).toList();
@@ -487,9 +488,9 @@ class PredictionService {
     if (bestIndex == null) return null;
     final candidate = stops[bestIndex];
     if (bestIndex < anchorIndex) {
-      return (candidate, anchorStop, anchorRole == 'b' ? 0 : 1);
+      return (candidate, anchorStop, trainDirection ?? (anchorRole == 'b' ? 0 : 1));
     }
-    return (anchorStop, candidate, anchorRole == 'a' ? 0 : 1);
+    return (anchorStop, candidate, trainDirection ?? (anchorRole == 'a' ? 0 : 1));
   }
 
   int? _pickNeighborTowardTarget(List<StopTime> stops, String anchorStationId, String targetStationId, List<int> candidateIndexes, Map<String, Station> stationLookupById) {
@@ -628,15 +629,19 @@ class PredictionService {
   (PredictionRecord?, List<PredictionRecord>, List<PredictionRecord>) _partitionPredictions(List<PredictionRecord> predictions, DateTime now, int recentMinutes) {
     PredictionRecord? recent;
     final upcoming = <PredictionRecord>[];
+    final recentAndUpcoming = <PredictionRecord>[];
     final cutoff = now.subtract(Duration(minutes: recentMinutes));
     for (final prediction in predictions) {
       if (!prediction.eta.isBefore(now)) {
         upcoming.add(prediction);
+        recentAndUpcoming.add(prediction);
       } else if (!prediction.eta.isBefore(cutoff)) {
         recent = prediction;
+        // For UI: include recent in the full list
+        recentAndUpcoming.add(prediction);
       }
     }
-    return (recent, upcoming.take(2).toList(growable: false), upcoming);
+    return (recent, upcoming.take(2).toList(growable: false), recentAndUpcoming);
   }
 
   List<PredictionRecord> _mergePredictions(List<PredictionRecord> livePredictions, List<PredictionRecord> timetablePredictions) {
