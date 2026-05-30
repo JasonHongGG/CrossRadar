@@ -15,6 +15,7 @@ from backend.app.dependencies import get_predictor_service, get_settings, get_st
 _UK_PRIMARY_PATTERN = re.compile(r"^(?P<line>.+?)\s+K\s*(?P<km>\d+)\s*\+\s*(?P<meter>\d+)$")
 _RAIL_PATH_STATION_MAX_SNAP_DISTANCE_METERS = 1_500.0
 _RAIL_PATH_STATION_MAX_SNAP_CANDIDATES = 8
+_MAX_STATION_PROJECTION_CANDIDATES_PER_PAIR = 16
 
 def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -41,6 +42,54 @@ def _load_bundle_calibration(*, prediction_calibration_path: Path) -> dict[str, 
         metadata["replayed_service_dates"] = replayed_dates
     merged["metadata"] = metadata
     return merged
+
+
+def _build_prediction_contract_metadata(
+    *,
+    calibration: dict[str, Any],
+    timetable_snapshot: dict[str, Any],
+    runtime_ratio_count: int,
+    runtime_ratio_rejection_count: int,
+    station_pair_projection_count: int,
+    station_pair_projection_rejection_count: int,
+    runtime_unavailable_count: int,
+) -> dict[str, Any]:
+    calibration_rules = calibration.get("rules") or []
+    calibration_observations = calibration.get("observations") or []
+    readiness = calibration.get("readiness") or {}
+    return {
+        "version": 1,
+        "runtime_independence": "PhoneApp predicts locally from this bundle plus direct TDX snapshots; it must not call WebApp prediction APIs.",
+        "railway_time_zone": "Asia/Taipei",
+        "snapshot_required_sources": ["liveboards", "timetables", "train_info"],
+        "snapshot_incomplete_behavior": "prediction_unavailable",
+        "runtime_ratio_source": "osm_path_only",
+        "runtime_ratio_scope": "anchor_and_all_timetable_stop_pairs_with_full_station_projection_ratios",
+        "runtime_ratio_count": runtime_ratio_count,
+        "runtime_ratio_rejection_count": runtime_ratio_rejection_count,
+        "runtime_unavailable_count": runtime_unavailable_count,
+        "station_pair_projection_count": station_pair_projection_count,
+        "station_pair_projection_rejection_count": station_pair_projection_rejection_count,
+        "calibration_rule_count": len(calibration_rules),
+        "calibration_observation_count": len(calibration_observations),
+        "calibration_family_ready_count": readiness.get("family_ready_count", 0),
+        "calibration_segment_ready_count": readiness.get("segment_ready_count", 0),
+        "tdx_timetable_snapshot": timetable_snapshot,
+        "trace_required_fields": [
+            "service_date",
+            "train_no",
+            "upstream_station_id",
+            "downstream_station_id",
+            "ratio",
+            "delay_seconds",
+            "delay_source",
+            "travel_profile_id",
+            "time_fraction",
+            "timing_model",
+            "calibration_offset_seconds",
+            "eta",
+        ],
+    }
 
 
 def _compact_position(position: dict[str, Any] | None) -> dict[str, float] | None:
@@ -291,6 +340,24 @@ def _path_segment_station_projection_ids(
     return candidate_station_ids
 
 
+def _bounded_station_projection_candidate_ids(
+    *,
+    path_station_ids: list[str],
+    corridor_station_ids: list[str],
+    timetable_station_ids: set[str],
+    calibration_station_ids: list[str],
+) -> list[str]:
+    pinned = list(dict.fromkeys([*sorted(timetable_station_ids), *calibration_station_ids]))
+    pinned_set = set(pinned)
+    fallback = [
+        station_id
+        for station_id in dict.fromkeys([*path_station_ids, *corridor_station_ids])
+        if station_id not in pinned_set
+    ]
+    limit = max(_MAX_STATION_PROJECTION_CANDIDATES_PER_PAIR - len(pinned), 0)
+    return [*pinned, *fallback[:limit]]
+
+
 def _calibration_projection_requests(calibration: dict[str, Any]) -> dict[tuple[str, str], list[str]]:
     requests: dict[tuple[str, str], set[str]] = defaultdict(set)
     for observation in calibration.get("observations", []):
@@ -500,25 +567,23 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
                 candidate_cache_key = (upstream_id, downstream_id)
                 candidate_station_ids = station_projection_candidate_cache.get(candidate_cache_key)
                 if candidate_station_ids is None:
-                    candidate_station_ids = sorted(
-                        {
-                            *_path_segment_station_projection_ids(
-                                upstream_station_id=upstream_id,
-                                downstream_station_id=downstream_id,
-                                rail_path_service=rail_path_service,
-                                rail_graph=rail_graph,
-                                segments_by_nodes=path_segments_by_nodes,
-                                pair_path_spec_cache=pair_path_spec_cache,
-                                station_snap_candidates_by_id=station_snap_candidates_by_id,
-                            ),
-                            *_corridor_station_projection_ids(
-                                upstream_station_id=upstream_id,
-                                downstream_station_id=downstream_id,
-                                station_lookup_by_id=station_lookup_by_id,
-                            ),
-                            *pair_station_ids.get(candidate_cache_key, set()),
-                            *calibration_projection_requests.get(candidate_cache_key, []),
-                        }
+                    candidate_station_ids = _bounded_station_projection_candidate_ids(
+                        path_station_ids=_path_segment_station_projection_ids(
+                            upstream_station_id=upstream_id,
+                            downstream_station_id=downstream_id,
+                            rail_path_service=rail_path_service,
+                            rail_graph=rail_graph,
+                            segments_by_nodes=path_segments_by_nodes,
+                            pair_path_spec_cache=pair_path_spec_cache,
+                            station_snap_candidates_by_id=station_snap_candidates_by_id,
+                        ),
+                        corridor_station_ids=_corridor_station_projection_ids(
+                            upstream_station_id=upstream_id,
+                            downstream_station_id=downstream_id,
+                            station_lookup_by_id=station_lookup_by_id,
+                        ),
+                        timetable_station_ids=pair_station_ids.get(candidate_cache_key, set()),
+                        calibration_station_ids=calibration_projection_requests.get(candidate_cache_key, []),
                     )
                     station_projection_candidate_cache[candidate_cache_key] = candidate_station_ids
                 for station_id in candidate_station_ids:
@@ -574,9 +639,18 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
             )
 
     stations = await station_graph.list_station_summaries()
+    prediction_contract = _build_prediction_contract_metadata(
+        calibration=calibration,
+        timetable_snapshot=timetable_snapshot,
+        runtime_ratio_count=runtime_ratio_count,
+        runtime_ratio_rejection_count=runtime_ratio_rejection_count,
+        station_pair_projection_count=len(station_pair_projections),
+        station_pair_projection_rejection_count=len(station_pair_projection_rejections),
+        runtime_unavailable_count=unavailable_count,
+    )
     payload = {
         "metadata": {
-            "schema_version": 2,
+            "schema_version": 3,
             "generated_at": datetime.now(UTC).isoformat(),
             "source": "CrossRadar WebApp curated runtime datasets",
             "crossing_count": len(crossings),
@@ -587,6 +661,7 @@ async def export_mobile_bundle(output_path: Path, *, use_timetable_snapshot: boo
             "station_pair_projection_count": len(station_pair_projections),
             "station_pair_projection_rejection_count": len(station_pair_projection_rejections),
             "tdx_timetable_snapshot": timetable_snapshot,
+            "prediction_contract": prediction_contract,
             "runtime_ratio_scope": "anchor_and_all_timetable_stop_pairs_with_full_station_projection_ratios",
             "osm_attribution": "Contains OpenStreetMap-derived level-crossing and rail-path data. OpenStreetMap contributors, ODbL.",
         },

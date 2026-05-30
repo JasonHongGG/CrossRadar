@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "source": "webapp-parity-contract",
+  "now": "2026-05-28T09:30:00+08:00",
+  "crossing": {
+    "id": "demo",
+    "name": "四叉巷",
+    "line": "縱貫線北段",
+    "county": "臺南市",
+    "km_marker": "K353+375",
+    "geometry": {"lat": 23.0277, "lon": 120.2371},
+    "geolocation_confidence": "high",
+    "segment_ratio": 0.55,
+    "ratio_source": "osm_path",
+    "segment_confidence": "high",
+    "station_a": {"id": "A", "name": "永康", "position": {"lat": 23.03825, "lon": 120.25347}},
+    "station_b": {"id": "B", "name": "臺南", "position": {"lat": 22.99681, "lon": 120.21295}},
+    "runtime_ratios": {
+      "A|B": {"upstream_station_id": "A", "downstream_station_id": "B", "ratio": 0.55, "source": "osm_path", "confidence": "high"},
+      "B|A": {"upstream_station_id": "B", "downstream_station_id": "A", "ratio": 0.45, "source": "osm_path", "confidence": "high"}
+    }
+  },
+  "stations": [
+    {"station_id": "A", "name": "永康", "position": {"lat": 23.03825, "lon": 120.25347}},
+    {"station_id": "B", "name": "臺南", "position": {"lat": 22.99681, "lon": 120.21295}}
+  ],
+  "timetables": [
+    {
+      "TrainInfo": {
+        "TrainNo": "3001",
+        "TrainTypeName": "區間",
+        "StartingStationID": "A",
+        "StartingStationName": "永康",
+        "EndingStationID": "B",
+        "EndingStationName": "臺南"
+      },
+      "StopTimes": [
+        {"StationID": "A", "StationName": "永康", "StopSequence": 1, "ArrivalTime": "10:00", "DepartureTime": "10:00"},
+        {"StationID": "B", "StationName": "臺南", "StopSequence": 2, "ArrivalTime": "10:10", "DepartureTime": "10:10"}
+      ]
+    }
+  ],
+  "liveboards": [
+    {"TrainNo": "3001", "StationID": "A", "StationName": "永康", "TrainTypeName": "區間", "UpdateTime": "2026-05-28T10:02:00+08:00", "DelayTime": 2}
+  ],
+  "train_info": [
+    {"TrainNo": "3001", "DelayTime": 7}
+  ],
+  "data_snapshot": {
+    "comprehensive": true,
+    "liveboard_count": 1,
+    "delayed_liveboard_count": 1,
+    "timetable_count": 1,
+    "train_info_count": 1,
+    "delayed_train_info_count": 1,
+    "sources": [
+      {"source": "liveboards", "complete": true, "record_count": 1, "delayed_record_count": 1, "fetched_from": "api"},
+      {"source": "timetables", "complete": true, "record_count": 1, "fetched_from": "api"},
+      {"source": "train_info", "complete": true, "record_count": 1, "delayed_record_count": 1, "fetched_from": "api"}
+    ]
+  },
+  "expected": {
+    "available": true,
+    "train_no": "3001",
+    "data_basis": "liveboard",
+    "delay_source": "liveboard",
+    "delay_seconds": 120,
+    "eta": "2026-05-28T10:07:30+08:00",
+    "segment_ratio": 0.55,
+    "timing_model": "liveboard_anchor_profile",
+    "anchor_time_source": "liveboard_update",
+    "time_fraction": 0.5485,
+    "service_date": "2026-05-28"
+  }
+}

@@ -8,7 +8,50 @@ import pytest
 from backend.app.config import Settings
 from backend.app.services.rail_path import RailPathService
 from backend.app.services.station_graph import StationGraphService
-from scripts.export_mobile_bundle import _path_segment_station_projection_ids, _station_snap_candidates
+from scripts.export_mobile_bundle import (
+    _bounded_station_projection_candidate_ids,
+    _build_prediction_contract_metadata,
+    _path_segment_station_projection_ids,
+    _station_snap_candidates,
+)
+
+
+def test_prediction_contract_metadata_declares_mobile_runtime_requirements() -> None:
+    contract = _build_prediction_contract_metadata(
+        calibration={
+            "rules": [{"id": "demo"}],
+            "observations": [{"id": "obs"}],
+            "readiness": {"family_ready_count": 1, "segment_ready_count": 0},
+        },
+        timetable_snapshot={"available": True, "cached_at": "2026-05-28T00:00:00+00:00"},
+        runtime_ratio_count=10,
+        runtime_ratio_rejection_count=2,
+        station_pair_projection_count=5,
+        station_pair_projection_rejection_count=1,
+        runtime_unavailable_count=0,
+    )
+
+    assert contract["railway_time_zone"] == "Asia/Taipei"
+    assert contract["snapshot_required_sources"] == ["liveboards", "timetables", "train_info"]
+    assert contract["snapshot_incomplete_behavior"] == "prediction_unavailable"
+    assert contract["runtime_ratio_source"] == "osm_path_only"
+    assert contract["calibration_rule_count"] == 1
+    assert contract["calibration_family_ready_count"] == 1
+    assert "eta" in contract["trace_required_fields"]
+
+
+def test_bounded_station_projection_candidates_preserve_pinned_sources() -> None:
+    candidates = _bounded_station_projection_candidate_ids(
+        path_station_ids=[f"P{i:02}" for i in range(80)],
+        corridor_station_ids=["C01", "C02"],
+        timetable_station_ids={"T02", "T01"},
+        calibration_station_ids=["K01"],
+    )
+
+    assert candidates[:3] == ["T01", "T02", "K01"]
+    assert len(candidates) == 16
+    assert "P12" in candidates
+    assert "P13" not in candidates
 
 
 class _LocalStationsClient:
