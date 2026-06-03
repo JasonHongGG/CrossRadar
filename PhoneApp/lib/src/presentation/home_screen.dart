@@ -9,6 +9,8 @@ import 'package:latlong2/latlong.dart';
 import '../data/mobile_bundle_repository.dart';
 import '../domain/models.dart';
 import '../domain/search_service.dart';
+import '../services/app_settings_service.dart';
+import '../services/geofence_service.dart';
 import '../services/location_service.dart';
 import '../services/search_history_service.dart';
 import '../theme/app_theme.dart';
@@ -49,6 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(geofenceServiceProvider);
     final bundle = ref.watch(mobileBundleProvider);
     return Scaffold(
       body: bundle.when(
@@ -69,7 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           child: _mode == 0
-              ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction)
+              ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction, settings: ref.watch(appSettingsProvider))
               : _SearchResults(key: const ValueKey('search'), bundle: bundle, groups: groups, history: history, searchQuery: _searchController.text, onPick: _openPrediction, onHistoryDelete: _deleteHistory),
         ),
         Positioned(
@@ -270,7 +273,7 @@ class _FloatingModeButton extends StatelessWidget {
 }
 
 class _MapPicker extends StatelessWidget {
-  const _MapPicker({super.key, required this.bundle, required this.selectedCrossing, required this.mapController, required this.userLocation, required this.onGps, required this.onPick});
+  const _MapPicker({super.key, required this.bundle, required this.selectedCrossing, required this.mapController, required this.userLocation, required this.onGps, required this.onPick, required this.settings});
 
   final MobileBundle bundle;
   final Crossing? selectedCrossing;
@@ -278,6 +281,7 @@ class _MapPicker extends StatelessWidget {
   final GeoPoint? userLocation;
   final VoidCallback onGps;
   final Future<void> Function(Crossing crossing, MobileBundle bundle) onPick;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
@@ -290,6 +294,19 @@ class _MapPicker extends StatelessWidget {
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'crossradar.phone', retinaMode: true),
             if (selectedCrossing != null) PolylineLayer(polylines: _selectedPolylines()),
+            if (userLocation != null && settings.showRadiusOnMap && settings.enableGeofence)
+              CircleLayer(
+                circles: [
+                  CircleMarker(
+                    point: LatLng(userLocation!.lat, userLocation!.lon),
+                    radius: settings.geofenceRadius,
+                    useRadiusInMeter: true,
+                    color: AppColors.pastelPinkDeep.withValues(alpha: 0.15),
+                    borderColor: AppColors.pastelPinkDeep,
+                    borderStrokeWidth: 2,
+                  ),
+                ],
+              ),
             MarkerLayer(markers: _stationMarkers(bundle.stations)),
             MarkerLayer(markers: _crossingMarkers(context)),
             if (selectedCrossing != null) MarkerLayer(markers: _selectedStationMarkers()),

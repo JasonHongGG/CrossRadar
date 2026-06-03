@@ -45,6 +45,68 @@ class NotificationService {
     }
     await _plugin.zonedSchedule(id: id, title: title, body: body, scheduledDate: timezone.TZDateTime.from(scheduledAt, timezone.local), notificationDetails: _details, androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle);
   }
+
+  Future<void> showGeofenceAlert(Crossing crossing, PredictionEnvelope envelope) async {
+    await initialize();
+    final now = DateTime.now();
+
+    final allPredictions = List.of(envelope.predictions)..sort((a, b) => a.eta.compareTo(b.eta));
+    
+    // Find recent passed (eta in the past 5 minutes)
+    final recentPassed = allPredictions.where((p) {
+      final diff = now.difference(p.eta);
+      return diff.inSeconds >= 0 && diff.inMinutes < 5;
+    }).lastOrNull;
+
+    // Find next upcoming
+    final nextUpcoming = allPredictions.where((p) => p.eta.isAfter(now)).firstOrNull;
+
+    if (recentPassed != null) {
+      final diff = now.difference(recentPassed.eta);
+      final hh = diff.inHours.toString().padLeft(2, '0');
+      final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
+      final ss = (diff.inSeconds % 60).toString().padLeft(2, '0');
+      final dirStr = recentPassed.direction == 1 ? '南下' : '北上';
+      
+      final title = '${crossing.name} 警報';
+      final body = '$dirStr火車 已於 ${_clockSeconds(recentPassed.eta)} 通過 (已經過 $hh:$mm:$ss)';
+      
+      final uniqueId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      print('[NotificationService] Showing recentPassed notification ID: $uniqueId, body: $body');
+      
+      await _plugin.show(
+        id: uniqueId,
+        title: title,
+        body: body,
+        notificationDetails: _details,
+      );
+    } else {
+      print('[NotificationService] No recentPassed train to show.');
+    }
+
+    if (nextUpcoming != null) {
+      final diff = nextUpcoming.eta.difference(now);
+      final hh = diff.inHours.toString().padLeft(2, '0');
+      final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
+      final ss = (diff.inSeconds % 60).toString().padLeft(2, '0');
+      final dirStr = nextUpcoming.direction == 1 ? '南下' : '北上';
+      
+      final title = '${crossing.name} 警報';
+      final body = '$dirStr火車 預計 ${_clockSeconds(nextUpcoming.eta)} 抵達 (剩餘 $hh:$mm:$ss)';
+      
+      final uniqueId = (DateTime.now().millisecondsSinceEpoch ~/ 1000) + 1;
+      print('[NotificationService] Showing nextUpcoming notification ID: $uniqueId, body: $body');
+      
+      await _plugin.show(
+        id: uniqueId,
+        title: title,
+        body: body,
+        notificationDetails: _details,
+      );
+    } else {
+      print('[NotificationService] No nextUpcoming train to show.');
+    }
+  }
 }
 
 const _details = NotificationDetails(
@@ -52,3 +114,4 @@ const _details = NotificationDetails(
 );
 
 String _clock(DateTime value) => '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+String _clockSeconds(DateTime value) => '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}:${value.second.toString().padLeft(2, '0')}';

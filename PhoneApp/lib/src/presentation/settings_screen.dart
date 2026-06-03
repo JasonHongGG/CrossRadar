@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/credential_store.dart';
+import '../services/app_settings_service.dart';
 import '../theme/app_theme.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key, this.credentialStore = const TdxCredentialStore()});
 
   final TdxCredentialStore credentialStore;
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _clientIdController = TextEditingController();
   final _clientSecretController = TextEditingController();
   var _source = TdxCredentialSource.none;
@@ -46,6 +48,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
           children: [
+            _GeofenceSettingsPanel(),
+            const SizedBox(height: 24),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               switchInCurve: Curves.easeOutCubic,
@@ -206,6 +210,110 @@ class _SettingsSkeleton extends StatelessWidget {
       height: 320,
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
       child: const Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _GeofenceSettingsPanel extends ConsumerWidget {
+  const _GeofenceSettingsPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final service = ref.read(appSettingsProvider.notifier);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, 16))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const _HeaderIcon(icon: Icons.radar_rounded),
+              const SizedBox(width: 16),
+              const Text('GPS 自動推播', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
+              const Spacer(),
+              Switch(
+                value: settings.enableGeofence,
+                activeColor: AppColors.pastelBlueDeep,
+                onChanged: (val) => service.updateSettings(settings.copyWith(enableGeofence: val)),
+              ),
+            ],
+          ),
+          if (settings.enableGeofence) ...[
+            const SizedBox(height: 24),
+            const Text('觸發規則', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.ink)),
+            const SizedBox(height: 8),
+            RadioListTile<String>(
+              title: const Text('進入範圍內只觸發一次', style: TextStyle(fontSize: 15)),
+              value: 'once',
+              groupValue: settings.triggerMode,
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppColors.pastelBlueDeep,
+              onChanged: (val) => service.updateSettings(settings.copyWith(triggerMode: val)),
+            ),
+            RadioListTile<String>(
+              title: const Text('保持在範圍內定期觸發', style: TextStyle(fontSize: 15)),
+              value: 'periodic',
+              groupValue: settings.triggerMode,
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppColors.pastelBlueDeep,
+              onChanged: (val) => service.updateSettings(settings.copyWith(triggerMode: val)),
+            ),
+            if (settings.triggerMode == 'periodic') ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('定期觸發間隔', style: TextStyle(fontSize: 14, color: AppColors.muted)),
+                  Text('${settings.periodicInterval} 秒', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep)),
+                ],
+              ),
+              Slider(
+                value: settings.periodicInterval.toDouble(),
+                min: 10,
+                max: 300,
+                divisions: 29,
+                activeColor: AppColors.pastelBlueDeep,
+                onChanged: (val) => service.updateState(settings.copyWith(periodicInterval: val.toInt())),
+                onChangeEnd: (val) => service.saveSettings(),
+              ),
+            ],
+            const SizedBox(height: 24),
+            const Divider(color: AppColors.surface, thickness: 2),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('觸發半徑大小', style: TextStyle(fontSize: 14, color: AppColors.muted)),
+                Text('${settings.geofenceRadius.toInt()} 公尺', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.pastelBlueDeep)),
+              ],
+            ),
+            Slider(
+              value: settings.geofenceRadius,
+              min: 50,
+              max: 1000,
+              divisions: 19,
+              activeColor: AppColors.pastelPinkDeep,
+              onChanged: (val) => service.updateState(settings.copyWith(geofenceRadius: val)),
+              onChangeEnd: (val) => service.saveSettings(),
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              title: const Text('在地圖顯示半徑範圍', style: TextStyle(fontSize: 15)),
+              value: settings.showRadiusOnMap,
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppColors.pastelBlueDeep,
+              onChanged: (val) => service.updateSettings(settings.copyWith(showRadiusOnMap: val)),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
