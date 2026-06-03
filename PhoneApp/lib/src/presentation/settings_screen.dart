@@ -297,8 +297,8 @@ class _GeofenceSettingsPanel extends ConsumerWidget {
             Slider(
               value: settings.geofenceRadius,
               min: 50,
-              max: 1000,
-              divisions: 19,
+              max: 2000,
+              divisions: 39,
               activeColor: AppColors.pastelPinkDeep,
               onChanged: (val) => service.updateState(settings.copyWith(geofenceRadius: val)),
               onChangeEnd: (val) => service.saveSettings(),

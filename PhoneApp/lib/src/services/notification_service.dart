@@ -71,7 +71,8 @@ class NotificationService {
       final title = '${crossing.name} 警報';
       final body = '$dirStr火車 已於 ${_clockSeconds(recentPassed.eta)} 通過 (已經過 $hh:$mm:$ss)';
       
-      final uniqueId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      // Combine time and crossing hashcode to guarantee uniqueness even within the same second
+      final uniqueId = ((now.millisecondsSinceEpoch ~/ 1000) ^ crossing.id.hashCode) & 0x7FFFFFFF;
       print('[NotificationService] Showing recentPassed notification ID: $uniqueId, body: $body');
       
       await _plugin.show(
@@ -94,7 +95,8 @@ class NotificationService {
       final title = '${crossing.name} 警報';
       final body = '$dirStr火車 預計 ${_clockSeconds(nextUpcoming.eta)} 抵達 (剩餘 $hh:$mm:$ss)';
       
-      final uniqueId = (DateTime.now().millisecondsSinceEpoch ~/ 1000) + 1;
+      // Add 1 to ensure upcoming is different from recentPassed, even for same crossing
+      final uniqueId = (((now.millisecondsSinceEpoch ~/ 1000) ^ crossing.id.hashCode) + 1) & 0x7FFFFFFF;
       print('[NotificationService] Showing nextUpcoming notification ID: $uniqueId, body: $body');
       
       await _plugin.show(

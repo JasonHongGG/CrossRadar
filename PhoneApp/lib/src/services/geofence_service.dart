@@ -29,7 +29,7 @@ class GeofenceService {
   StreamSubscription<GeoPoint>? _locationSub;
   Timer? _periodicTimer;
   GeoPoint? _latestPosition;
-  String? _lastTriggeredCrossingId;
+  Set<String>? _lastTriggeredCrossingIds;
   DateTime? _lastTriggerTime;
 
   void _init() {
@@ -88,7 +88,7 @@ class GeofenceService {
     _periodicTimer?.cancel();
     _periodicTimer = null;
     _latestPosition = null;
-    _lastTriggeredCrossingId = null;
+    _lastTriggeredCrossingIds = null;
     _lastTriggerTime = null;
   }
 
@@ -103,49 +103,53 @@ class GeofenceService {
     const distanceCalc = Distance();
     final userLatLng = LatLng(position.lat, position.lon);
 
-    Crossing? nearestCrossing;
-    double minDistance = double.infinity;
+    final crossingsInRange = <Crossing>[];
 
     for (final crossing in bundle.crossings) {
       final d = distanceCalc(userLatLng, LatLng(crossing.geometry.lat, crossing.geometry.lon));
-      if (d <= settings.geofenceRadius && d < minDistance) {
-        minDistance = d;
-        nearestCrossing = crossing;
+      if (d <= settings.geofenceRadius) {
+        crossingsInRange.add(crossing);
       }
     }
 
-    if (nearestCrossing == null) {
+    if (crossingsInRange.isEmpty) {
       // User is outside any crossing's radius
-      _lastTriggeredCrossingId = null;
+      _lastTriggeredCrossingIds = null;
       return;
     }
 
-    // User is inside the radius of `nearestCrossing`
+    final currentCrossingIds = crossingsInRange.map((c) => c.id).toSet();
     final now = DateTime.now();
 
     if (settings.triggerMode == 'once') {
-      if (_lastTriggeredCrossingId == nearestCrossing.id) {
-        // Already triggered for this crossing, do nothing
+      final newCrossings = crossingsInRange.where((c) => !(_lastTriggeredCrossingIds?.contains(c.id) ?? false)).toList();
+      if (newCrossings.isEmpty) {
+        // Already triggered for all these crossings, do nothing
         return;
       }
-      _lastTriggeredCrossingId = nearestCrossing.id;
+      _lastTriggeredCrossingIds = (_lastTriggeredCrossingIds ?? {})..addAll(currentCrossingIds);
       _lastTriggerTime = now;
-      print('[Geofence] Triggering once for crossing ${nearestCrossing.name}');
-      await _triggerAlert(nearestCrossing, bundle);
+      print('[Geofence] Triggering once for ${newCrossings.length} crossings');
+      await _triggerAlerts(newCrossings, bundle);
     } else if (settings.triggerMode == 'periodic') {
+      bool isDifferentSet = false;
+      if (_lastTriggeredCrossingIds == null || _lastTriggeredCrossingIds!.length != currentCrossingIds.length || !_lastTriggeredCrossingIds!.containsAll(currentCrossingIds)) {
+        isDifferentSet = true;
+      }
+
       // Tolerate up to 2 seconds of timer drift
-      if (_lastTriggeredCrossingId != nearestCrossing.id || _lastTriggerTime == null || now.difference(_lastTriggerTime!).inSeconds >= (settings.periodicInterval - 2)) {
-        print('[Geofence] Triggering periodic for crossing ${nearestCrossing.name} (elapsed: ${_lastTriggerTime == null ? 'first' : now.difference(_lastTriggerTime!).inSeconds}s)');
-        _lastTriggeredCrossingId = nearestCrossing.id;
+      if (isDifferentSet || _lastTriggerTime == null || now.difference(_lastTriggerTime!).inSeconds >= (settings.periodicInterval - 2)) {
+        print('[Geofence] Triggering periodic for ${crossingsInRange.length} crossings (elapsed: ${_lastTriggerTime == null ? 'first' : now.difference(_lastTriggerTime!).inSeconds}s)');
+        _lastTriggeredCrossingIds = currentCrossingIds;
         _lastTriggerTime = now;
-        await _triggerAlert(nearestCrossing, bundle);
+        await _triggerAlerts(crossingsInRange, bundle);
       } else {
         print('[Geofence] Skipping periodic tick, only ${now.difference(_lastTriggerTime!).inSeconds}s elapsed');
       }
     }
   }
 
-  Future<void> _triggerAlert(Crossing crossing, MobileBundle bundle) async {
+  Future<void> _triggerAlerts(List<Crossing> crossings, MobileBundle bundle) async {
     try {
       final credentials = await _credentialStore.read();
       if (credentials == null) return;
@@ -171,20 +175,22 @@ class GeofenceService {
         ],
       );
 
-      final envelope = _predictionService.predictForCrossing(
-        crossing: crossing,
-        liveboards: liveboards.items,
-        timetables: timetables.items,
-        trainInfos: trainInfos.items,
-        stationLookupById: bundle.stationById,
-        calibrationRules: bundle.calibrationRules,
-        stationPairProjections: bundle.stationPairProjections,
-        stationPairProjectionRejections: bundle.stationPairProjectionRejections,
-        dataSnapshot: snapshot,
-        horizonMinutes: null,
-      );
+      for (final crossing in crossings) {
+        final envelope = _predictionService.predictForCrossing(
+          crossing: crossing,
+          liveboards: liveboards.items,
+          timetables: timetables.items,
+          trainInfos: trainInfos.items,
+          stationLookupById: bundle.stationById,
+          calibrationRules: bundle.calibrationRules,
+          stationPairProjections: bundle.stationPairProjections,
+          stationPairProjectionRejections: bundle.stationPairProjectionRejections,
+          dataSnapshot: snapshot,
+          horizonMinutes: null,
+        );
 
-      await _notificationService.showGeofenceAlert(crossing, envelope);
+        await _notificationService.showGeofenceAlert(crossing, envelope);
+      }
     } catch (e) {
       // Ignore errors in background execution
     }
