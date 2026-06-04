@@ -40,6 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     _searchController.addListener(_handleSearchChanged);
     _loadHistory();
+    _focusGps();
   }
 
   @override

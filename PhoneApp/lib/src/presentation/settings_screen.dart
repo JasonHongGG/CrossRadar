@@ -722,9 +722,7 @@ class _VisualRadiusController extends StatelessWidget {
           onTap: onToggleMapDisplay,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: showOnMap ? AppColors.pastelPinkDeep.withValues(alpha: 0.15) : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
@@ -742,7 +740,7 @@ class _VisualRadiusController extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
@@ -789,13 +787,11 @@ class _CompactSlider extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: color, size: 20),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
