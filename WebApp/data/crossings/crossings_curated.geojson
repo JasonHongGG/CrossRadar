@@ -6,7 +6,7 @@
     "mapped_count": 403,
     "authoritative_pair_count": 3,
     "osm_feature_count": 1900,
-    "osm_raw_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\.runtime\\osm\\taiwan_crossings.overpass.json",
+    "osm_raw_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\WebApp\\.runtime\\osm\\taiwan_crossings.overpass.json",
     "route_reference": {
       "scope": "Crossing station-pair overrides",
       "version": 3,
@@ -22,7 +22,7 @@
     "excluded_without_geometry_count": 8,
     "explicit_runtime_excluded_count": 10,
     "full_feature_count": 418,
-    "full_dataset_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\data\\crossings\\crossings_full.geojson"
+    "full_dataset_path": "C:\\Users\\JasonHong\\Desktop\\CODE\\_Project\\CrossRadar\\WebApp\\data\\crossings\\crossings_full.geojson"
   },
   "features": [
     {
@@ -20195,9 +20195,9 @@
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
-        "station_a_route_km_meters": 355300,
-        "station_b_route_km_meters": 357800,
-        "station_route_reference_note": "Uses official Tainan route-chainage anchors for the Daqiao south end and Tainan station reference point.",
+        "station_a_route_km_meters": null,
+        "station_b_route_km_meters": null,
+        "station_route_reference_note": null,
         "segment_ratio_override": null,
         "segment_ratio_override_source": null,
         "segment_ratio_override_confidence": null,
@@ -20264,9 +20264,9 @@
         "segment_confidence": "low",
         "station_a_id": null,
         "station_b_id": null,
-        "station_a_route_km_meters": 355300,
-        "station_b_route_km_meters": 357800,
-        "station_route_reference_note": "Uses official Tainan route-chainage anchors for the Daqiao south end and Tainan station reference point.",
+        "station_a_route_km_meters": null,
+        "station_b_route_km_meters": null,
+        "station_route_reference_note": null,
         "segment_ratio_override": null,
         "segment_ratio_override_source": null,
         "segment_ratio_override_confidence": null,
