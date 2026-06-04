@@ -464,15 +464,18 @@ class _MainPredictionPanel extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _IconStat(icon: Icons.access_time_rounded, value: _formatClock(prediction.eta)),
-                    const SizedBox(width: 24),
-                    _IconStat(icon: Icons.update_rounded, value: _delayText(prediction), color: (prediction.delaySeconds ?? 0) > 0 ? AppColors.amber : AppColors.muted),
-                    const SizedBox(width: 24),
-                    _IconStat(icon: Icons.speed_rounded, value: _accuracyText(prediction)),
-                  ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _IconStat(icon: Icons.access_time_rounded, value: _formatClock(prediction.eta)),
+                      const SizedBox(width: 24),
+                      _IconStat(icon: Icons.update_rounded, value: _delayText(prediction), color: (prediction.delaySeconds ?? 0) > 0 ? AppColors.amber : AppColors.muted),
+                      const SizedBox(width: 24),
+                      _IconStat(icon: Icons.speed_rounded, value: _accuracyText(prediction)),
+                    ],
+                  ),
                 ),
               ],
             ),
