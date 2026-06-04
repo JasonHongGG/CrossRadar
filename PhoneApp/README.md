@@ -45,3 +45,15 @@ flutter analyze
 cd c:/Users/JasonHong/Desktop/CODE/_Project/CrossRadar/PhoneApp
 flutter build apk --debug
 ```
+
+## Android 12+ Splash Screen Quirks
+
+在 Android 12 以上版本 (特別是 Samsung OneUI)，系統強制會在 App 啟動的瞬間插入一個系統層級的 Splash Screen。如果沒有特別處理，它會抓取 Launcher Icon (狗狗) 並且強制包在一個白色圓角底框 (Squircle) 內，導致在進入 Flutter 的 `LaunchScreen` (也是狗狗，但從小放大) 時產生「先卡死板圖卡、再跳動畫」的視覺斷層。
+
+**解決方案 (目前已實作)**：
+為了達成 100% 無縫、直接進入精美動畫的體驗：
+1. 已經在原生 Android 的 `values-v31/styles.xml` 與 `values-night-v31/styles.xml` 中，將 `android:windowSplashScreenAnimatedIcon` 強制設定為 `@android:color/transparent`。
+2. 這會欺騙 Android 系統畫出一個**完全沒有圖標**的純色啟動畫面 (`#EEF6FF` 或 `#121827`)。
+3. 這樣一來，啟動時只會看到一瞬間的純色背景，緊接著 Flutter UI 準備好後，您的精美縮放動畫就會如同無中生有般流暢演出。
+
+> **⚠️ 注意**：因為 Android 桌面程式對 Splash Screen 有極強的快取，當您修改這些底層 XML 後，**必須完全解除安裝 App (Uninstall)** 並重新 `flutter run`，系統才會吃到這項透明設定。
