@@ -4,7 +4,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../data/mobile_bundle_repository.dart';
+import '../services/app_settings_service.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 
@@ -28,6 +31,11 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with TickerProvider
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      globalPrefs = prefs;
+      if (mounted) setState(() {});
+    });
+
     _entranceController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..forward();
     _radarController = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
 
@@ -153,7 +161,7 @@ class _LaunchScreenState extends ConsumerState<LaunchScreen> with TickerProvider
   }
 
   void _finishWhenReady(AsyncValue<Object?> bundle) {
-    if (_navigated || !_minimumElapsed || bundle.isLoading) return;
+    if (_navigated || !_minimumElapsed || bundle.isLoading || globalPrefs == null) return;
     _navigated = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;

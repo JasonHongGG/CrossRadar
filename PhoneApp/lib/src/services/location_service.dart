@@ -37,7 +37,6 @@ class LocationService {
     yield* Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
       ),
     ).map((position) => GeoPoint(lat: position.latitude, lon: position.longitude));
   }

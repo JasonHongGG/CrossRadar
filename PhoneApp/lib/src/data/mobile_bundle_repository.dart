@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,7 +15,7 @@ class MobileBundleRepository {
 
   Future<MobileBundle> load() async {
     final source = await rootBundle.loadString(assetPath);
-    final bundle = MobileBundle.decode(source);
+    final bundle = await compute(MobileBundle.decode, source);
     if (bundle.crossings.isEmpty) {
       throw StateError('Mobile bundle contains no crossings.');
     }

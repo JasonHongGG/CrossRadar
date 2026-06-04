@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -34,17 +35,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   GeoPoint? _userLocation;
   Crossing? _selectedCrossing;
   List<SearchHistoryEntry> _history = const [];
+  StreamSubscription<GeoPoint>? _positionSubscription;
+  Timer? _gpsPollingTimer;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_handleSearchChanged);
     _loadHistory();
-    _focusGps();
+    _startAutoGpsTracking();
   }
 
   @override
   void dispose() {
+    _gpsPollingTimer?.cancel();
+    _cancelGpsTracking();
     _searchController.removeListener(_handleSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -115,6 +120,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final history = await _historyService.remove(crossingId);
     if (!mounted) return;
     setState(() => _history = history);
+  }
+
+  void _startAutoGpsTracking() {
+    _checkAndStartGps();
+    _gpsPollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _checkAndStartGps());
+  }
+
+  Future<void> _checkAndStartGps() async {
+    if (_positionSubscription != null) return;
+    
+    final location = await _locationService.currentPosition();
+    if (!mounted) return;
+    
+    if (location != null) {
+      final isFirst = _userLocation == null;
+      if (isFirst) {
+        setState(() => _userLocation = location);
+        _mapController.move(LatLng(location.lat, location.lon), 14);
+      }
+      
+      _positionSubscription = _locationService.getPositionStream().listen((pos) {
+        if (!mounted) return;
+        setState(() => _userLocation = pos);
+      }, onError: (_) {
+        _cancelGpsTracking();
+      }, onDone: () {
+        _cancelGpsTracking();
+      });
+    }
+  }
+
+  void _cancelGpsTracking() {
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
   }
 
   Future<void> _focusGps() async {
