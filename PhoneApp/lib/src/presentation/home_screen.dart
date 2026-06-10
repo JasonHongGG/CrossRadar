@@ -32,10 +32,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _locationService = LocationService();
   final _historyService = const SearchHistoryService();
   var _mode = 0;
+  bool _isTracking = true;
   GeoPoint? _userLocation;
   Crossing? _selectedCrossing;
   List<SearchHistoryEntry> _history = const [];
   StreamSubscription<GeoPoint>? _positionSubscription;
+  StreamSubscription<MapEvent>? _mapEventSubscription;
   Timer? _gpsPollingTimer;
 
   @override
@@ -44,12 +46,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _searchController.addListener(_handleSearchChanged);
     _loadHistory();
     _startAutoGpsTracking();
+    
+    _mapEventSubscription = _mapController.mapEventStream.listen((event) {
+      if (event is MapEventMove && event.source != MapEventSource.mapController) {
+        if (_isTracking && mounted) {
+          setState(() => _isTracking = false);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
     _gpsPollingTimer?.cancel();
     _cancelGpsTracking();
+    _mapEventSubscription?.cancel();
     _searchController.removeListener(_handleSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -78,7 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           child: _mode == 0
-              ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction, settings: ref.watch(appSettingsProvider))
+              ? _MapPicker(key: const ValueKey('map'), bundle: bundle, selectedCrossing: _selectedCrossing, mapController: _mapController, userLocation: _userLocation, onGps: _focusGps, onPick: _openPrediction, settings: ref.watch(appSettingsProvider), isTracking: _isTracking, onResumeTracking: _resumeTracking)
               : _SearchResults(key: const ValueKey('search'), bundle: bundle, groups: groups, history: history, searchQuery: _searchController.text, onPick: _openPrediction, onHistoryDelete: _deleteHistory),
         ),
         Positioned(
@@ -136,13 +147,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (location != null) {
       final isFirst = _userLocation == null;
       if (isFirst) {
-        setState(() => _userLocation = location);
+        setState(() {
+          _userLocation = location;
+          _isTracking = true;
+        });
         _mapController.move(LatLng(location.lat, location.lon), 14);
       }
       
       _positionSubscription = _locationService.getPositionStream().listen((pos) {
         if (!mounted) return;
         setState(() => _userLocation = pos);
+        if (_isTracking) {
+          _mapController.move(LatLng(pos.lat, pos.lon), _mapController.camera.zoom);
+        }
       }, onError: (_) {
         _cancelGpsTracking();
       }, onDone: () {
@@ -159,8 +176,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _focusGps() async {
     final location = await _locationService.currentPosition();
     if (!mounted || location == null) return;
-    setState(() => _userLocation = location);
-    _mapController.move(LatLng(location.lat, location.lon), 14);
+    setState(() {
+      _userLocation = location;
+      _isTracking = true;
+    });
+    _mapController.move(LatLng(location.lat, location.lon), _mapController.camera.zoom);
+  }
+
+  void _resumeTracking() {
+    setState(() => _isTracking = true);
+    if (_userLocation != null) {
+      _mapController.move(LatLng(_userLocation!.lat, _userLocation!.lon), _mapController.camera.zoom);
+    }
   }
 
   Future<void> _openPrediction(Crossing crossing, MobileBundle bundle) async {
@@ -313,7 +340,7 @@ class _FloatingModeButton extends StatelessWidget {
 }
 
 class _MapPicker extends StatelessWidget {
-  const _MapPicker({super.key, required this.bundle, required this.selectedCrossing, required this.mapController, required this.userLocation, required this.onGps, required this.onPick, required this.settings});
+  const _MapPicker({super.key, required this.bundle, required this.selectedCrossing, required this.mapController, required this.userLocation, required this.onGps, required this.onPick, required this.settings, required this.isTracking, required this.onResumeTracking});
 
   final MobileBundle bundle;
   final Crossing? selectedCrossing;
@@ -322,6 +349,8 @@ class _MapPicker extends StatelessWidget {
   final VoidCallback onGps;
   final Future<void> Function(Crossing crossing, MobileBundle bundle) onPick;
   final AppSettings settings;
+  final bool isTracking;
+  final VoidCallback onResumeTracking;
 
   @override
   Widget build(BuildContext context) {
@@ -362,6 +391,15 @@ class _MapPicker extends StatelessWidget {
             onGps: onGps,
           ),
         ),
+        if (!isTracking && userLocation != null)
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: _ResumeTrackingButton(onPressed: onResumeTracking),
+            ),
+          ),
       ],
     );
   }
@@ -551,6 +589,40 @@ class _CrossingMarkerWidget extends StatelessWidget {
       );
     }
     return const _CrossingMarkerUnselected();
+  }
+}
+
+class _ResumeTrackingButton extends StatelessWidget {
+  const _ResumeTrackingButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 4))],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.navigation_rounded, color: AppColors.pastelPinkDeep, size: 20),
+                const SizedBox(width: 8),
+                const Text('返回目前位置', style: const TextStyle(color: AppColors.pastelBlueDeep, fontWeight: FontWeight.w800, fontSize: 14)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
