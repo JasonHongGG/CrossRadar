@@ -68,6 +68,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
               index: 1,
               child: const _InteractiveRadarController(),
             ),
+            const SizedBox(height: 32),
+            _StaggeredEntrance(
+              controller: _entranceController,
+              index: 2,
+              child: const _MapSettingsCard(),
+            ),
           ],
         ),
       ),
@@ -771,8 +777,68 @@ class _VisualRadiusController extends StatelessWidget {
   }
 }
 
+class _MapSettingsCard extends ConsumerWidget {
+  const _MapSettingsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appSettingsProvider);
+    final service = ref.read(appSettingsProvider.notifier);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.06), blurRadius: 40, offset: const Offset(0, 16))],
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(38),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(16)),
+                      child: const Icon(Icons.map_rounded, color: AppColors.pastelBlueDeep, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text('地圖設定', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('預設追蹤縮放等級', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.muted)),
+                ),
+                const SizedBox(height: 12),
+                _CompactSlider(
+                  icon: Icons.zoom_in_rounded,
+                  value: settings.trackingZoomLevel,
+                  min: 12,
+                  max: 18,
+                  divisions: 20,
+                  label: settings.trackingZoomLevel.toStringAsFixed(1),
+                  color: AppColors.pastelBlueDeep,
+                  onChanged: (val) => service.updateState(settings.copyWith(trackingZoomLevel: val)),
+                  onChangeEnd: (val) => service.saveSettings(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CompactSlider extends StatelessWidget {
-  const _CompactSlider({required this.icon, required this.value, required this.min, required this.max, required this.label, required this.color, required this.onChanged, required this.onChangeEnd});
+  const _CompactSlider({required this.icon, required this.value, required this.min, required this.max, required this.label, required this.color, required this.onChanged, required this.onChangeEnd, this.divisions});
   final IconData icon;
   final double value;
   final double min;
@@ -781,6 +847,7 @@ class _CompactSlider extends StatelessWidget {
   final Color color;
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onChangeEnd;
+  final int? divisions;
 
   @override
   Widget build(BuildContext context) {
@@ -804,9 +871,10 @@ class _CompactSlider extends StatelessWidget {
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
             ),
             child: Slider(
-              value: value,
+              value: value.clamp(min, max),
               min: min,
               max: max,
+              divisions: divisions,
               onChanged: onChanged,
               onChangeEnd: onChangeEnd,
             ),

@@ -151,14 +151,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _userLocation = location;
           _isTracking = true;
         });
-        _mapController.move(LatLng(location.lat, location.lon), 14);
+        _mapController.move(LatLng(location.lat, location.lon), ref.read(appSettingsProvider).trackingZoomLevel);
       }
       
       _positionSubscription = _locationService.getPositionStream().listen((pos) {
         if (!mounted) return;
         setState(() => _userLocation = pos);
         if (_isTracking) {
-          _mapController.move(LatLng(pos.lat, pos.lon), _mapController.camera.zoom);
+          _mapController.move(LatLng(pos.lat, pos.lon), ref.read(appSettingsProvider).trackingZoomLevel);
         }
       }, onError: (_) {
         _cancelGpsTracking();
@@ -180,13 +180,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _userLocation = location;
       _isTracking = true;
     });
-    _mapController.move(LatLng(location.lat, location.lon), _mapController.camera.zoom);
+    _mapController.move(LatLng(location.lat, location.lon), ref.read(appSettingsProvider).trackingZoomLevel);
   }
 
   void _resumeTracking() {
     setState(() => _isTracking = true);
     if (_userLocation != null) {
-      _mapController.move(LatLng(_userLocation!.lat, _userLocation!.lon), _mapController.camera.zoom);
+      _mapController.move(LatLng(_userLocation!.lat, _userLocation!.lon), ref.read(appSettingsProvider).trackingZoomLevel);
     }
   }
 

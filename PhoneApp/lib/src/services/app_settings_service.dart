@@ -11,6 +11,7 @@ class AppSettings {
     this.triggerMode = 'periodic',
     this.periodicInterval = 30,
     this.showRadiusOnMap = true,
+    this.trackingZoomLevel = 15.0,
   });
 
   final bool enableGeofence;
@@ -18,6 +19,7 @@ class AppSettings {
   final String triggerMode;
   final int periodicInterval;
   final bool showRadiusOnMap;
+  final double trackingZoomLevel;
 
   AppSettings copyWith({
     bool? enableGeofence,
@@ -25,6 +27,7 @@ class AppSettings {
     String? triggerMode,
     int? periodicInterval,
     bool? showRadiusOnMap,
+    double? trackingZoomLevel,
   }) {
     return AppSettings(
       enableGeofence: enableGeofence ?? this.enableGeofence,
@@ -32,6 +35,7 @@ class AppSettings {
       triggerMode: triggerMode ?? this.triggerMode,
       periodicInterval: periodicInterval ?? this.periodicInterval,
       showRadiusOnMap: showRadiusOnMap ?? this.showRadiusOnMap,
+      trackingZoomLevel: trackingZoomLevel ?? this.trackingZoomLevel,
     );
   }
 }
@@ -46,6 +50,7 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
       triggerMode: prefs.getString('triggerMode') ?? 'periodic',
       periodicInterval: prefs.getInt('periodicInterval') ?? 30,
       showRadiusOnMap: prefs.getBool('showRadiusOnMap') ?? true,
+      trackingZoomLevel: prefs.getDouble('trackingZoomLevel') ?? 15.0,
     );
   }
 
@@ -60,6 +65,7 @@ class AppSettingsNotifier extends Notifier<AppSettings> {
     await prefs.setString('triggerMode', state.triggerMode);
     await prefs.setInt('periodicInterval', state.periodicInterval);
     await prefs.setBool('showRadiusOnMap', state.showRadiusOnMap);
+    await prefs.setDouble('trackingZoomLevel', state.trackingZoomLevel);
   }
 
   Future<void> updateSettings(AppSettings settings) async {
