@@ -60,13 +60,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> with SingleTick
             _StaggeredEntrance(
               controller: _entranceController,
               index: 0,
-              child: _SmartKeyCard(credentialStore: widget.credentialStore),
+              child: const _InteractiveRadarController(),
             ),
             const SizedBox(height: 32),
             _StaggeredEntrance(
               controller: _entranceController,
               index: 1,
-              child: const _InteractiveRadarController(),
+              child: _SmartKeyCard(credentialStore: widget.credentialStore),
             ),
             const SizedBox(height: 32),
             _StaggeredEntrance(
@@ -777,59 +777,119 @@ class _VisualRadiusController extends StatelessWidget {
   }
 }
 
-class _MapSettingsCard extends ConsumerWidget {
+class _MapSettingsCard extends ConsumerStatefulWidget {
   const _MapSettingsCard();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MapSettingsCard> createState() => _MapSettingsCardState();
+}
+
+class _MapSettingsCardState extends ConsumerState<_MapSettingsCard> {
+  var _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider);
     final service = ref.read(appSettingsProvider.notifier);
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: [BoxShadow(color: AppColors.pastelBlueDeep.withValues(alpha: 0.06), blurRadius: 40, offset: const Offset(0, 16))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.pastelBlueDeep.withValues(alpha: _expanded ? 0.15 : 0.08),
+            blurRadius: _expanded ? 32 : 16,
+            offset: Offset(0, _expanded ? 16 : 8),
+          )
+        ],
         border: Border.all(color: Colors.white, width: 2),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(38),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: AppColors.pastelBlueSoft, borderRadius: BorderRadius.circular(16)),
-                      child: const Icon(Icons.map_rounded, color: AppColors.pastelBlueDeep, size: 24),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text('地圖設定', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.ink)),
-                  ],
+        borderRadius: BorderRadius.circular(30),
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _expanded = !_expanded);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: AppColors.pastelBlueSoft,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.map_rounded, color: AppColors.pastelBlueDeep, size: 28),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('地圖設定', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.ink)),
+                            const SizedBox(height: 2),
+                            Text(
+                              '目前縮放等級: ${settings.trackingZoomLevel.toStringAsFixed(1)}',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutBack,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(color: AppColors.surface, shape: BoxShape.circle),
+                          child: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.muted, size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 24),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('預設追蹤縮放等級', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.muted)),
-                ),
-                const SizedBox(height: 12),
-                _CompactSlider(
-                  icon: Icons.zoom_in_rounded,
-                  value: settings.trackingZoomLevel,
-                  min: 12,
-                  max: 18,
-                  divisions: 20,
-                  label: settings.trackingZoomLevel.toStringAsFixed(1),
-                  color: AppColors.pastelBlueDeep,
-                  onChanged: (val) => service.updateState(settings.copyWith(trackingZoomLevel: val)),
-                  onChangeEnd: (val) => service.saveSettings(),
-                ),
-              ],
-            ),
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOutCubic,
+                child: _expanded
+                    ? Container(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Divider(height: 1, color: AppColors.surface),
+                            const SizedBox(height: 24),
+                            _CompactSlider(
+                              icon: Icons.zoom_in_rounded,
+                              value: settings.trackingZoomLevel,
+                              min: 12,
+                              max: 18,
+                              divisions: 20,
+                              label: settings.trackingZoomLevel.toStringAsFixed(1),
+                              color: AppColors.pastelBlueDeep,
+                              onChanged: (val) => service.updateState(settings.copyWith(trackingZoomLevel: val)),
+                              onChangeEnd: (val) => service.saveSettings(),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
           ),
         ),
       ),
