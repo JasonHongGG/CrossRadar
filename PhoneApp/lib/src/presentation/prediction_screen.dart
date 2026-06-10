@@ -39,6 +39,8 @@ class _PredictionScreenState extends State<PredictionScreen> {
   GeoPoint? _userLocation;
   String? _error;
   var _loading = true;
+  bool _alarmEnabled = false;
+  final Map<String, Set<int>> _notifiedTrainStages = {};
 
   @override
   void initState() {
@@ -61,7 +63,11 @@ class _PredictionScreenState extends State<PredictionScreen> {
         actions: [
           IconButton(tooltip: '定位', onPressed: _focusGps, icon: const Icon(Icons.my_location_rounded)),
           IconButton(tooltip: '刷新', onPressed: () => _refreshPrediction(forceRefresh: true), icon: const Icon(Icons.refresh_rounded)),
-          IconButton(tooltip: '通知', onPressed: mainPrediction == null ? null : () => _notify(mainPrediction), icon: const Icon(Icons.notifications_active_rounded)),
+          IconButton(
+            tooltip: _alarmEnabled ? '關閉通知' : '開啟通知', 
+            onPressed: _toggleAlarm, 
+            icon: Icon(_alarmEnabled ? Icons.notifications_active_rounded : Icons.notifications_off_rounded, color: _alarmEnabled ? AppColors.pastelPinkDeep : null),
+          ),
           IconButton(tooltip: '複製診斷', onPressed: _envelope == null ? null : _copyDiagnostics, icon: const Icon(Icons.content_copy_rounded)),
         ],
       ),
@@ -141,7 +147,34 @@ class _PredictionScreenState extends State<PredictionScreen> {
   void _tick() {
     final predictions = _envelope?.upcomingPredictions ?? const <PredictionRecord>[];
     if (predictions.isEmpty) return;
-    setState(() => _runtime = _runtime.advance(predictions, _railwayClock.nowTaipei()));
+    
+    final now = _railwayClock.nowTaipei();
+    setState(() => _runtime = _runtime.advance(predictions, now));
+    
+    if (_alarmEnabled) {
+      final nextTrain = predictions.firstOrNull;
+      if (nextTrain != null) {
+        final remaining = nextTrain.eta.difference(now);
+        final secs = remaining.inSeconds;
+        
+        if (secs > 0 && secs <= 540) {
+          int stage = 0;
+          if (secs <= 180) {
+            stage = 1; // 0~3 分鐘
+          } else if (secs <= 360) {
+            stage = 2; // 3~6 分鐘
+          } else if (secs <= 540) {
+            stage = 3; // 6~9 分鐘
+          }
+          
+          final stages = _notifiedTrainStages.putIfAbsent(nextTrain.identityKey, () => <int>{});
+          if (!stages.contains(stage)) {
+            stages.add(stage);
+            _notificationService.showAlarmAlert(widget.crossing, nextTrain);
+          }
+        }
+      }
+    }
   }
 
   Future<void> _focusGps() async {
@@ -151,10 +184,17 @@ class _PredictionScreenState extends State<PredictionScreen> {
     _mapController.move(LatLng(location.lat, location.lon), 15);
   }
 
-  Future<void> _notify(PredictionRecord prediction) async {
+  Future<void> _toggleAlarm() async {
+    if (_alarmEnabled) {
+      setState(() => _alarmEnabled = false);
+      return;
+    }
     final ok = await _notificationService.requestPermission();
-    if (!ok) return;
-    await _notificationService.schedulePredictionAlert(prediction, widget.crossing);
+    if (!ok) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('需要通知權限才能啟用警報')));
+      return;
+    }
+    setState(() => _alarmEnabled = true);
   }
 
   Future<void> _copyDiagnostics() async {

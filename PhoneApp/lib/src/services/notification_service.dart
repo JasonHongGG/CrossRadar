@@ -46,6 +46,30 @@ class NotificationService {
     await _plugin.zonedSchedule(id: id, title: title, body: body, scheduledDate: timezone.TZDateTime.from(scheduledAt, timezone.local), notificationDetails: _details, androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle);
   }
 
+  Future<void> showAlarmAlert(Crossing crossing, PredictionRecord prediction) async {
+    await initialize();
+    final now = DateTime.now();
+    final diff = prediction.eta.difference(now);
+    
+    final hh = diff.inHours.toString().padLeft(2, '0');
+    final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
+    final ss = (diff.inSeconds % 60).toString().padLeft(2, '0');
+    final dirStr = prediction.direction == 1 ? '南下' : '北上';
+    
+    final title = '${crossing.name} 警報';
+    final body = '$dirStr火車 預計 ${_clockSeconds(prediction.eta)} 抵達 (剩餘 $hh:$mm:$ss)';
+    
+    final uniqueId = ((now.millisecondsSinceEpoch ~/ 1000) ^ crossing.id.hashCode ^ prediction.identityKey.hashCode) & 0x7FFFFFFF;
+    print('[NotificationService] Showing alarm notification ID: $uniqueId, body: $body');
+    
+    await _plugin.show(
+      id: uniqueId,
+      title: title,
+      body: body,
+      notificationDetails: _details,
+    );
+  }
+
   Future<void> showGeofenceAlert(Crossing crossing, PredictionEnvelope envelope) async {
     await initialize();
     final now = DateTime.now();
